@@ -1,3 +1,7 @@
+---
+title: Home
+---
+
 # ForgeFIRM
 
 Open firmware for Glowforge brand CNC lasers. ForgeFIRM replaces the
