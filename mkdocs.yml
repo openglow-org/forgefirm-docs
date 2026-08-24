@@ -1,0 +1,87 @@
+# ForgeFIRM documentation site. Built by Zensical, which reads this file
+# directly; mkdocs-material can build the same site from it unchanged.
+
+site_name: ForgeFIRM
+site_description: Open firmware for stock Glowforge lasers
+site_url: https://docs.forgefirm.org/
+repo_url: https://github.com/ScottW514/forgefirm-docs
+repo_name: ScottW514/forgefirm-docs
+edit_uri: edit/main/docs/
+copyright: >-
+  Text licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+  ForgeFIRM is not affiliated with or endorsed by Glowforge.
+
+strict: true
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep orange
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep orange
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.caret
+  - pymdownx.tilde
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ScottW514/forgefirm
+      name: ForgeFIRM on GitHub
+    - icon: fontawesome/solid/comments
+      link: https://community.openglow.org
+      name: Community forum
+
+nav:
+  - Home: index.md
