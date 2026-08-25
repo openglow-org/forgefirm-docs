@@ -1,0 +1,291 @@
+/*
+ * forgefirm.css: the OpenGlow look on top of Zensical.
+ *
+ * The color tokens are the ones the ForgeFIRM control panel uses (forgectrl,
+ * src/ui/theme.css), defined once for the light scheme and once more for
+ * the dark one; Zensical's own variables are pointed at the tokens, so the
+ * stock components follow the theme. Navy header with the starburst
+ * wordmark in both schemes, blue actions and links, laser red reserved for
+ * the active tab and danger notices, system fonts throughout.
+ */
+
+/* ---- Tokens --------------------------------------------------------- */
+:root,
+[data-md-color-scheme="default"] {
+  --og-navy: #2b2b5e;
+  --og-red: #e8262a;
+  --og-action: #0088cc;
+  --og-action-hover: #0077b3;
+  --og-ok: #3d854d;
+  --og-warn: #c7760a;
+  --og-dim: #767a82;
+  --og-bg: #f0f1f4;
+  --og-card: #ffffff;
+  --og-line: #dde0e6;
+  --og-line-soft: #eceef1;
+  --og-txt: #222222;
+  --og-placeholder: #a6aab2;
+  --og-title: var(--og-navy);
+  --og-nav-on: var(--og-navy);
+  --og-action-rgb: 0, 136, 204;
+}
+@media screen {
+  [data-md-color-scheme="slate"] {
+    --og-navy: #2b2b5e;
+    --og-red: #f05a5e;
+    --og-action: #2ea3e0;
+    --og-action-hover: #46b3ec;
+    --og-ok: #5fb374;
+    --og-warn: #e09a3a;
+    --og-dim: #9296a2;
+    --og-bg: #15161c;
+    --og-card: #1e2028;
+    --og-line: #32353f;
+    --og-line-soft: #2a2d36;
+    --og-txt: #d9dce3;
+    --og-placeholder: #6b6f7a;
+    --og-title: #b9bcd8;
+    --og-nav-on: #e6e8f5;
+    --og-action-rgb: 46, 163, 224;
+  }
+}
+
+/* ---- Zensical variables pointed at the tokens ----------------------- */
+:root,
+[data-md-color-scheme="default"] {
+  --md-text-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --md-code-font-family: ui-monospace, Consolas, "Cascadia Mono", monospace;
+  --md-primary-fg-color: var(--og-navy);
+  --md-primary-fg-color--light: #3d3d7a;
+  --md-primary-fg-color--dark: #1f1f48;
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: rgba(255, 255, 255, 0.7);
+  --md-accent-fg-color: var(--og-action);
+  --md-accent-fg-color--transparent: rgba(var(--og-action-rgb), 0.1);
+  --md-accent-bg-color: #ffffff;
+  --md-accent-bg-color--light: rgba(255, 255, 255, 0.7);
+  --md-default-fg-color: var(--og-txt);
+  --md-default-fg-color--light: var(--og-dim);
+  --md-default-fg-color--lighter: var(--og-placeholder);
+  --md-default-fg-color--lightest: var(--og-line-soft);
+  --md-default-bg-color: var(--og-card);
+  --md-code-bg-color: var(--og-bg);
+  --md-code-bg-color--light: rgba(240, 241, 244, 0.7);
+  --md-code-bg-color--lighter: rgba(240, 241, 244, 0.3);
+  --md-typeset-a-color: var(--og-action);
+  --md-typeset-table-color: var(--og-line);
+  --md-typeset-table-color--light: var(--og-line-soft);
+  --md-footer-bg-color: var(--og-bg);
+}
+@media screen {
+  [data-md-color-scheme="slate"] {
+    --md-default-fg-color: var(--og-txt);
+    --md-default-fg-color--light: var(--og-dim);
+    --md-default-fg-color--lighter: var(--og-placeholder);
+    --md-default-fg-color--lightest: var(--og-line-soft);
+    --md-default-bg-color: var(--og-bg);
+    --md-default-bg-color--light: rgba(21, 22, 28, 0.85);
+    --md-default-bg-color--lighter: rgba(21, 22, 28, 0.5);
+    --md-default-bg-color--lightest: rgba(21, 22, 28, 0.2);
+    --md-code-fg-color: #cfd3da;
+    --md-code-bg-color: var(--og-card);
+    --md-code-bg-color--light: rgba(30, 32, 40, 0.9);
+    --md-code-bg-color--lighter: rgba(30, 32, 40, 0.5);
+    --md-accent-fg-color: var(--og-action);
+    --md-accent-fg-color--transparent: rgba(var(--og-action-rgb), 0.12);
+    --md-typeset-a-color: var(--og-action);
+    --md-typeset-table-color: var(--og-line);
+    --md-typeset-table-color--light: var(--og-line-soft);
+    --md-footer-bg-color: var(--og-card);
+  }
+}
+
+/* ---- Header: navy, wordmark, site name ------------------------------ */
+.md-header {
+  color: #ffffff;
+  background-color: var(--og-navy);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.md-header--shadow {
+  box-shadow: none;
+}
+.md-header__button.md-logo {
+  padding: 0.2rem 0.4rem;
+}
+.md-header__button.md-logo svg {
+  height: 1.8rem;
+  width: auto;
+  fill: none;
+}
+.md-header__button.md-logo:hover {
+  opacity: 1;
+}
+.md-header__title {
+  margin-left: 0;
+  padding-left: 0.7rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 0.9rem;
+  letter-spacing: 0.015em;
+}
+.md-header__topic:first-child {
+  font-weight: 600;
+}
+.md-header__topic + .md-header__topic {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 400;
+}
+.md-header .md-search__button {
+  color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.md-header .md-search__button:focus,
+.md-header .md-search__button:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.md-header .md-search__button:before {
+  background-color: rgba(255, 255, 255, 0.85);
+}
+.md-header .md-search__button:after {
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ---- Tabs: the panel's nav bar, red underline on the active tab ----- */
+.md-tabs {
+  color: var(--og-dim);
+  background-color: var(--og-card);
+  box-shadow: none;
+  border-bottom: 1px solid var(--og-line);
+}
+.md-header--lifted .md-tabs {
+  margin-bottom: 0;
+}
+.md-tabs__link {
+  opacity: 1;
+}
+.md-tabs__link:focus,
+.md-tabs__link:hover {
+  color: var(--og-nav-on);
+}
+.md-tabs__item--active {
+  font-weight: 600;
+  color: var(--og-nav-on);
+  border-bottom: 2px solid var(--og-red);
+}
+
+/* ---- Body ----------------------------------------------------------- */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  color: var(--og-title);
+}
+@media screen {
+  [data-md-color-scheme="slate"] .md-typeset h1,
+  [data-md-color-scheme="slate"] .md-typeset h2,
+  [data-md-color-scheme="slate"] .md-typeset h3 {
+    color: var(--og-title);
+  }
+}
+.md-typeset a:focus,
+.md-typeset a:hover {
+  color: var(--og-action-hover);
+}
+.md-typeset pre > code {
+  border: 1px solid var(--og-line);
+}
+.md-typeset table:not([class]) th {
+  color: var(--og-title);
+  background-color: var(--og-line-soft);
+}
+.md-typeset kbd {
+  border-color: var(--og-line);
+}
+
+/* ---- Admonitions: the panel's notice colors ------------------------- */
+.md-typeset .admonition,
+.md-typeset details {
+  border-left: 3px solid var(--og-navy);
+  border-radius: 0.2rem 0.4rem 0.4rem 0.2rem;
+  background-color: rgba(43, 43, 94, 0.06);
+}
+.md-typeset .admonition-title:before,
+.md-typeset summary:before {
+  background-color: var(--og-navy);
+}
+@media screen {
+  [data-md-color-scheme="slate"] .md-typeset .admonition,
+  [data-md-color-scheme="slate"] .md-typeset details {
+    border-left-color: var(--og-title);
+    background-color: rgba(185, 188, 216, 0.08);
+  }
+  [data-md-color-scheme="slate"] .md-typeset .admonition-title:before,
+  [data-md-color-scheme="slate"] .md-typeset summary:before {
+    background-color: var(--og-title);
+  }
+}
+.md-typeset .admonition.abstract,
+.md-typeset details.abstract,
+.md-typeset .admonition.info,
+.md-typeset details.info {
+  border-left-color: var(--og-action);
+  background-color: rgba(var(--og-action-rgb), 0.08);
+}
+.md-typeset .abstract > .admonition-title:before,
+.md-typeset .abstract > summary:before,
+.md-typeset .info > .admonition-title:before,
+.md-typeset .info > summary:before {
+  background-color: var(--og-action);
+}
+.md-typeset .admonition.tip,
+.md-typeset details.tip,
+.md-typeset .admonition.success,
+.md-typeset details.success {
+  border-left-color: var(--og-ok);
+  background-color: rgba(61, 133, 77, 0.09);
+}
+.md-typeset .tip > .admonition-title:before,
+.md-typeset .tip > summary:before,
+.md-typeset .success > .admonition-title:before,
+.md-typeset .success > summary:before {
+  background-color: var(--og-ok);
+}
+.md-typeset .admonition.warning,
+.md-typeset details.warning {
+  border-left-color: var(--og-warn);
+  background-color: rgba(199, 118, 10, 0.1);
+}
+.md-typeset .warning > .admonition-title:before,
+.md-typeset .warning > summary:before {
+  background-color: var(--og-warn);
+}
+.md-typeset .admonition.danger,
+.md-typeset details.danger,
+.md-typeset .admonition.failure,
+.md-typeset details.failure {
+  border-left-color: var(--og-red);
+  background-color: rgba(232, 38, 42, 0.08);
+}
+.md-typeset .danger > .admonition-title:before,
+.md-typeset .danger > summary:before,
+.md-typeset .failure > .admonition-title:before,
+.md-typeset .failure > summary:before {
+  background-color: var(--og-red);
+}
+
+/* ---- Footer --------------------------------------------------------- */
+.md-footer {
+  border-top: 1px solid var(--og-line);
+}
+.md-footer-meta {
+  background-color: var(--md-footer-bg-color);
+}
+.md-copyright {
+  color: var(--og-dim);
+}
+.md-copyright__highlight {
+  color: var(--og-txt);
+}

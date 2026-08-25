@@ -8,14 +8,18 @@ repo_url: https://github.com/ScottW514/forgefirm-docs
 repo_name: ScottW514/forgefirm-docs
 edit_uri: edit/main/docs/
 copyright: >-
+  ForgeFIRM is an <a href="https://community.openglow.org">OpenGlow</a> project.
   Text licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
-  ForgeFIRM is not affiliated with or endorsed by Glowforge.
+  Not affiliated with or endorsed by Glowforge.
 
 strict: true
 
 theme:
   name: material
+  custom_dir: overrides
   language: en
+  favicon: assets/images/favicon.png
+  font: false
   features:
     - navigation.tabs
     - navigation.tabs.sticky
@@ -31,15 +35,15 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: deep orange
-      accent: amber
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: deep orange
-      accent: amber
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
@@ -73,6 +77,9 @@ markdown_extensions:
 
 plugins:
   - search
+
+extra_css:
+  - assets/stylesheets/forgefirm.css
 
 extra:
   social:

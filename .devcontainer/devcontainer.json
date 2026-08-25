@@ -1,0 +1,35 @@
+{
+  "name": "forgefirm-docs",
+  "build": { "dockerfile": "Dockerfile", "context": ".." },
+  "remoteUser": "vscode",
+
+  // The preview server (zensical serve) is started by the "docs: serve"
+  // task in .vscode/tasks.json when the folder opens. It rebuilds the site
+  // on every save and reloads the page; port 8000 is forwarded and the
+  // browser opens on it.
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": { "label": "docs preview", "onAutoForward": "openBrowser" }
+  },
+
+  // The workspace is a bind mount from the host. On Windows (Docker or
+  // Podman) that mount is 9p, which delivers no inotify events, so the
+  // watcher polls instead: a save shows in the browser within a second.
+  "containerEnv": {
+    "ZENSICAL_POLL_WATCHER": "1"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "bierner.markdown-mermaid"
+      ],
+      "settings": {
+        "task.allowAutomaticTasks": "on",
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "files.eol": "\n"
+      }
+    }
+  }
+}

@@ -17,8 +17,24 @@ pip install -r requirements.txt
 zensical serve                # http://127.0.0.1:8000/
 ```
 
+Or open the repository in VS Code and choose **Reopen in Container**. The
+dev container in `.devcontainer/` carries the generator, and the "docs:
+serve" task starts the preview server on port 8000 when the folder opens:
+the port is forwarded, the browser opens on it, and every save rebuilds the
+site and reloads the page. Docker or Podman, either runs it.
+
 `zensical build` writes the site to `site/`. The build is strict: a broken
 link fails it.
+
+## Look
+
+The site wears the same colors as the ForgeFIRM control panel: navy header
+with the OpenGlow starburst wordmark, blue links, laser red kept for the
+active tab and the danger notices, system fonts, light and dark. The tokens
+live in `docs/assets/stylesheets/forgefirm.css` and mirror forgectrl's
+`src/ui/theme.css`, so a color changes in both places or in neither. The
+wordmark and the touch icon come from `overrides/`; the favicon is the
+community forum's own.
 
 ## Checks
 

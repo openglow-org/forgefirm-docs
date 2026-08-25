@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "docs: serve",
+      "detail": "zensical serve on port 8000: rebuilds on every save and reloads the page",
+      "type": "shell",
+      "command": "zensical",
+      "args": ["serve", "--dev-addr", "0.0.0.0:8000"],
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "docs" },
+      "runOptions": { "runOn": "folderOpen" }
+    },
+    {
+      "label": "docs: check",
+      "detail": "What CI runs: strict build, house style, interface coverage",
+      "type": "shell",
+      "command": "zensical build && python scripts/check-style.py && python scripts/check-interfaces.py",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    }
+  ]
+}
