@@ -51,7 +51,11 @@
 }
 
 /* ---- Zensical variables pointed at the tokens ----------------------- */
+/* The theme sets the font families on body, and the color-scheme attribute
+   is on body too. Thus each scheme block must repeat them, or dark mode
+   falls back to the theme's own stack and the header text changes size. */
 :root,
+body,
 [data-md-color-scheme="default"] {
   --md-text-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --md-code-font-family: ui-monospace, Consolas, "Cascadia Mono", monospace;
@@ -79,6 +83,8 @@
 }
 @media screen {
   [data-md-color-scheme="slate"] {
+    --md-text-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --md-code-font-family: ui-monospace, Consolas, "Cascadia Mono", monospace;
     --md-default-fg-color: var(--og-txt);
     --md-default-fg-color--light: var(--og-dim);
     --md-default-fg-color--lighter: var(--og-placeholder);
@@ -200,6 +206,13 @@
 .md-typeset table:not([class]) th {
   color: var(--og-title);
   background-color: var(--og-line-soft);
+}
+/* The first column of a table holds names: variables, files, tools. A name
+   that breaks across lines is hard to read, so code there never wraps. */
+.md-typeset table:not([class]) th:first-child code,
+.md-typeset table:not([class]) td:first-child code {
+  white-space: nowrap;
+  word-break: normal;
 }
 .md-typeset kbd {
   border-color: var(--og-line);

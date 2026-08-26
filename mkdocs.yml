@@ -92,3 +92,14 @@ extra:
 
 nav:
   - Home: index.md
+  - Developers:
+      - developers/index.md
+      - Build: developers/building.md
+      - Release flow: developers/release-flow.md
+      - Acceptance: developers/acceptance.md
+      - Test: developers/testing.md
+      - The bench: developers/bench.md
+      - Contribute: developers/contributing.md
+      - Roadmap: developers/roadmap.md
+      - This site: developers/docs.md
+      - Campaign log: https://github.com/ScottW514/forgefirm/blob/master/docs/CAMPAIGN-LOG.md

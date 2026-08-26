@@ -83,11 +83,11 @@ This site is being assembled. Until each section lands here, the
 documentation stays with the code:
 
 - [Installation](https://github.com/ScottW514/forgefirm/blob/master/INSTALL.md)
-- [Building the image](https://github.com/ScottW514/forgefirm/blob/master/BUILD.md)
+- [Build](developers/building.md), for developers
 - [Connecting LightBurn](https://github.com/ScottW514/forgefirm/blob/master/docs/LIGHTBURN.md)
 - [Motion and the laser](https://github.com/ScottW514/forgefirm/blob/master/docs/MOTION.md)
 - [Cooling and airflow](https://github.com/ScottW514/forgefirm/blob/master/docs/COOLING.md)
 - [The cameras and the video stream](https://github.com/ScottW514/forgefirm/blob/master/docs/VIDEO.md)
 - [How the laser safing works](https://github.com/ScottW514/forgefirm/blob/master/docs/SAFETY.md)
-- [How a release is accepted](https://github.com/ScottW514/forgefirm/blob/master/docs/ACCEPTANCE.md)
+- [Release acceptance](developers/acceptance.md), for developers
 - [Community support](https://community.openglow.org)
