@@ -63,7 +63,10 @@ Each test declares, in code (`forgetest/forgetest/suite/*.py`):
 - **always**: membership in the **always-required core**. The core runs in
   each campaign, and it is never inherited. It holds image health, the
   kernel latch and safety readbacks, and one live emission witness with the
-  armed-window disarm.
+  armed-window disarm. The armed kill test (`laser.armed-kill`) stays in its
+  domain: the emission witness already carries the core's live proof, and
+  the kill path is forgectrl's supervisor, which the coverage map re-requires
+  on each forgectrl change.
 - **actions**: the machine actions that the test asks for by name (`lid`,
   `interlock`, `button`; see "The operator's part"). An `auto` test declares
   none. The page lists them before a start. A bench actuator that covers a
