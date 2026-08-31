@@ -136,7 +136,8 @@ kas build kas/forgefirm-glowforge-debug.yml
 
 The debug kernel has a different config signature. bitbake rebuilds the
 kernel and the dev image under it. The other images stay in the deploy
-directory. The debug image lands beside them. Its version string is
+directory. The debug image lands beside them as
+`forgefirm-image-dev-debug-glowforge.rootfs-*.wic.gz`, version string
 `(dev-debug)`.
 
 Do not ship the debug image. The options make the kernel slow. Boot the
