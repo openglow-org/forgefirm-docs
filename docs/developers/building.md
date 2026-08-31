@@ -124,6 +124,26 @@ forgefirm-image-glowforge.rootfs.wic.gz         the release image
 forgefirm-image-dev-glowforge.rootfs.wic.gz     the dev image
 ```
 
+## The debug-kernel variant
+
+One dev image carries a kernel with the lock-correctness options
+(`DEBUG_MUTEXES`, lockdep, `DEBUG_ATOMIC_SLEEP`). Build it with the debug
+kas config after the normal build:
+
+```console
+kas build kas/forgefirm-glowforge-debug.yml
+```
+
+The debug kernel has a different config signature. bitbake rebuilds the
+kernel and the dev image under it. The other images stay in the deploy
+directory. The debug image lands beside them. Its version string is
+`(dev-debug)`.
+
+Do not ship the debug image. The options make the kernel slow. Boot the
+debug image one time to run the debug-kernel drills
+(`scripts/bench/debug_kernel_drills.py`), then flash the real image. The
+drills cycle the 40 V rail, so the machine must be idle.
+
 `forgefirm-image-dev` is a strict superset of `forgefirm-image`. It adds a
 root login without a password, python3, gdb and strace, the acceptance tool
 `forgetest`, and the bench tools. A release image never has them. The debug
