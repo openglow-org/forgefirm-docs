@@ -47,12 +47,16 @@ the driver:
     - no FIRE leak across cycle churn;
     - the rapids after an M5 executed at idle ship dark;
     - the next job in the same process fires at the level where the
-      previous job ended.
+      previous job ended;
+    - a feed hold leaves no dark ground in either mode: lit into the hold,
+      dark while held, lit from the first step out.
 - `laser_lifecycle_test.py` walks the operator-armed window:
     - one arm for each job, with M5/M3 persistence;
     - the M2 close;
-    - the re-consent after a sender change;
-    - the disarm grace that counts down in Hold;
+    - the re-consent after a sender change, and the hold that a sender
+      change puts a running job into;
+    - the disarm grace that counts down in Hold, and the resume that
+      re-arms a held job (the sender's `~` and the button);
     - the arm refusal under a cooling verdict that blocks.
 
 ## Continuous integration

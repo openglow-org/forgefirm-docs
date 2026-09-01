@@ -28,8 +28,9 @@ Only one sender at a time is meaningful. Opening a second connection displaces
 the first. That is also why the web panel reads position from the machine's own
 counters and never from the Grbl socket.
 
-A TCP disconnect never stops the controller process. Jog from a sender's
-console with a standard jog command, for example `$J=G91X40F1200`.
+A TCP disconnect never stops the controller process. A disconnect during a
+laser job holds the job where the cut stopped (see the table below). Jog from
+a sender's console with a standard jog command, for example `$J=G91X40F1200`.
 
 ??? note "Running the controller by hand"
 
@@ -113,8 +114,9 @@ window is on [The grblHAL driver](../technical/forgefirm/grblhal-driver.md).
 
 | You do | What happens |
 |---|---|
-| Feed hold (`!`) | Controlled ramp to a stop, position kept, laser off. The disarm grace keeps counting. |
-| Cycle start (`~`) | Resumes from the hold. The controller does not back up on resume, so the cut resumes where the deceleration ended. |
+| Feed hold (`!`) | Controlled ramp to a stop, position kept. The ramp runs lit (velocity-scaled under `M4`), the stop is dark, and the disarm grace keeps counting. |
+| Cycle start (`~`) | Resumes from the hold, lit from the first step: a pause is a sharp corner in time, and the corner rolloff governs its mark. If the grace closed the window during the pause, the button lights first and your press resumes the job. |
+| Your sender disconnects mid-job | The job is held where the cut stopped and the window closes. The next sender finds it in Hold: `~` lights the button and a press resumes it, or `^X` ends it. |
 | Jog cancel (`0x85`) | Controlled stop, jog abandoned, position kept. |
 | Soft reset (`^X`) | Controlled deceleration into Alarm, latch relocked, machine position retained; `$X` clears the alarm. |
 | Press the button mid-job | Pause; press again to resume (below). |
@@ -137,7 +139,9 @@ ForgeFIRM reproduces the factory machine's behavior:
   to completion.
 - **The button pauses and resumes.** In GRBL mode a press is a feed hold and
   the next press is a cycle start. A pause is not a cancel: the armed window
-  stays open across it.
+  stays open across it. A pause longer than the disarm grace closes the
+  window; the next press then lights the button and re-arms before the job
+  resumes.
 - **Idle lid cycles are ignored.** Opening the lid to load material, or
   powering up with it open, does not leave the controller parked. Senders
   connect normally.

@@ -251,8 +251,10 @@ deliberately **not** a cancel: the latch stays unlocked and the armed window
 open, which is what lets the next press resume the job. Emission still ends
 with the pause: the stream stops driving FIRE, and the chain drops HV_ENABLE
 by itself ([The kernel module](kernel-module.md)). The window closes on its
-own if the pause outlives the disarm grace. A lid or interlock open while
-paused takes the cancel path, so nothing resumes past an enclosure opening.
+own if the pause outlives the disarm grace. A cycle start after that, from
+the sender or the button, re-arms first: the button lights and the press
+resumes the job. A lid or interlock open while paused takes the cancel path,
+so nothing resumes past an enclosure opening.
 
 **Telemetry that gates nothing.** The `hv_enable` bit is the readback of the
 board's HV_ENABLE output (high only while a run feeds the charge-pump
@@ -263,12 +265,21 @@ watchdog with the lid closed). It is telemetry and gates nothing.
 The operator's table of what each stop does is on
 [GRBL mode](../../usage/grbl-mode.md). The mechanisms behind it:
 
-- **Feed hold** is a controlled ramp to a stop with the position kept and
-  the laser off. The disarm grace keeps counting.
-- **Cycle start** resumes from the hold. The driver does not request a
-  backtrack from the kernel (the ring keeps a retained gap that would allow
-  one; see [Pulse feeder contract](pulse-feeder-contract.md)), so the cut
-  resumes where the deceleration ended.
+- **Feed hold** is a controlled ramp to a stop with the position kept. The
+  deceleration runs lit (velocity-scaled under `M4`), the stationary stretch
+  is dark, and the disarm grace keeps counting.
+- **Cycle start** resumes from the hold, lit from the first step, so a pause
+  is a sharp corner in time and the corner rolloff governs its mark. The
+  driver does not request a backtrack from the kernel (the ring keeps a
+  retained gap that would allow one; see
+  [Pulse feeder contract](pulse-feeder-contract.md)): the kernel's own stop
+  plays the shipped bytes time-stretched with the beam on, which would
+  over-dose more than the planned deceleration does. A resume against a
+  window the grace has closed re-arms first: the button lights, and the
+  press resumes the job.
+- **A sender change while a job runs** holds the job and closes the window.
+  The next sender finds the cut in Hold where it stopped and resumes it
+  through the same re-arm, or resets it.
 - **Jog cancel** is a controlled stop with the jog abandoned and the
   position kept.
 - **Soft reset** (`^X`) is a controlled deceleration into Alarm with the
