@@ -372,14 +372,19 @@ Number of samples in the last ~1 second window (255 samples, one every
 
 Read, ASCII, 0-1
 
-Logical state of the laser power-good line (active low; 1 = power good).
+Logical state of the laser supply's power-good line (active high; 1 = the
+supply reports its outputs within spec). The supply drives the line high the
+whole time it is healthy: it does not follow HV_ENABLE or emission, and it
+reads 1 at idle, through an HV enable, and through a cut. It is a supply-fault
+witness, not an emission witness.
 
 ### laser_pgood_sampled
 
 Read, ASCII, 0-255
 
 Number of samples in the last ~1 second window (255 samples) in which the
-LASER_PGOOD line read low. Updated once per window.
+LASER_PGOOD line read good (high). 255 on a healthy supply. Updated once per
+window.
 
 ### motor_lock
 

@@ -33,7 +33,7 @@ regardless of what the rest of the system is doing.
 | FIRE (LASER_ENABLE) | GPIO2_30, driven by the SDMA script from bit 4 of each byte | The per-tick emission request. High impedance whenever the latch is locked or no run is in flight. |
 | HV_ENABLE | J1_16 | Lets the high-voltage supply run. Lid closed and charge pump alive. |
 | LASER_ON | J1_12 | The gated fire request: FIRE and both latches clear. |
-| LASER_PGOOD (HV_OK) | J1_14 | Read as "power good" from the laser supply; not fully characterized. |
+| LASER_PGOOD | J1_14 | The supply's power-good: driven high while the supply reports its outputs within spec. Static across HV enable and emission; a supply-fault witness. |
 
 ## Three rules the hardware imposes
 
@@ -90,8 +90,10 @@ The software-visible evidence that the tube fires, or may fire:
 - **`hv_current`** and **`hv_voltage`** are the supply's analog readings;
   their meaning is not established, and every supply examined ties the
   voltage input to ground. See [Sensors](sensors.md).
-- **`laser_pgood`** (and `laser_pgood_sampled`) read the supply's HV_OK line.
-  Its semantics are not fully characterized.
+- **`laser_pgood`** (and `laser_pgood_sampled`) read the supply's power-good
+  line: 1 while the supply's supervisor reports every DC output within spec,
+  which is every moment a healthy supply is on. It does not follow HV_ENABLE
+  or emission, so it witnesses a supply fault, never the beam.
 
 The attribute reference for these readbacks is on
 [the kernel module](../forgefirm/kernel-module.md).

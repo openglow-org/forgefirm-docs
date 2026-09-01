@@ -46,7 +46,7 @@ reference is on [the kernel module](../forgefirm/kernel-module.md)).
 | Interlock latch state | U23-2 Q → U6-3 → U6-4 | double inversion | GPIO1_02 (T1) | code 6 `interlock_latch`, active high → **active = latch SET** | 1 = interlock latch blocking |
 | LASER_ON readback | J1_12 net (U17-3 output) | U6-5 inverts | GPIO1_05 (R4) | `cnc/laser_on`, `laser_on_sampled`, `interlock_circuit` bit 0 (raw, active low) | The gated output: the only software-visible proof of emission permission |
 | HV_ENABLE readback (factory net name E-STOP) | U24 = ¬HV_ENABLE | none | GPIO4_06 (W5) | code 4 `hv_enable`, active low → **active = HV_ENABLE asserted** | Readback of the chain's own output, **not** an input: inactive at idle, active only while a run feeds the watchdog with the lid closed |
-| LASER_PGOOD | J1_14 (the supply's HV_OK line) | none | GPIO4_21 (P24) | `cnc/laser_pgood`, `laser_pgood_sampled` (active low) | Read as "power good" from the laser supply; what the supply actually signals on it is not fully characterized |
+| LASER_PGOOD | J1_14 (the supply's power-good line, `HV_PFC_STOP` on the test-point sheet, TP_A2C) | none | GPIO4_21 (P24) | `cnc/laser_pgood`, `laser_pgood_sampled` (active high) | The supply's supervisor (a WT7525, whose open-drain PGO reports every DC output within spec and drops on an over/under-voltage or over-current fault) drives it high the whole time the supply is healthy. Measured: high at idle, through HV_ENABLE cycles and through a full-power cut, and held high against a 100 kΩ pull-down, so it is driven, not floating. A supply-fault witness, not an emission witness |
 
 ## SoC outputs into the chain
 
@@ -140,8 +140,8 @@ The SoC also reads the chain: `doors` (EV_SW 3, GPIO1_00) and `door1` /
 `door2` (EV_SW 0 / 1, GPIO4_14 / GPIO1_06), `charge_pump_alive` (GPIO1_08,
 the one-shot's inverted output), `hv_enable` (EV_SW 4, GPIO4_06),
 `button_latch` (GPIO1_03, = Q1), `interlock_latch` (EV_SW 6, GPIO1_02, = Q2),
-`laser_on` (GPIO1_05), and `laser_pgood` (GPIO4_21, the supply's HV_OK line
-on J1_14). These are readbacks for monitoring only; none of them adds an
+`laser_on` (GPIO1_05), and `laser_pgood` (GPIO4_21, the supply's power-good
+line on J1_14). These are readbacks for monitoring only; none of them adds an
 emission path.
 
 ## What each condition does, in hardware alone
@@ -220,8 +220,5 @@ holds the drill records.
 
 ## Not established
 
-Gaps in the hardware picture. None of them changes the safety argument (every
-gap is on the readback or sense side, or is a "which part" question), but each
-is worth closing:
-
-- **`laser_pgood` (HV_OK, J1_14) semantics** are not fully characterized.
+Nothing on the readback or sense side. Every input in the table above has a
+measured meaning, including the supply's power-good line on J1_14.

@@ -420,8 +420,10 @@ its 1 Hz tick.
   evidence, not a commanded state. Emission with no armed window in the
   recent past gets the hung-controller treatment (`cnc/stop` +
   `cnc/laser_latch=1`, repeated while the evidence persists).
-- **Laser power-good degradation** during an armed window is warned once
-  per session.
+- **Laser supply power-good** is watched during an armed window: when fewer
+  than half of the last second's samples read good, the engine warns once per
+  session. On a healthy supply the line is good in every sample, so the
+  warning means the supply's supervisor reported a fault.
 - **Lid IR fire watch.** The four `pic/lid_ir_*` channels are polled every
   tick; each job logs its baseline and peaks (the characterization dataset).
   The sensors are first of all a photometer for the lid lamp: a full-power

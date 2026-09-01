@@ -203,8 +203,9 @@ on [Kernel module](kernel-module.md).
 - `cnc/laser_latch` (write): the kernel laser lockout, 1 = the SDMA stream
   cannot enable the laser. Owned by the active controller; locked whenever
   no job is in progress, and automatically on `/dev/glowforge` close.
-- `cnc/laser_on[_sampled]`, `laser_pgood[_sampled]`: gated-output and
-  power-good readbacks for telemetry.
+- `cnc/laser_on[_sampled]`, `laser_pgood[_sampled]`: the gated-output readback
+  (the emission witness) and the supply's power-good readback (a supply-fault
+  witness), for telemetry.
 
 What forgectrl itself does for laser safety:
 
