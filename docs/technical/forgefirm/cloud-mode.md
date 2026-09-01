@@ -37,8 +37,8 @@ test levers.
 | `gfcloud.py` (`/usr/sbin`) | Full cloud-mode controller daemon. Spawned and supervised by forgectrl when `controller_mode = cloud` (the init script defers to the supervisor and remains a manual stop only); the pulse device arrives as a broker-inherited fd (`GF_PULSE_FD`) that is never closed, so job boundaries and mode switches do not cycle the 40 V rail. SIGTERM stops the service loop, safes the hardware, and exits. |
 | `gfhome.py` (`/usr/sbin`) | One-shot service-driven homing. Invoked for `$H` when `homing_mode = gfcloud`; dispatches with `allow_print=False` so a print can never run inside a homing session. Completion is guarded: a run of near-identical service corrections aborts (the machine is not physically moving), and quiet only counts as homed when the head accelerometer witnessed real motion during the session ([Homing](homing.md)). |
 | `ffmachine.py` (site-packages) | Shared hardware-machine glue: identity overrides from the shared config, and the forgectrl-routed capture machine both clients use. |
-| `gfutilities` | Protocol and service layer: auth, WebSocket client, action dispatch, settings report, pulse-file handling ([Glowforge-Utilities](https://github.com/ScottW514/Glowforge-Utilities)). |
-| `gfhardware` | The hardware `Machine`: motion, laser latch, switches, cameras ([python3-gfhardware](https://github.com/ScottW514/python3-gfhardware)). Thermal hardware belongs to the forgectrl cooling engine: the cloud client reports job state (`POST /cool/state`, with the pulse header's run fan duties as the per-job profile) and enforces the published verdict on its fire path, gaining the flow verification and over-temp protection the engine provides ([The cooling engine](cooling-engine.md)). |
+| `gfutilities` | Protocol and service layer: auth, WebSocket client, action dispatch, settings report, pulse-file handling ([Glowforge-Utilities](https://github.com/openglow-org/Glowforge-Utilities)). |
+| `gfhardware` | The hardware `Machine`: motion, laser latch, switches, cameras ([python3-gfhardware](https://github.com/openglow-org/python3-gfhardware)). Thermal hardware belongs to the forgectrl cooling engine: the cloud client reports job state (`POST /cool/state`, with the pulse header's run fan duties as the per-job profile) and enforces the published verdict on its fire path, gaining the flow verification and over-temp protection the engine provides ([The cooling engine](cooling-engine.md)). |
 
 `gfhardware` is the Python library for accessing and controlling Glowforge
 brand CNC laser hardware. Its repository's `forgefirm-app/` directory holds
@@ -378,7 +378,7 @@ The operator's procedure for the credentials and the panel fields is on
 
 The library and its emulator are driven by an INI-style configuration file.
 Configuration is parsed by
-[`gfutilities/configuration.py`](https://github.com/ScottW514/Glowforge-Utilities/blob/master/gfutilities/configuration.py):
+[`gfutilities/configuration.py`](https://github.com/openglow-org/Glowforge-Utilities/blob/master/gfutilities/configuration.py):
 section and option names are upper-cased into flat `SECTION.OPTION` keys, the
 literal strings `True`/`False` become booleans, and `%(name)s` interpolation
 is supported within a section.
@@ -507,7 +507,7 @@ relocks the latch on every transition out of a running client
 ### Running the emulator standalone
 
 Off the machine, the bundled
-[`examples/gf-machine-emulator.py`](https://github.com/ScottW514/Glowforge-Utilities/blob/master/examples/gf-machine-emulator.py)
+[`examples/gf-machine-emulator.py`](https://github.com/openglow-org/Glowforge-Utilities/blob/master/examples/gf-machine-emulator.py)
 ties the library together into a runnable emulator. It responds to the
 service with canned camera images and the downloaded motion files, so a full
 homing, motion, and print cycle completes without any hardware attached.
@@ -582,13 +582,13 @@ Glowforge-Utilities/
 
 | Component | Responsibility |
 |---|---|
-| `GFUIService` ([service/gfuiservice.py](https://github.com/ScottW514/Glowforge-Utilities/blob/master/gfutilities/service/gfuiservice.py)) | Top-level connector: authenticates, probes firmware, opens the WSS channel, and runs the action-dispatch loop. |
-| `authenticate_machine` ([service/authentication.py](https://github.com/ScottW514/Glowforge-Utilities/blob/master/gfutilities/service/authentication.py)) | Signs the machine in over HTTPS (with retry and back-off) and stores the auth and WS tokens. |
-| `WsClient` + helpers ([service/websocket.py](https://github.com/ScottW514/Glowforge-Utilities/blob/master/gfutilities/service/websocket.py)) | `websocket-client` control channel plus HTTP helpers: `firmware_check` (version probe only; factory firmware is never downloaded), `img_upload`, `load_motion`, `send_wss_event`. |
-| `BaseMachine` ([device/basemachine.py](https://github.com/ScottW514/Glowforge-Utilities/blob/master/gfutilities/device/basemachine.py)) | Abstract base implementing the action lifecycle and threading; concrete machines override the `_initialize`, `_head_image`, `_lid_image`, `_hunt`, `_motion`, `_button_wait`, and `_shutdown` hooks. |
-| `Emulator` ([device/emulator.py](https://github.com/ScottW514/Glowforge-Utilities/blob/master/gfutilities/device/emulator.py)) | The reference `BaseMachine` implementation used by the example. |
-| `settings` ([device/settings.py](https://github.com/ScottW514/Glowforge-Utilities/blob/master/gfutilities/device/settings.py)) | `MACHINE_SETTINGS` schema and the `send_report` settings-report builder. |
-| `puls` ([puls/pulsedata.py](https://github.com/ScottW514/Glowforge-Utilities/blob/master/gfutilities/puls/pulsedata.py)) | `decode_all_steps` (motion statistics from a pulse stream) and `generate_linear_puls`. |
+| `GFUIService` ([service/gfuiservice.py](https://github.com/openglow-org/Glowforge-Utilities/blob/master/gfutilities/service/gfuiservice.py)) | Top-level connector: authenticates, probes firmware, opens the WSS channel, and runs the action-dispatch loop. |
+| `authenticate_machine` ([service/authentication.py](https://github.com/openglow-org/Glowforge-Utilities/blob/master/gfutilities/service/authentication.py)) | Signs the machine in over HTTPS (with retry and back-off) and stores the auth and WS tokens. |
+| `WsClient` + helpers ([service/websocket.py](https://github.com/openglow-org/Glowforge-Utilities/blob/master/gfutilities/service/websocket.py)) | `websocket-client` control channel plus HTTP helpers: `firmware_check` (version probe only; factory firmware is never downloaded), `img_upload`, `load_motion`, `send_wss_event`. |
+| `BaseMachine` ([device/basemachine.py](https://github.com/openglow-org/Glowforge-Utilities/blob/master/gfutilities/device/basemachine.py)) | Abstract base implementing the action lifecycle and threading; concrete machines override the `_initialize`, `_head_image`, `_lid_image`, `_hunt`, `_motion`, `_button_wait`, and `_shutdown` hooks. |
+| `Emulator` ([device/emulator.py](https://github.com/openglow-org/Glowforge-Utilities/blob/master/gfutilities/device/emulator.py)) | The reference `BaseMachine` implementation used by the example. |
+| `settings` ([device/settings.py](https://github.com/openglow-org/Glowforge-Utilities/blob/master/gfutilities/device/settings.py)) | `MACHINE_SETTINGS` schema and the `send_report` settings-report builder. |
+| `puls` ([puls/pulsedata.py](https://github.com/openglow-org/Glowforge-Utilities/blob/master/gfutilities/puls/pulsedata.py)) | `decode_all_steps` (motion statistics from a pulse stream) and `generate_linear_puls`. |
 
 `load_motion()` downloads a pulse file, parses the header (buffering across
 chunks so headers larger than one read are handled), writes the body, and
@@ -606,7 +606,7 @@ canned assets.
 ### Machine settings
 
 `MACHINE_SETTINGS` in
-[device/settings.py](https://github.com/ScottW514/Glowforge-Utilities/blob/master/gfutilities/device/settings.py)
+[device/settings.py](https://github.com/openglow-org/Glowforge-Utilities/blob/master/gfutilities/device/settings.py)
 is the catalog of 4-character setting codes the machine exchanges with the
 service (`<2-char subsystem><2-char field>`, for example `EFid` = exhaust-fan
 idle duty, `HTvl` = head-temperature value). `send_report()` serializes the

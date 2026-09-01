@@ -58,8 +58,8 @@ Make the directory, then clone the two repositories that a build needs:
 
 ```console
 mkdir openglow-forgefirm && cd openglow-forgefirm
-git clone https://github.com/ScottW514/forgefirm.git
-git clone -b scarthgap https://github.com/ScottW514/meta-openglow.git
+git clone https://github.com/openglow-org/forgefirm.git
+git clone -b scarthgap https://github.com/openglow-org/meta-openglow.git
 ```
 
 The kas configuration refers to `meta-openglow` (branch `scarthgap`) at
@@ -213,7 +213,7 @@ sudo zcat forgefirm-image-glowforge.rootfs.wic.gz | dd of=/dev/sdX bs=1M
 
 The bench boots the dev image from an SD card ([The bench](bench.md)). To
 install ForgeFIRM on the factory eMMC, use the
-[installation instructions](https://github.com/ScottW514/forgefirm/blob/master/INSTALL.md).
+[installation instructions](https://github.com/openglow-org/forgefirm/blob/master/INSTALL.md).
 The installer puts ForgeFIRM in the unused A/B slot, and it archives the
 factory firmware first.
 

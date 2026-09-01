@@ -206,7 +206,7 @@ operating point is measured rather than assumed:
 | Re-check interval | 150 s | A pump that stops mid-job is invisible otherwise. |
 
 The derivation of the threshold is in the bench tools README,
-[How the coolant-flow fire-gate threshold was derived](https://github.com/ScottW514/forgefirm/blob/master/scripts/bench/README.md#how-the-coolant-flow-fire-gate-threshold-was-derived).
+[How the coolant-flow fire-gate threshold was derived](https://github.com/openglow-org/forgefirm/blob/master/scripts/bench/README.md#how-the-coolant-flow-fire-gate-threshold-was-derived).
 
 Each check costs the loop under a degree of heating, and with cut-profile
 fans running the loop still nets cooler over a long job.

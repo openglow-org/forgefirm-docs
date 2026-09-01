@@ -25,7 +25,7 @@ Log in at the factory console ([Serial access](serial-access.md); login
 `root`, no password) and run:
 
 ```sh
-curl -fL https://raw.githubusercontent.com/ScottW514/forgefirm/master/scripts/install-forgefirm.sh --output /tmp/install-forgefirm.sh
+curl -fL https://raw.githubusercontent.com/openglow-org/forgefirm/master/scripts/install-forgefirm.sh --output /tmp/install-forgefirm.sh
 sh /tmp/install-forgefirm.sh
 ```
 

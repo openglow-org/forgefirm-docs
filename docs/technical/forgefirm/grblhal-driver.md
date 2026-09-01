@@ -46,7 +46,7 @@ Three threads carry the work:
 
 The machine constants (steps/mm, maximum rates, accelerations) are measured
 from the factory machine and its pulse streams. Their sources are noted in
-[`src/boards/glowforge.h`](https://github.com/ScottW514/grblHAL-glowforge/blob/main/src/boards/glowforge.h);
+[`src/boards/glowforge.h`](https://github.com/openglow-org/grblHAL-glowforge/blob/main/src/boards/glowforge.h);
 the values are on [The motion hardware](../machine/motion-hardware.md).
 
 Under the ForgeFIRM image the driver runs as a **supervised child of

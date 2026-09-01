@@ -4,8 +4,8 @@
 site_name: ForgeFIRM
 site_description: Open firmware for stock Glowforge lasers
 site_url: https://docs.forgefirm.org/
-repo_url: https://github.com/ScottW514/forgefirm-docs
-repo_name: ScottW514/forgefirm-docs
+repo_url: https://github.com/openglow-org/forgefirm-docs
+repo_name: openglow-org/forgefirm-docs
 edit_uri: edit/main/docs/
 copyright: >-
   ForgeFIRM is an <a href="https://community.openglow.org">OpenGlow</a> project.
@@ -84,7 +84,7 @@ extra_css:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/ScottW514/forgefirm
+      link: https://github.com/openglow-org/forgefirm
       name: ForgeFIRM on GitHub
     - icon: fontawesome/solid/comments
       link: https://community.openglow.org
@@ -151,4 +151,4 @@ nav:
       - The bench: developers/bench.md
       - Contribute: developers/contributing.md
       - This site: developers/docs.md
-      - Campaign log: https://github.com/ScottW514/forgefirm/blob/master/docs/CAMPAIGN-LOG.md
+      - Campaign log: https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md

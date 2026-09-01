@@ -9,9 +9,9 @@ factory i.MX6 control board and serves HTTP on port 8080. This page is the
 machine-services contract: the switch map, the safety-chain readbacks,
 telemetry, mode supervision, pulse-device ownership, the clocks rule, and the
 hardware ownership table. The source is
-[ScottW514/forgectrl](https://github.com/ScottW514/forgectrl); the contract
+[openglow-org/forgectrl](https://github.com/openglow-org/forgectrl); the contract
 document there is
-[`docs/SERVICES.md`](https://github.com/ScottW514/forgectrl/blob/main/docs/SERVICES.md).
+[`docs/SERVICES.md`](https://github.com/openglow-org/forgectrl/blob/main/docs/SERVICES.md).
 
 ## The contract
 
@@ -20,11 +20,11 @@ Three things touch the non-motion hardware of the Glowforge factory board:
 - **forgectrl**, the machine-services daemon: web control panel, camera
   service, machine settings, telemetry, diagnostics, logging.
 - The **GRBL controller**,
-  [grblHAL-glowforge](https://github.com/ScottW514/grblHAL-glowforge):
+  [grblHAL-glowforge](https://github.com/openglow-org/grblHAL-glowforge):
   motion and laser in GRBL mode ([grblHAL driver](grblhal-driver.md)).
 - The **cloud client**, `gfcloud`, built on
-  [Glowforge-Utilities](https://github.com/ScottW514/Glowforge-Utilities)
-  and [python3-gfhardware](https://github.com/ScottW514/python3-gfhardware):
+  [Glowforge-Utilities](https://github.com/openglow-org/Glowforge-Utilities)
+  and [python3-gfhardware](https://github.com/openglow-org/python3-gfhardware):
   motion and laser in Glowforge-cloud mode ([Cloud mode](cloud-mode.md)).
 
 Exactly one controller mode is active at a time. Kernel attribute semantics
@@ -462,7 +462,7 @@ tube.
 Diagnostics ownership: forgectrl stops the motion controller, writes the
 marker file `/run/forgefirm-diag.active`, and recovers on the next start.
 The diagnostics section of the
-[bring-up runbook](https://github.com/ScottW514/forgefirm/blob/master/docs/BRINGUP.md)
+[bring-up runbook](https://github.com/openglow-org/forgefirm/blob/master/docs/BRINGUP.md)
 describes it; the operator's tools are on
 [Diagnostics](../../usage/diagnostics.md).
 
@@ -520,4 +520,4 @@ present:
   signed-in session, including reconnects and clean stops.
 
 The dated record of each drill is the
-[campaign log](https://github.com/ScottW514/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
+[campaign log](https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).

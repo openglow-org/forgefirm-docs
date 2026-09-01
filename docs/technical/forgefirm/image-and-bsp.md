@@ -14,9 +14,9 @@ choices. How to build it is on [Build](../../developers/building.md).
 
 | Layer | Repository | What it holds |
 |---|---|---|
-| `meta-forgefirm` | [forgefirm](https://github.com/ScottW514/forgefirm) | The ForgeFIRM layer: the `forgefirm` distro, the two images, the ForgeFIRM components (`forgectrl`, `grblhal-glowforge`, `forgefirm-app`, `forgefirm-keys`, `forgefirm-logging`, `forgetest`, `ffboot`, `slotmigrate`), and the supporting recipes (`fwup`, `ulfius` with `orcania` and `yder`, `libmicrohttpd`, `rsyslog`, `firmware-imx`) |
-| `meta-glowforge-bsp` | [meta-openglow](https://github.com/ScottW514/meta-openglow), branch `scarthgap` | Machine `glowforge`: the factory NXP i.MX6 control board (kernel, device tree, U-Boot, board recipes, the `kernel-module-glowforge` recipe, `python3-gfhardware`) |
-| `meta-openglow-core` | [meta-openglow](https://github.com/ScottW514/meta-openglow), branch `scarthgap` | Distro-neutral recipes shared by the images built on it: the Glowforge service utilities (`python3-gfutilities`), base-files, networking |
+| `meta-forgefirm` | [forgefirm](https://github.com/openglow-org/forgefirm) | The ForgeFIRM layer: the `forgefirm` distro, the two images, the ForgeFIRM components (`forgectrl`, `grblhal-glowforge`, `forgefirm-app`, `forgefirm-keys`, `forgefirm-logging`, `forgetest`, `ffboot`, `slotmigrate`), and the supporting recipes (`fwup`, `ulfius` with `orcania` and `yder`, `libmicrohttpd`, `rsyslog`, `firmware-imx`) |
+| `meta-glowforge-bsp` | [meta-openglow](https://github.com/openglow-org/meta-openglow), branch `scarthgap` | Machine `glowforge`: the factory NXP i.MX6 control board (kernel, device tree, U-Boot, board recipes, the `kernel-module-glowforge` recipe, `python3-gfhardware`) |
+| `meta-openglow-core` | [meta-openglow](https://github.com/openglow-org/meta-openglow), branch `scarthgap` | Distro-neutral recipes shared by the images built on it: the Glowforge service utilities (`python3-gfutilities`), base-files, networking |
 
 Both `meta-openglow` layers target the Yocto `scarthgap` release and are
 consumed by the ForgeFIRM build. The upstream layers kas clones are `poky`
@@ -273,7 +273,7 @@ that holds many minutes, so the worst a loaded system can do is fail to
 supply bytes fast enough, and that case is detected and treated as a fault
 ([Pulse feeder contract](pulse-feeder-contract.md#pacing-and-backpressure)).
 The ring-depth arithmetic is in the hardware facts bank of the
-[bring-up runbook](https://github.com/ScottW514/forgefirm/blob/master/docs/BRINGUP.md)
+[bring-up runbook](https://github.com/openglow-org/forgefirm/blob/master/docs/BRINGUP.md)
 ("SDMA pulse engine").
 
 ## Cameras

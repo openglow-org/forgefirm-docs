@@ -189,7 +189,7 @@ hardware would not allow.
 
 The proof comes from bench drills with a probe on the PSU-connector LASER_ON
 pin and the kernel readbacks. The
-[campaign log](https://github.com/ScottW514/forgefirm/blob/master/docs/CAMPAIGN-LOG.md)
+[campaign log](https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md)
 holds the drill records.
 
 - Latch **locked**: 40,000 streamed FIRE bits → PSU pin flat, `laser_enable`
@@ -210,7 +210,7 @@ holds the drill records.
   `interlock_latch_reset` and `interlock_latch` all assert within one 50 ms
   sample and all clear when the loop is closed again.
 - Watchdog period, measured directly from the SoC pins
-  ([`cp_watchdog_timing.py`](https://github.com/ScottW514/forgefirm/blob/master/scripts/bench/cp_watchdog_timing.py):
+  ([`cp_watchdog_timing.py`](https://github.com/openglow-org/forgefirm/blob/master/scripts/bench/cp_watchdog_timing.py):
   every CHG_PUMP pulse latched by the GPIO edge detector, the ¬Q and
   ¬HV_ENABLE pads polled at ≈ 0.2 ms): Q falls **451.8 / 455.6 ms** after the
   last pulse (t_w = 454 ± 3 ms, matching R·C); Q rises on the priming pulse

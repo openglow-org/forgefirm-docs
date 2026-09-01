@@ -44,7 +44,7 @@ the machine object) are drawn on [Cloud mode](../forgefirm/cloud-mode.md).
 action to the machine object; the machine performs the work (capture, upload,
 download, and so on) and pushes status events back onto the transmit queue,
 which the `WsClient` drains to the service. The library that implements this is
-[Glowforge-Utilities](https://github.com/ScottW514/Glowforge-Utilities/blob/master/README.md).
+[Glowforge-Utilities](https://github.com/openglow-org/Glowforge-Utilities/blob/master/README.md).
 
 ## Connection and authentication
 

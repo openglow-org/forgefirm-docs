@@ -53,7 +53,7 @@ any image.
 
 The signal is EV_SW bit 3 (`doors`, the series combination both lid switches
 feed, the same one the hardware safety chain uses). `machine_lid_closed()` in
-[`src/status.c`](https://github.com/ScottW514/forgectrl/blob/main/src/status.c)
+[`src/status.c`](https://github.com/openglow-org/forgectrl/blob/main/src/status.c)
 reads it and **fails closed**, so an unreadable lid refuses capture. There is
 no setting to disable the gate.
 
@@ -61,7 +61,7 @@ It is enforced in two places, because two processes can reach a sensor:
 
 | Owner | Covers | Behavior |
 |---|---|---|
-| forgectrl [`src/cam.c`](https://github.com/ScottW514/forgectrl/blob/main/src/cam.c) | the panel, `/cam/stream`, `/cam/snapshot`, the mjpg-streamer aliases, LightBurn, and the cloud client's normal path | refuses to start capture, refuses stream and snapshot up front (HTTP 409), and re-checks every frame so a lid opened mid-capture tears the pipeline down |
+| forgectrl [`src/cam.c`](https://github.com/openglow-org/forgectrl/blob/main/src/cam.c) | the panel, `/cam/stream`, `/cam/snapshot`, the mjpg-streamer aliases, LightBurn, and the cloud client's normal path | refuses to start capture, refuses stream and snapshot up front (HTTP 409), and re-checks every frame so a lid opened mid-capture tears the pipeline down |
 | `gfhardware.cam.capture()` | the cloud client's direct-V4L2 fallback when forgectrl is unreachable, and the capture utility | raises `gfhardware.cam.LidOpen` before configuring the pipeline or touching a lamp |
 
 Both check before any side effect, so a refused capture leaves the lamps and
@@ -247,9 +247,9 @@ implementations, each probed at runtime and each falling back to the next:
 
 | Stage | First choice | Fallback | Switch |
 |---|---|---|---|
-| Demosaic (stream) | GC880 GPU fragment shaders ([`src/gpu_debayer.c`](https://github.com/ScottW514/forgectrl/blob/main/src/gpu_debayer.c)): capture dmabuf in, encoder dmabuf out, CPU untouched | NEON superpixel ([`src/debayer.c`](https://github.com/ScottW514/forgectrl/blob/main/src/debayer.c)), then scalar | `FORGECTRL_NO_GPU`, `FORGECTRL_NO_NEON` |
-| MJPEG frames | CODA960 JPEG unit ([`src/vpu_jpeg.c`](https://github.com/ScottW514/forgectrl/blob/main/src/vpu_jpeg.c)) | libjpeg | `FORGECTRL_NO_VPU` |
-| H.264 stream (`/cam/h264`, fragmented MP4 via [`src/vpu_h264.c`](https://github.com/ScottW514/forgectrl/blob/main/src/vpu_h264.c) + [`src/mp4mux.c`](https://github.com/ScottW514/forgectrl/blob/main/src/mp4mux.c)) | CODA960 BIT processor | none: the endpoint answers 503 and MJPEG remains | `FORGECTRL_NO_H264` |
+| Demosaic (stream) | GC880 GPU fragment shaders ([`src/gpu_debayer.c`](https://github.com/openglow-org/forgectrl/blob/main/src/gpu_debayer.c)): capture dmabuf in, encoder dmabuf out, CPU untouched | NEON superpixel ([`src/debayer.c`](https://github.com/openglow-org/forgectrl/blob/main/src/debayer.c)), then scalar | `FORGECTRL_NO_GPU`, `FORGECTRL_NO_NEON` |
+| MJPEG frames | CODA960 JPEG unit ([`src/vpu_jpeg.c`](https://github.com/openglow-org/forgectrl/blob/main/src/vpu_jpeg.c)) | libjpeg | `FORGECTRL_NO_VPU` |
+| H.264 stream (`/cam/h264`, fragmented MP4 via [`src/vpu_h264.c`](https://github.com/openglow-org/forgectrl/blob/main/src/vpu_h264.c) + [`src/mp4mux.c`](https://github.com/openglow-org/forgectrl/blob/main/src/mp4mux.c)) | CODA960 BIT processor | none: the endpoint answers 503 and MJPEG remains | `FORGECTRL_NO_H264` |
 | fps cap | CSI hardware frame skip (frames dropped before DMA) | software pacing in the worker | `FORGECTRL_NO_HW_SKIP` |
 
 The GPU path loads Mesa with `dlopen` (no build-time GL dependency); an
@@ -273,7 +273,7 @@ four consecutive errored frames cycle the capture queue (which
 re-synchronizes the receiver), and three cycles with no usable frame between
 them stop the engine, so clients reconnect and the whole pipeline setup runs
 again. The ladder is
-[`src/camhealth.c`](https://github.com/ScottW514/forgectrl/blob/main/src/camhealth.c),
+[`src/camhealth.c`](https://github.com/openglow-org/forgectrl/blob/main/src/camhealth.c),
 covered by a host test.
 
 `GET /cam/status` carries the running totals since the daemon started:

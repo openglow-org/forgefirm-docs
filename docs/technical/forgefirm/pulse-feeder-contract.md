@@ -11,7 +11,7 @@ underrun, the dead man's switch, and backtrack. The byte layout and the
 hardware ring (SDMA + EPIT into a GPIO register) are on
 [Step engine](../machine/step-engine.md). The other attributes of the module
 are on [Kernel module](kernel-module.md). The authoritative text is
-[`UAPI.md`](https://github.com/ScottW514/kernel-module-glowforge/blob/master/UAPI.md)
+[`UAPI.md`](https://github.com/openglow-org/kernel-module-glowforge/blob/master/UAPI.md)
 in the module repository.
 
 Everything here is enforced by the SDMA script and the driver. It is not

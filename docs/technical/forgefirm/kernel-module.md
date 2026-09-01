@@ -15,9 +15,9 @@ The driver is the OpenGlow fork of
 [Glowforge/kernel-module-glowforge](https://github.com/Glowforge/kernel-module-glowforge)
 and differs from the Glowforge original; this reference applies to the fork
 only. The source is
-[ScottW514/kernel-module-glowforge](https://github.com/ScottW514/kernel-module-glowforge),
+[openglow-org/kernel-module-glowforge](https://github.com/openglow-org/kernel-module-glowforge),
 and its
-[`UAPI.md`](https://github.com/ScottW514/kernel-module-glowforge/blob/master/UAPI.md)
+[`UAPI.md`](https://github.com/openglow-org/kernel-module-glowforge/blob/master/UAPI.md)
 is the authoritative contract. Where a page of this site and `UAPI.md`
 disagree on kernel behavior, `UAPI.md` wins.
 
@@ -85,7 +85,7 @@ emission the hardware would not allow.
   about 3 ms, while motion restarts at about 219 ms: the chain re-arms about
   216 ms **before** the first step, so a resumed cut never waits on it. The
   drill records are in the
-  [campaign log](https://github.com/ScottW514/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
+  [campaign log](https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
 - **FIRE backstop.** At end-of-data and on underrun the SDMA script drops FIRE
   and the step lines within one tick. The FIRE line is parked Hi-Z at every
   run end, and only a latch unlock plus a new run restores it.
@@ -98,7 +98,7 @@ emission the hardware would not allow.
   loop counts as open. Only an attached device that reports the loop closed
   releases it, and the set-dominant latch then clears through its own RESET.
   The policy is host-tested
-  ([`tests/interlock_test.c`](https://github.com/ScottW514/kernel-module-glowforge/blob/master/tests/interlock_test.c)).
+  ([`tests/interlock_test.c`](https://github.com/openglow-org/kernel-module-glowforge/blob/master/tests/interlock_test.c)).
 - **Dead man's switch.** A feeder holds `/dev/glowforge` open with
   `flock LOCK_EX`. If that fd closes while a program runs, the driver performs
   an emergency stop, puts the head in its safe state, and de-energizes the

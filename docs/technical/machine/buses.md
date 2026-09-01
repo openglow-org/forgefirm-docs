@@ -7,7 +7,7 @@ title: Buses and the serial console
 This page describes the control board's serial console port and the I²C
 devices the public documents name. The circuit of the pogo-pin serial adapter
 is in its own repository:
-[DESIGN.md](https://github.com/ScottW514/openglow-serial-adapter/blob/main/DESIGN.md).
+[DESIGN.md](https://github.com/openglow-org/openglow-serial-adapter/blob/main/DESIGN.md).
 How to get a console on your machine is on
 [Serial access](../../install/serial-access.md).
 
@@ -57,7 +57,7 @@ Two mechanisms:
 The pogo-pin adapter is designed to be clipped on and left there, so its
 unpowered state is benign: both target-facing pins go high-impedance (≤ 2 µA)
 when USB is unplugged. The circuit that achieves this is in
-[DESIGN.md](https://github.com/ScottW514/openglow-serial-adapter/blob/main/DESIGN.md).
+[DESIGN.md](https://github.com/openglow-org/openglow-serial-adapter/blob/main/DESIGN.md).
 
 ## I²C devices
 

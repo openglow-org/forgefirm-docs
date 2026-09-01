@@ -1,7 +1,7 @@
 # ForgeFIRM documentation
 
 The source of [docs.forgefirm.org](https://docs.forgefirm.org/), the
-documentation for [ForgeFIRM](https://github.com/ScottW514/forgefirm), open
+documentation for [ForgeFIRM](https://github.com/openglow-org/forgefirm), open
 firmware for stock Glowforge lasers. Everything the project knows lives here;
 the code repositories keep a README that points back.
 

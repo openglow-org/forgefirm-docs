@@ -23,7 +23,7 @@ a person, a machine, or a fact.
   is.
 
 The safing chain itself is described in
-[SAFETY.md](https://github.com/ScottW514/forgefirm/blob/master/docs/SAFETY.md).
+[SAFETY.md](https://github.com/openglow-org/forgefirm/blob/master/docs/SAFETY.md).
 
 ## Proof before done
 
@@ -33,7 +33,7 @@ A feature or fix is not complete until it is proven. The order of preference:
    controller build lets the laser-stream and armed-window harnesses run
    without hardware.
 2. A bench drill, recorded in the
-   [campaign log](https://github.com/ScottW514/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
+   [campaign log](https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
 3. Documented reasoning.
 
 Also:

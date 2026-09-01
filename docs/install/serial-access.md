@@ -31,7 +31,7 @@ and the driver is included in most operating systems.
 
 ## The OpenGlow serial adapter (BBPSAv1)
 
-The [OpenGlow serial adapter](https://github.com/ScottW514/openglow-serial-adapter)
+The [OpenGlow serial adapter](https://github.com/openglow-org/openglow-serial-adapter)
 is a USB-C serial-console adapter for the Glowforge Basic, Plus, and Pro
 control board. It mounts onto the board with snap-in supports and contacts
 the i.MX6 console test points (D3B, D3D, GND) through three spring-loaded
@@ -58,7 +58,7 @@ the cable is unpowered.
 
 ![Adapter, bottom side](../assets/images/board-bottom.png)
 
-[DESIGN.md](https://github.com/ScottW514/openglow-serial-adapter/blob/main/DESIGN.md)
+[DESIGN.md](https://github.com/openglow-org/openglow-serial-adapter/blob/main/DESIGN.md)
 in the adapter repository is the full circuit description: the target
 interface, every net, why the values are what they are, the mechanical
 design, and the bring-up checklist.
@@ -100,7 +100,7 @@ specific adapter a stable device name.
 3. Fit four **Richco DLCBST-3-01** (4.8 mm) snap-in board supports in the
    corner holes.
 4. Run the bring-up checklist in
-   [DESIGN.md section 10](https://github.com/ScottW514/openglow-serial-adapter/blob/main/DESIGN.md#10-bring-up-checklist)
+   [DESIGN.md section 10](https://github.com/openglow-org/openglow-serial-adapter/blob/main/DESIGN.md#10-bring-up-checklist)
    before the adapter goes near a machine. Step 5, the unpowered-leakage
    measurement, is the one that proves the adapter is safe to leave mounted.
 

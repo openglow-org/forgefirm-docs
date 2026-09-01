@@ -116,5 +116,5 @@ camera switch timeout, a 503 on a snapshot, and an unknown sensor.
 Export a **sanitized log bundle** from the Logs tab and attach it to your
 report ([Logging](logging.md)); skim it first. The community forum is at
 [community.openglow.org](https://community.openglow.org). The project's status
-document, [BRINGUP.md](https://github.com/ScottW514/forgefirm/blob/master/docs/BRINGUP.md),
+document, [BRINGUP.md](https://github.com/openglow-org/forgefirm/blob/master/docs/BRINGUP.md),
 lists the open work.

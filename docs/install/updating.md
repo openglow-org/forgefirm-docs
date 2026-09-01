@@ -12,7 +12,7 @@ the control panel applies one.
 ## What a release is
 
 A ForgeFIRM release is a GitHub release in the
-[`forgefirm` repository](https://github.com/ScottW514/forgefirm/releases).
+[`forgefirm` repository](https://github.com/openglow-org/forgefirm/releases).
 Its assets have fixed names, and the installer and the update manager
 download them by those names:
 

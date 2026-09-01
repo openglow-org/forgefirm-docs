@@ -7,7 +7,7 @@ title: The bench
 The bench is one stock machine with the dev image, and the discipline around
 it. Each result that the project claims was obtained there, and the dated
 record of how is the
-[campaign log](https://github.com/ScottW514/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
+[campaign log](https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
 This page is the runbook: the bench machine, the clean-up rule, the bench
 diagnostics page, the bench tools, and the bench actuator.
 
@@ -25,7 +25,7 @@ diagnostics page, the bench tools, and the bench actuator.
   card. The dev image has a BusyBox userland, python3, gdb, and strace. Log
   in over SSH as root; the dev image permits a root login without a
   password. A serial console is available on `ttymxc0`
-  ([serial access](https://github.com/ScottW514/forgefirm/blob/master/SERIAL.md)).
+  ([serial access](https://github.com/openglow-org/forgefirm/blob/master/SERIAL.md)).
 - **Deploy a kernel.** Write the new dev image to the SD card again
   ([Build](building.md)). This works because U-Boot (in the eMMC boot0 area)
   reads the saved environment at eMMC user-area offset 0x80000. That
@@ -33,7 +33,7 @@ diagnostics page, the bench tools, and the bench actuator.
   `mmcroot=/dev/mmcblk1p1`). U-Boot then loads `/boot/uEnv.txt` and
   `/boot/zImage` from that rootfs partition. Thus the kernel always comes from
   the SD card that you wrote. The full eMMC map is in
-  [BRINGUP.md](https://github.com/ScottW514/forgefirm/blob/master/docs/BRINGUP.md),
+  [BRINGUP.md](https://github.com/openglow-org/forgefirm/blob/master/docs/BRINGUP.md),
   in the hardware facts bank, under "eMMC boot & recovery architecture".
 - **Hot-swap a module.** A change to the module alone can go on the board
   without a flash: copy `glowforge.ko` over

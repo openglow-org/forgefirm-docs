@@ -7,7 +7,7 @@ title: This site
 This site is the documentation of ForgeFIRM, and it is the source of truth
 for the project. Each fact has one home, here. A repository README is an
 index card that points here. The source of the site is the
-[`forgefirm-docs`](https://github.com/ScottW514/forgefirm-docs) repository.
+[`forgefirm-docs`](https://github.com/openglow-org/forgefirm-docs) repository.
 [Zensical](https://zensical.org/) builds it from `mkdocs.yml`, and GitHub
 Pages publishes it at `docs.forgefirm.org`.
 

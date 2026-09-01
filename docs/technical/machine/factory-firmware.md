@@ -149,7 +149,7 @@ ceiling and critical line, flow verification, airflow gates, emission witness
 and silence timeout, and a remote service can tighten those limits for a job
 and never loosen them. The factory's own policy, decoded from its firmware, is
 in the hardware facts bank of
-[BRINGUP.md](https://github.com/ScottW514/forgefirm/blob/master/docs/BRINGUP.md)
+[BRINGUP.md](https://github.com/openglow-org/forgefirm/blob/master/docs/BRINGUP.md)
 ("The factory's envelope").
 
 The service pushes very little outside the header. Across every captured
