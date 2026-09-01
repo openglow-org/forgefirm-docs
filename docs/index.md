@@ -9,13 +9,12 @@ cloud-dependent factory software on the **stock control board**, with no
 hardware modification, and gives the machine a local controller, a local web
 control panel, and a standard Grbl interface.
 
-!!! danger "In development, not yet released"
+!!! warning "Beta"
 
-    **ForgeFIRM has no public release, yet.**  Nothing here is installable.  
-    The documentation describes the firmware as it is being built 
-    and validated on the bench. It is here to be read, not followed.  
-    The first public release is expected in September 2026. If you are interested 
-    in being an early tester, please reach out to the developer.  
+    **ForgeFIRM is in beta.** Every release below 0.1.0 is a beta release.
+    Expect problems, and expect frequent updates. Upgrade whenever a newer
+    release is available ([Updating](install/updating.md)), and report what
+    you find ([Community forum](https://community.openglow.org)).
 
 ## What it does
 
@@ -75,19 +74,18 @@ Never defeat the lid switches or interlock. Never leave a running job
 unattended, and keep a fire extinguisher within reach.
 
 **This is experimental software. Use of this software could seriously maim or
-kill you or others, and voids your warranty. Use it at your own risk.**
+kill you or others, and may void your warranty. Use it at your own risk.**
 
-## Where the rest lives, for now
+## Where to go next
 
-This site is being assembled. Until each section lands here, the
-documentation stays with the code:
-
-- [Installation](https://github.com/ScottW514/forgefirm/blob/master/INSTALL.md)
-- [Build](developers/building.md), for developers
-- [Connecting LightBurn](https://github.com/ScottW514/forgefirm/blob/master/docs/LIGHTBURN.md)
-- [Motion and the laser](https://github.com/ScottW514/forgefirm/blob/master/docs/MOTION.md)
-- [Cooling and airflow](https://github.com/ScottW514/forgefirm/blob/master/docs/COOLING.md)
-- [The cameras and the video stream](https://github.com/ScottW514/forgefirm/blob/master/docs/VIDEO.md)
-- [How the laser safing works](https://github.com/ScottW514/forgefirm/blob/master/docs/SAFETY.md)
-- [Release acceptance](developers/acceptance.md), for developers
+- [Safety](safety/index.md): read this first. The hardware safing chain,
+  the software gates, and the checklist before a job.
+- [Installation](install/index.md): serial access, the A/B slot install,
+  switching firmware, updates, recovery.
+- [Usage](usage/index.md): the control panel, the two modes, LightBurn,
+  homing, the cameras, cooling, settings, diagnostics, troubleshooting.
+- [Technical](technical/machine/index.md): the Glowforge machine as built,
+  and [how ForgeFIRM works](technical/forgefirm/index.md) with it.
+- [Developers](developers/index.md): build, release flow, acceptance,
+  tests, the bench.
 - [Community support](https://community.openglow.org)

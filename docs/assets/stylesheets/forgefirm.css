@@ -9,6 +9,22 @@
  * the active tab and danger notices, system fonts throughout.
  */
 
+/* ---- Diagrams ------------------------------------------------------- */
+/* Every Mermaid diagram sits in a <div class="diagram">. Zensical scales a
+ * diagram down to the content width; on a phone that makes a wide diagram
+ * unreadable. Below the phone breakpoint the wrapper keeps the diagram at a
+ * legible width and scrolls sideways, the way a wide table does. A page can
+ * raise the floor for one diagram with style="--diagram-min: 68rem". */
+.md-typeset .diagram {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media screen and (max-width: 44.9375em) {
+  .md-typeset .diagram .mermaid {
+    min-width: var(--diagram-min, 46rem);
+  }
+}
+
 /* ---- Tokens --------------------------------------------------------- */
 :root,
 [data-md-color-scheme="default"] {

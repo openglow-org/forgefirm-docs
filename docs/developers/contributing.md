@@ -57,8 +57,9 @@ Also:
 - **Present tense, present state.** The site describes the machine and the
   firmware as they are. There is no history narrative. Dated records go to
   the campaign log, which is append-only and never revised. The status of
-  the project is in `BRINGUP.md` until the first production release, and in
-  the [Roadmap](roadmap.md) after it.
+  the project is in `BRINGUP.md` until the first production release. Open
+  items (bugs, feature requests, enhancements) are tracked as GitHub issues
+  once the repositories accept them; this site has no roadmap page.
 - **The currency rule.** A change carries a documentation commit when it adds, removes,
   or renames an interface, or when it corrects a measured fact. The
   interfaces: a sysfs attribute, an HTTP route, a settings key, a G-code or

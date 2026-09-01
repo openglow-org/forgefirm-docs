@@ -1,0 +1,88 @@
+---
+title: Homing
+---
+
+# Homing
+
+The machine has no limit or home switches as it ships. This page tells you how
+the machine finds its origin with the cameras, what the machine does without
+one, and what each homing setting means.
+
+!!! danger "Read the Safety page first"
+
+    ForgeFIRM is not the manufacturer's firmware. Read [Safety](../safety/index.md)
+    before you run a job.
+
+The mechanism, the homing runner and its handover, is in
+[Homing internals](../technical/forgefirm/homing.md).
+
+## The homing method is a setting
+
+`homing_mode`, on the panel's Machine tab, selects what `$H` does. The
+controller re-reads it on every `$H`.
+
+| Value | What `$H` does |
+|---|---|
+| `gfcloud` | Camera-referenced homing through the Glowforge web service, the same cycle the factory machine runs. The default, and the method that works. |
+| `switches` | The planned limit-switch cycle. Not available. |
+| `none` | `$H` is rejected (error 5). |
+
+## Camera-referenced homing
+
+`$H` from any sender runs the factory-style camera homing cycle through the
+Glowforge service. The service takes a lid image, moves the head, takes
+another, and computes where the head is; the machine then moves to the home
+corner and references the lens (Z) against the hall sensor at the top of its
+travel.
+
+- **It needs a Glowforge account and a live service session.** This is the
+  one part of GRBL mode that reaches the Glowforge service; everything else in
+  GRBL mode runs without it. The cycle uses the machine's own credentials
+  (the factory fuse identity, or the overrides on the GF Cloud tab; see
+  [Cloud mode](cloud-mode.md)).
+- **It needs the lid closed.** The camera steps need it, and the move to the
+  home corner is an ordinary motion action: refused with the lid open, and
+  stopped if the lid opens partway through. Only the lens hunt inside the
+  session ignores the lid.
+- **It takes about a minute.** A full cycle runs in 50 to 65 s. While it
+  runs, `$H` suspends the stream engine, runs the session, and hands the
+  machine back; your sender keeps getting status reports.
+- **It can fail or time out.** `gfcloud_home_timeout_s` (default 300 s) is
+  the budget for the whole session (sign-in, camera uploads, hunt, and corner
+  moves). Past it, or on a failure, the controller alarms (ALARM:18) like a
+  failed core homing cycle. A soft reset (`^X`) aborts the session.
+- **A quiet service is not a homing.** The cycle counts as complete only when
+  the accelerometer in the print head witnessed real motion during the
+  session. A service that goes quiet without moving the head is a failure.
+
+After a successful home the position is anchored and the panel shows it
+normally. The home corner is the back-left corner of the bed, and the workspace
+is all-positive from there (+Y runs toward the front of the machine; Z counts
+positive upward). `gfcloud_home_x/y/z` on the Machine tab set the machine
+coordinates the head is at after a completed homing (defaults 0 / 0 / Z max):
+leave them blank until a measurement says otherwise. To calibrate: home, jog to
+a known reference, and enter the measured offsets.
+
+Do not let a sender home automatically on connect: LightBurn's **Auto-home on
+startup** stays off, and you run `$H` deliberately from its Console tab when you
+want a true machine origin ([LightBurn](lightburn.md)).
+
+## Running unhomed
+
+**The machine cuts fine unhomed.** Without a reference, coordinates are
+relative to wherever the head happened to be, so the panel shows position in
+red to say so, and your sender should use a job-start mode that does not depend
+on machine coordinates: in LightBurn, **Start From: Current Position**
+([LightBurn, Job start mode](lightburn.md#job-start-mode)).
+
+Anything that invalidates position, an underrun or a stream fault, drops the
+anchor deliberately, so a stale origin cannot be reused. Re-home before you
+trust coordinates again.
+
+## Homing in cloud mode
+
+Cloud homing is automatic and camera-based; the service runs it when the
+machine connects and after prints. The lens hunt references Z against the hall
+sensor. Connecting zeroes the machine's counters at the head's current
+position, so GRBL-mode coordinates do not survive a switch to cloud mode and
+back: re-home after switching ([Modes](modes.md), [Cloud mode](cloud-mode.md)).

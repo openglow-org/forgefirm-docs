@@ -92,6 +92,56 @@ extra:
 
 nav:
   - Home: index.md
+  - Safety: safety/index.md
+  - Installation:
+      - install/index.md
+      - Serial access: install/serial-access.md
+      - Install: install/install.md
+      - Back to the factory firmware: install/factory-restore.md
+      - Update: install/updating.md
+      - Recovery: install/recovery.md
+      - Legacy migration: install/legacy-migration.md
+  - Usage:
+      - usage/index.md
+      - The control panel: usage/control-panel.md
+      - Modes: usage/modes.md
+      - GRBL mode: usage/grbl-mode.md
+      - LightBurn: usage/lightburn.md
+      - Cloud mode: usage/cloud-mode.md
+      - Homing: usage/homing.md
+      - Cameras: usage/cameras.md
+      - Cooling and fans: usage/cooling-and-fans.md
+      - Settings: usage/settings.md
+      - Logging: usage/logging.md
+      - Diagnostics: usage/diagnostics.md
+      - Troubleshooting: usage/troubleshooting.md
+  - Technical:
+      - The machine:
+          - technical/machine/index.md
+          - The safing chain: technical/machine/safing-chain.md
+          - Motion hardware: technical/machine/motion-hardware.md
+          - The step engine: technical/machine/step-engine.md
+          - The laser: technical/machine/laser.md
+          - Sensors: technical/machine/sensors.md
+          - Coolant and airflow: technical/machine/coolant-and-airflow.md
+          - Cameras: technical/machine/cameras.md
+          - Buses: technical/machine/buses.md
+          - Boot and storage: technical/machine/boot-and-storage.md
+          - The factory firmware: technical/machine/factory-firmware.md
+          - The cloud protocol: technical/machine/cloud-protocol.md
+      - ForgeFIRM:
+          - technical/forgefirm/index.md
+          - The kernel module: technical/forgefirm/kernel-module.md
+          - The pulse feeder contract: technical/forgefirm/pulse-feeder-contract.md
+          - The grblHAL driver: technical/forgefirm/grblhal-driver.md
+          - forgectrl: technical/forgefirm/forgectrl.md
+          - The cooling engine: technical/forgefirm/cooling-engine.md
+          - The video pipeline: technical/forgefirm/video-pipeline.md
+          - Cloud mode: technical/forgefirm/cloud-mode.md
+          - Homing: technical/forgefirm/homing.md
+          - Install and update: technical/forgefirm/install-and-update.md
+          - Logging: technical/forgefirm/logging.md
+          - Image and BSP: technical/forgefirm/image-and-bsp.md
   - Developers:
       - developers/index.md
       - Build: developers/building.md
@@ -100,6 +150,5 @@ nav:
       - Test: developers/testing.md
       - The bench: developers/bench.md
       - Contribute: developers/contributing.md
-      - Roadmap: developers/roadmap.md
       - This site: developers/docs.md
       - Campaign log: https://github.com/ScottW514/forgefirm/blob/master/docs/CAMPAIGN-LOG.md

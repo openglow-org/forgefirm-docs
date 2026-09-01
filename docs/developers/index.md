@@ -16,7 +16,6 @@ sections instead.
 | [Test](testing.md) | The host tests in each repository, the CI workflows, and the coverage rule. |
 | [The bench](bench.md) | The bench machine, the bench tools, the bench actuator, and the clean-up rule. |
 | [Contribute](contributing.md) | The rules for code, proof, and documentation. |
-| [Roadmap](roadmap.md) | The open work. |
 | [This site](docs.md) | How this site is built, and where each subject goes. |
 
 ## The repositories
@@ -42,28 +41,38 @@ into one base working directory, `openglow-forgefirm`, as siblings
 
 ## How the components connect
 
+<div class="diagram" markdown>
+
+```mermaid
+graph TD
+    senders["Grbl senders<br>LightBurn, UGS, cncjs<br>TCP port 23"]
+    service["Glowforge web service<br>(optional)"]
+    subgraph controllers["Controllers (one at a time)"]
+        grbl["grblHAL-glowforge<br>grblHAL core + the ForgeFIRM driver"]
+        gfcloud["python3-gfhardware<br>gfcloud, on Glowforge-Utilities"]
+    end
+    forgectrl["forgectrl<br>machine services, HTTP port 8080"]
+    subgraph image["The image (Yocto)"]
+        ko["kernel-module-glowforge<br>glowforge.ko: SDMA + EPIT, laser latch, readbacks"]
+        cams["Cameras<br>ov5648, video-mux, imx6-mipi-csi2, imx-media, VPU"]
+    end
+    senders --> grbl
+    service --> gfcloud
+    grbl --> forgectrl
+    gfcloud --> forgectrl
+    forgectrl --> ko
+    forgectrl --> cams
 ```
-LightBurn / UGS / cncjs (Grbl over TCP:23)        Glowforge web service (optional)
-        │                                                   │
-        ▼                                                   ▼
-grblHAL-glowforge  (grblHAL core + ForgeFIRM driver)   gfcloud (Python)
-  ├─ gcode parser + planner + look-ahead + protocol      ├─ factory action dispatch
-  ├─ STEP BACKEND: resamples step events to pulse        └─ preloads factory pulse files
-  │  bytes, live-feeds the kernel ring
-  ├─ LASER: power bytes + FIRE bit, operator-armed
-  └─ cooling client: reports job state, enforces the verdict
-        │                        exactly one runs at a time (mode)
-        ▼
-forgectrl  (machine-services daemon, HTTP :8080)
-  supervisor (spawns/respawns the selected controller) · pulse-device broker (one
-  exclusive /dev/glowforge hold; controllers inherit the fd) · motion-liveness gate ·
-  cooling engine (sole thermal-hardware owner) · cameras · telemetry · settings ·
-  diagnostics · web control panel · A/B updates
-        │
-        ▼
-glowforge.ko  (SDMA + EPIT → GPIO → stepper drivers; laser latch; safety readbacks)
-Cameras: mainline ov5648 + video-mux + imx6-mipi-csi2 + imx-media (IPU CSI), VPU JPEG encode
-```
+
+</div>
+
+The controller parses G-code or dispatches the factory actions, turns motion
+into pulse bytes, and feeds the kernel ring through forgectrl's broker.
+forgectrl supervises the selected controller, holds the pulse device, runs
+the cooling engine, the cameras, telemetry, settings, diagnostics, the web
+control panel, and the A/B updates. The kernel module plays the pulse stream
+into the stepper drivers and owns the laser latch and the safety readbacks.
+The full description is under [Technical](../technical/forgefirm/index.md).
 
 At build time, kas assembles the upstream layers (poky, meta-openembedded,
 meta-freescale, meta-freescale-distro), the BSP layers from `meta-openglow`,
