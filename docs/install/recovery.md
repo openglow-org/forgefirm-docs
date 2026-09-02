@@ -72,6 +72,10 @@ lead into recovery mode:
   timeout before Linux starts. A kernel hard hang lets it reset the SoC,
   and the bootloader reads the timeout flag and boots recovery. Power-cycle
   the machine to boot normally again; the flag clears on a power-on reset.
+  The serial console shows nothing from the hang through the recovery boot:
+  the purple button is the sign. The recovery image takes the machine's
+  network lease and answers ping, with no SSH; about two minutes pass from
+  the hang to that point.
 
 The recovery boots the factory's recovery kernel (3.14.28) and device tree
 from the boot partitions, and runs the factory setup application: WiFi
