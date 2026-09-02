@@ -106,7 +106,7 @@ as the operator meets them are in [Safety](../../safety/index.md) and
 
 On top of the chain, software adds gates in front of it, and never a bypass:
 
-- the kernel **laser latch**, locked by default; every close of the pulse
+- the kernel **laser latch**, locked by default; the final close of the pulse
   device relocks it ([The kernel module](kernel-module.md));
 - the **operator-armed window**: the physical button must be pressed before
   the first fire of a job, and the window relocks after idle

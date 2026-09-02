@@ -355,7 +355,7 @@ only when the machine is idle. The two modes side by side are on
 [Pulse feeder contract](pulse-feeder-contract.md)): the device is
 **exclusive-open** (a second open fails EBUSY), the `flock` on it arms the
 kernel dead-man (**final close of the open file description** mid-program =
-emergency stop), and every close locks the laser latch. The open itself has
+emergency stop), and the final close locks the laser latch. The open itself has
 no rail side effect; the 40 V rail moves only on `cnc/enable` and
 `cnc/disable` writes. A client that disables and re-enables the rail around
 its own open cycles it on every handover, and a fast off-on bounce can leave

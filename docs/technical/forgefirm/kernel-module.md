@@ -68,7 +68,8 @@ emission the hardware would not allow.
 - **Laser latch** (`cnc/laser_latch`, write-only): 1 = lock. Locking drives
   LATCH_RESET high (the button latch SETs) *and* puts the FIRE line in high
   impedance, so the SDMA stream physically cannot raise it. **Locked by
-  default; every close of `/dev/glowforge` relocks.** Unlocking never restores
+  default; the final close of `/dev/glowforge` relocks** (the release of the
+  open file, once every inherited copy of the descriptor is gone). Unlocking never restores
   the FIRE drive while a run or ramp is in flight. Only run start and the
   resume waypoint do, and only if the latch is unlocked at that moment.
 - **Charge pump only while running.** The 200 ms retrigger starts with the
@@ -139,7 +140,7 @@ services daemon, cloud mode) are on
     |---laser_on:            (RO) Gated LASER_ON output state
     |---laser_on_sampled:    (RO) LASER_ON low-sample count (last ~1s)
     |---laser_pgood:         (RO) Laser power-good state
-    |---laser_pgood_sampled: (RO) LASER_PGOOD low-sample count (last ~1s)
+    |---laser_pgood_sampled: (RO) LASER_PGOOD good-sample count (last ~1s)
     |---max_backtrack:       (RO) Longest backward run the ring can still play, in steps
     |---motor_lock:          (RW) Disable step output per motor
     |---position:            (RO) Current axis positions and loaded program size/progress
@@ -165,6 +166,7 @@ services daemon, cloud mode) are on
     |---beam_detect_analog:  (RO) Current state of beam detector - analog
     |---beam_detect_digital: (RO) Current state of beam detector - digital
     |---hall_sensor:         (RO) Status of lens hall sensor
+    |---info:                (RO) Head identity: hardware id, serial, firmware version
     |---measure_laser:       (RW) Output PWM of material height measuring laser
     |---purge_air:           (RW) Purge Air fan on/off
     |---purge_air_current:   (RO) Purge Air fan current
@@ -223,7 +225,7 @@ services daemon, cloud mode) are on
     |---brightness:          (RW) Output level
     |---(standard LED interfaces not used)
 
-/sys/class/leds/lid_led_X  <- Lid LED interfaces
+/sys/class/leds/lid_led    <- Lid LED interface
     |---pulse_off:           (RW) Off time in milliseconds
     |---pulse_on:            (RW) On time in milliseconds
     |---speed:               (RW) Speed to target brightness
@@ -509,9 +511,10 @@ never sets this below 204, so the fan is never off.
 
 ### air_assist_tach
 
-Read, ASCII, 0-65535
+Read, ASCII, 64-bit
 
-Period between tach pulses, in microseconds. The RPM conversion is on
+Period between tach pulses, in nanoseconds (0 when no pulse has arrived).
+The RPM conversion is on
 [Sensors](../machine/sensors.md).
 
 ### beam_detect_analog
@@ -790,7 +793,7 @@ Interface to control the button LEDs and the lid LEDs. From
 > target: (range: [0, 255]) The new brightness set-point. The LED fades
 > from its current value to the target value. May be changed while the LED
 > is already fading.
-> speed: (range: [0, 160]) The speed at which the LED seeks its target
+> speed: (range: [1, 160]) The speed at which the LED seeks its target
 > brightness. The default is 64.
 > pulse_on: (milliseconds)
 > pulse_off: (milliseconds)
