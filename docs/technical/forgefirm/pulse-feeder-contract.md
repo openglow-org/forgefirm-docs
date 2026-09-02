@@ -10,9 +10,8 @@ run-control attributes, live appends and backpressure, end-of-data and
 underrun, the dead man's switch, and backtrack. The byte layout and the
 hardware ring (SDMA + EPIT into a GPIO register) are on
 [Step engine](../machine/step-engine.md). The other attributes of the module
-are on [Kernel module](kernel-module.md). The authoritative text is
-[`UAPI.md`](https://github.com/openglow-org/kernel-module-glowforge/blob/master/UAPI.md)
-in the module repository.
+are on [Kernel module](kernel-module.md). This page is the authoritative
+text of the feeder contract.
 
 Everything here is enforced by the SDMA script and the driver. It is not
 negotiable at run time.

@@ -9,9 +9,8 @@ factory i.MX6 control board and serves HTTP on port 8080. This page is the
 machine-services contract: the switch map, the safety-chain readbacks,
 telemetry, mode supervision, pulse-device ownership, the clocks rule, and the
 hardware ownership table. The source is
-[openglow-org/forgectrl](https://github.com/openglow-org/forgectrl); the contract
-document there is
-[`docs/SERVICES.md`](https://github.com/openglow-org/forgectrl/blob/main/docs/SERVICES.md).
+[openglow-org/forgectrl](https://github.com/openglow-org/forgectrl). This page
+is the machine-services contract.
 
 ## The contract
 
@@ -28,12 +27,12 @@ Three things touch the non-motion hardware of the Glowforge factory board:
   motion and laser in Glowforge-cloud mode ([Cloud mode](cloud-mode.md)).
 
 Exactly one controller mode is active at a time. Kernel attribute semantics
-(ranges, units, the feeder contract) are owned by the kernel module's
-`UAPI.md` ([Kernel module](kernel-module.md),
+(ranges, units, the feeder contract) are owned by the kernel pages
+([Kernel module](kernel-module.md),
 [Pulse feeder contract](pulse-feeder-contract.md)); this page does not
 restate them except where a conversion or a polarity is needed by every
-consumer. Where the two disagree, `UAPI.md` wins for kernel behavior and
-this page wins for the userspace division of labor.
+consumer. Where the pages disagree, the kernel pages win for kernel behavior
+and this page wins for the userspace division of labor.
 
 Parts of the contract live on their own pages:
 
@@ -469,7 +468,7 @@ describes it; the operator's tools are on
 ## Verification status
 
 The contract is checked against the device tree (`glowforge.dts` gpio-keys
-node), the kernel module's `UAPI.md`, and a live-board spot-check:
+node), the kernel pages, and a live-board spot-check:
 
 - Attribute inventory: every attribute named in this contract exists under
   `/sys/glowforge/{cnc,head,pic,thermal}`.

@@ -233,7 +233,7 @@ The cloud tests split by what they prove:
   `enter_offline` restarts the cloud client with the `/run/gfcloud-offline`
   marker: no account, no network. The test hands it a synthesized job over
   `/run/gfcloud-offline.sock` and reads the events of the machine back (see
-  `forgetest/puls.py` and `docs/CLOUD.md` of the cloud client). Those jobs
+  `forgetest/puls.py` and [Cloud mode](../technical/forgefirm/cloud-mode.md)). Those jobs
   carry no laser command, so nothing is on the bed and nothing burns. The
   arm still unlocks the latch, so they stay `live`. The offline client is
   left in place. The next test that needs the service restarts it

@@ -150,8 +150,9 @@ One version source: `FORGEFIRM_RELEASE` = git tag = `/etc/forgefirm-version`
 
 `release.sh --dev` packs a **dev-key-signed** `forgefirm-dev.fw` from the
 release rootfs for the panel's upload path. Dev archives are signed with the
-dev key, never unsigned, so the panel exercises the same verification path
-either way.
+dev key, never unsigned. The image ships the release key and the Glowforge
+keyring only, so on the machine a dev archive classifies as unsigned and
+takes the button-held path.
 
 **Cloud-mode compatibility baseline.** The cloud client's connect-time probe
 records `{latest_gf_version, tested_against_gf}` to
@@ -189,7 +190,7 @@ signature before writing, and re-verify the written filesystem.
 | `POST /update/apply` | Verify and apply to the inactive slot, verify the written slot |
 | `POST /update/upload` | Streamed multipart upload to `/data` |
 | `GET /update/status` | The background job's state |
-| `POST /restore/factory` | Factory restore from the archive (md5 checked) or from the cloud |
+| `POST /restore/factory` | Factory restore from the archive (md5 checked); `source=cloud` answers 501 until it ships |
 | `POST /system/reboot` | Reboot |
 
 Every state-changing call is behind forgectrl's auth layer (bearer token
@@ -200,23 +201,24 @@ Functions of the panel page:
 
 - **Inventory:** slot contents (the probe), current and next boot
   selection, archive presence and version.
-- **Update check** against the GitHub releases (a manual button plus a
-  periodic check while idle; offline-tolerant, rate-limit friendly).
+- **Update check** against the GitHub releases (a manual button, plus one
+  check the first time the System tab is opened; offline-tolerant,
+  rate-limit friendly).
 - **Apply release:** download the `.fw` to `/data`, verify the signature,
   apply to the inactive slot, verify, then flip only on explicit user
   confirmation, and prompt for a reboot.
-- **Upload:** streamed multipart to `/data` (never RAM-buffered). Accepts
-  `.fw` (verified; warns if unsigned) and `.wic.gz` or `.ext4.gz` (dev;
-  size and superblock sanity checks).
+- **Upload:** streamed multipart to `/data` through the framework's
+  upload sink; the framework's own copy of a request body is capped at
+  64 KiB. Accepts a `.fw` (verified; warns if unsigned) and nothing else.
 - **Boot selector** including SD, with warnings, most prominently on
   switch-to-factory: the factory updater may auto-update and overwrite the
   other slot. Refuses unprobeable targets.
-- **Factory restore:** from the `/data` archive (offline) or from the cloud
-  latest (gfutilities device auth, a Glowforge-signed `.fw`, verified with
-  the Glowforge public keys), to the inactive slot, then flip. Optional
-  cleanup of ForgeFIRM residue in `/data` for a true factory condition.
+- **Factory restore:** from the `/data` archive (offline, md5 checked), to
+  the inactive slot, then flip. A restore from the cloud latest and a
+  cleanup of ForgeFIRM's files in `/data` are open items.
 - Interlocks throughout: idle-only, the update lock, never the active slot,
-  and rollback = flip back to the previous slot.
+  never the slot already selected for the next boot (a write there has no
+  revert behind it), and rollback = flip back to the previous slot.
 
 The operator's view is on [Updating](../../install/updating.md).
 

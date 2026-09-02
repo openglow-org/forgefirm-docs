@@ -23,7 +23,7 @@ controller re-reads it on every `$H`.
 
 | Value | What `$H` does |
 |---|---|
-| `gfcloud` | Camera-referenced homing through the Glowforge web service, the same cycle the factory machine runs. The default, and the method that works. |
+| `gfcloud` | Camera-referenced homing through the Glowforge web service, the same cycle the factory machine runs. The method that works; set it on the Machine tab, since a fresh install leaves `homing_mode` unset. |
 | `switches` | The planned limit-switch cycle. Not available. |
 | `none` | `$H` is rejected (error 5). |
 

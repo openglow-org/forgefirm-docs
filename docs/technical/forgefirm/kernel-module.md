@@ -15,11 +15,9 @@ The driver is the OpenGlow fork of
 [Glowforge/kernel-module-glowforge](https://github.com/Glowforge/kernel-module-glowforge)
 and differs from the Glowforge original; this reference applies to the fork
 only. The source is
-[openglow-org/kernel-module-glowforge](https://github.com/openglow-org/kernel-module-glowforge),
-and its
-[`UAPI.md`](https://github.com/openglow-org/kernel-module-glowforge/blob/master/UAPI.md)
-is the authoritative contract. Where a page of this site and `UAPI.md`
-disagree on kernel behavior, `UAPI.md` wins.
+[openglow-org/kernel-module-glowforge](https://github.com/openglow-org/kernel-module-glowforge).
+This page and [Pulse feeder contract](pulse-feeder-contract.md) are the
+module's contract: the module repository carries no separate document.
 
 What a sensor physically is, and how a raw value converts to a temperature or
 an RPM, is on [Sensors](../machine/sensors.md). The hardware safing chain that

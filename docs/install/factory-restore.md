@@ -14,17 +14,11 @@ come back to ForgeFIRM afterward.
 ## Restore from the control panel
 
 Open the System tab of the control panel and use **Factory restore**
-([Updating](updating.md#factory-restore)). Two sources are offered:
-
-- **The archive on `/data`.** Offline; no Glowforge account needed. This is
-  the firmware the machine ran before ForgeFIRM.
-- **The Glowforge service.** The latest Glowforge release, downloaded with
-  the machine's own credentials and verified with Glowforge's public keys.
-
-Either way the factory image is written to the slot that is not running,
-verified, and the boot selection is moved to it. The restore offers an
-optional cleanup of ForgeFIRM's own files under `/data`, for a true factory
-condition. Reboot when it asks.
+([Updating](updating.md#factory-restore)). The source is **the archive on
+`/data`**: offline, no Glowforge account needed, the firmware the machine ran
+before ForgeFIRM. The factory image is written to the slot that is not
+running, verified, and the boot selection is moved to it. Reboot when it
+asks. A restore from the Glowforge service is planned, not shipped.
 
 ## Restore from the factory recovery mode
 
@@ -37,8 +31,7 @@ page ([Recovery](recovery.md#the-factory-recovery-mode)).
 The machine is a factory machine again. The factory updater will update it
 on Glowforge's schedule, and it will overwrite the slot ForgeFIRM occupied.
 The `/data` partition is shared: your settings, credentials, and logs are
-untouched, and ForgeFIRM's own files under `/data/forgefirm/` stay unless you
-chose the cleanup.
+untouched, and ForgeFIRM's own files under `/data/forgefirm/` stay.
 
 ## Back to ForgeFIRM
 

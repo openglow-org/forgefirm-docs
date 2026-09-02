@@ -213,7 +213,7 @@ sudo zcat forgefirm-image-glowforge.rootfs.wic.gz | dd of=/dev/sdX bs=1M
 
 The bench boots the dev image from an SD card ([The bench](bench.md)). To
 install ForgeFIRM on the factory eMMC, use the
-[installation instructions](https://github.com/openglow-org/forgefirm/blob/master/INSTALL.md).
+[installation instructions](../install/index.md).
 The installer puts ForgeFIRM in the unused A/B slot, and it archives the
 factory firmware first.
 
@@ -248,7 +248,7 @@ forgectrl. It receives `/dev/glowforge` as an inherited file descriptor
 (`GF_PULSE_FD`). Standalone, it opens the device itself:
 
 ```sh
-GFSINK=/dev/glowforge grblHAL_glowforge -p 23 -e /data/EEPROM.DAT
+GFSINK=/dev/glowforge grblHAL_glowforge -p 23 -e /data/EEPROM-glowforge.DAT
 ```
 
 | Variable | Meaning |

@@ -135,7 +135,7 @@ fwup applies with the factory-era 0.14.2. A modern fwup verifies and applies
 the `.fw` of the factory. `scripts/mkfw.sh` is the packer that
 `release.sh` calls. The format and the invariants of the update system are
 in
-[UPDATE-SYSTEM.md](https://github.com/openglow-org/forgefirm/blob/master/docs/UPDATE-SYSTEM.md).
+[Install and update](../technical/forgefirm/install-and-update.md).
 
 ## The documentation
 

@@ -64,8 +64,8 @@ uses ([Recovery](recovery.md#ffboot)).
 
 ### Update check
 
-A manual **check** button, and a periodic check while the machine is idle.
-The check is offline-tolerant. The release version resolves from the
+A manual **check** button; the panel also checks once, the first time the
+System tab is opened. The check is offline-tolerant. The release version resolves from the
 fixed-name asset redirect on GitHub
 (`.../releases/latest/download/forgefirm.fw` redirects to
 `.../download/v<ver>/...`), so no GitHub API call and no rate limit is
@@ -80,10 +80,9 @@ then prompts for a reboot.
 
 ### Upload
 
-An upload streams to `/data`; it is never buffered in RAM. The manager
-accepts a `.fw` (verified, with a warning if it is unsigned) and, for
-development, a `.wic.gz` or `.ext4.gz` (with size and superblock sanity
-checks).
+An upload streams to `/data`. The manager accepts a `.fw` archive
+(verified, with a warning if it is unsigned) and nothing else; a development
+build is packed as a dev-signed `.fw` for the same path.
 
 ### Boot selector
 
@@ -96,19 +95,13 @@ that is a factory restore ([Back to the factory firmware](factory-restore.md)).
 ### Factory restore
 
 A restore returns the machine to the factory firmware without a shell, from
-one of two sources:
-
-- **The archive on `/data`**, offline. The installer writes it before it
-  overwrites anything
-  ([Installation](index.md#the-factory-firmware-is-archived-first)). The
-  manager checks the archive's md5 before it writes.
-- **The latest factory firmware from the Glowforge service.** The machine
-  authenticates as a Glowforge device, downloads the Glowforge-signed `.fw`,
-  and verifies it with the Glowforge public keys.
-
-Either way the firmware goes to the inactive slot, and the boot selection
-then switches to it. An optional cleanup removes ForgeFIRM's residue in
-`/data` for a true factory condition.
+**the archive on `/data`**, offline. The installer writes it before it
+overwrites anything
+([Installation](index.md#the-factory-firmware-is-archived-first)). The
+manager checks the archive's md5 before it writes. The firmware goes to the
+inactive slot, and the boot selection then switches to it. ForgeFIRM's own
+files under `/data/forgefirm/` stay; a restore from the Glowforge service is
+planned, not shipped.
 
 ### Reboot
 

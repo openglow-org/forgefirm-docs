@@ -23,7 +23,7 @@ a person, a machine, or a fact.
   is.
 
 The safing chain itself is described in
-[SAFETY.md](https://github.com/openglow-org/forgefirm/blob/master/docs/SAFETY.md).
+[Safety](../safety/index.md).
 
 ## Proof before done
 

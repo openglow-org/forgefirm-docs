@@ -40,7 +40,7 @@ a sender's console with a standard jog command, for example `$J=G91X40F1200`.
     supervisor has released the device (`POST /controller/stop`):
 
     ```sh
-    GFSINK=/dev/glowforge grblHAL_glowforge -p 23 -e /data/EEPROM.DAT
+    GFSINK=/dev/glowforge grblHAL_glowforge -p 23 -e /data/EEPROM-glowforge.DAT
     ```
 
     Environment: `GFSINK` (the pulse device; unset = null-sink test mode),

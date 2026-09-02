@@ -53,7 +53,7 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | Setting | Default | Effect |
 |---|---|---|
 | `controller_mode` | `grbl` | Which controller runs: `grbl` or `cloud`. |
-| `homing_mode` | `gfcloud` | What `$H` does: `gfcloud`, `switches`, `none`. |
+| `homing_mode` | unset (behaves as `none`) | What `$H` does: `gfcloud`, `switches`, `none`. Set `gfcloud` for camera homing. |
 | `gfcloud_home_x/y/z` | 0 / 0 / Z max | Coordinates assigned after a successful camera home. |
 | `gfcloud_home_timeout_s` | 300 | How long a homing session may take before it alarms. |
 | `lid_policy` | `cancel` | `cancel` = factory behavior; `hold` = stock Grbl door parking. |

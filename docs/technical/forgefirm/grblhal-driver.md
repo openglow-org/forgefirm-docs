@@ -293,6 +293,11 @@ The operator's table of what each stop does is on
   latch relocked, position invalidated, so the machine must be re-homed
   before its coordinates are trusted ([Homing](homing.md)). A motion-only
   job gets one sanctioned retry.
+- **After any stream fault** (an underrun, a kernel fault, a refused run, a
+  write error) the alarm stands until `$X`. The unlock acknowledges the fault:
+  the kernel is stopped and re-armed, what the ring still held is cleared, and
+  the controller moves again without a restart. The position stays invalid
+  until a re-home.
 - **A coolant fault or over-temperature** verdict is a feed hold with the
   cut airflow forced on; fire is gated. Over-temperature resumes
   automatically once the loop recovers (see "The cooling client" below).
