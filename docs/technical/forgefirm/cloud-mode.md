@@ -34,7 +34,7 @@ test levers.
 
 | Piece | Role |
 |---|---|
-| `gfcloud.py` (`/usr/sbin`) | Full cloud-mode controller daemon. Spawned and supervised by forgectrl when `controller_mode = cloud` (the init script defers to the supervisor and remains a manual stop only); the pulse device arrives as a broker-inherited fd (`GF_PULSE_FD`) that is never closed, so job boundaries and mode switches do not cycle the 40 V rail. SIGTERM stops the service loop, safes the hardware, and exits. |
+| `gfcloud.py` (`/usr/sbin`) | Full cloud-mode controller daemon. Spawned and supervised by forgectrl when `controller_mode = cloud` (the init script defers to the supervisor and remains a manual stop only); the pulse device arrives as a broker-inherited fd (`GF_PULSE_FD`) that is never closed, so job boundaries and mode switches do not cycle the 40 V rail. SIGTERM stops the service loop, tells a running action to stop and waits for it (no park on the way down), safes the hardware, and exits. |
 | `gfhome.py` (`/usr/sbin`) | One-shot service-driven homing. Invoked for `$H` when `homing_mode = gfcloud`; dispatches with `allow_print=False` so a print can never run inside a homing session. Completion is guarded: a run of near-identical service corrections aborts (the machine is not physically moving), and quiet only counts as homed when the head accelerometer witnessed real motion during the session ([Homing](homing.md)). |
 | `ffmachine.py` (site-packages) | Shared hardware-machine glue: identity overrides from the shared config, and the forgectrl-routed capture machine both clients use. |
 | `gfutilities` | Protocol and service layer: auth, WebSocket client, action dispatch, settings report, pulse-file handling ([Glowforge-Utilities](https://github.com/openglow-org/Glowforge-Utilities)). |
@@ -225,6 +225,13 @@ buffered at once, not how long a job may be (below).
       a feeder alive.
     - The lid or interlock opens during the pre-print button wait: latch
       relocked, job canceled; a press with the lid open never arms.
+    - The kernel leaves the run on its own (a fault, a disable): the job
+      ends canceled, never completed, and a park that faults reports no
+      success; the service re-hunts rather than dead-reckon from a position
+      the head never reached. The failsafe cleanup after every action runs
+      each of its steps (stop, latch, feeder, idle report) whatever the ones
+      before it did: a stop the kernel refuses in a fault never skips the
+      latch relock.
     - A hunt ignores the lid (lens travel plus the service's XY hunt
       pattern).
     - **The button pauses and resumes a print**: press, then controlled
