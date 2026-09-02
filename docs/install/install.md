@@ -57,7 +57,11 @@ One stage, no intermediate reboots. The installer:
 
 ## After the first boot
 
-Login is `root`, no password (also via SSH). Change it.
+A release image has no shell login: root is locked, no password exists, and
+nothing on the site needs one. Everything an owner does runs from the control
+panel. The developer image is the one with a root login and no password (see
+[Building](../developers/building.md)); it is for the bench, never for a
+machine in use.
 
 The machine boots into ForgeFIRM. The factory firmware is in the archive on
 `/data` ([Back to the factory firmware](factory-restore.md)). The control panel

@@ -92,7 +92,7 @@ release.sh --dev                   build and pack a dev-signed .fw for the
 | `FORGEFIRM_SIGNING_KEY` | The private key for release mode. Required, with no default, so that the key choice is always deliberate. |
 | `FORGEFIRM_DEV_KEY` | The private key for `--dev` mode. Required for `--dev`. |
 | `RELEASE_STAGING_DIR` | The directory for the staged release assets. Default: `<repo>/release-staging`. |
-| `FORGEFIRM_ACCEPTANCE_SKIP` | `1` bypasses the acceptance gate. The script prints a loud warning. This is never the default. |
+| `FORGEFIRM_ACCEPTANCE_SKIP` | `1` bypasses the acceptance gate. The script prints a loud warning, attaches `NO-ACCEPTANCE.txt` in place of the acceptance artifact, and publishes the release as a prerelease. This is never the default. |
 
 The script runs its gates, builds both images, packs and signs
 `forgefirm.fw`, stages the assets with `sha256sums.txt`, and prints the
@@ -123,6 +123,10 @@ forgefirm-image-glowforge.rootfs.wic.gz
 acceptance.json
 acceptance.md
 ```
+
+`sha256sums.txt` covers every other file in the list. With the acceptance
+gate skipped, `NO-ACCEPTANCE.txt` takes the place of the two acceptance
+files and the release is a prerelease.
 
 The maintainer keeps the production release key offline. The installer
 embeds its public key. Thus releases are signed with that key only. The

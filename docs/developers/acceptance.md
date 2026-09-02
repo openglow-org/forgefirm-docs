@@ -392,8 +392,12 @@ The gate requires:
 
 Any problem stops the script before the signature.
 `FORGEFIRM_ACCEPTANCE_SKIP=1` bypasses the gate on purpose and prints a loud
-warning. It is never the default. The artifact is staged and attached to the
-GitHub release, next to `forgefirm.fw`.
+warning. It is never the default. When the gate accepted the artifact, it is
+staged and attached to the GitHub release next to `forgefirm.fw`, and listed
+in `sha256sums.txt` with everything else attached. When the gate was skipped,
+no artifact is attached: the release carries `NO-ACCEPTANCE.txt` instead and
+is published as a prerelease, so a rootfs no campaign authorized never
+travels with a proof that reads as its own.
 
 Because the dev image and the release image are built from the same tree in
 one `bitbake` run, their manifests have the same identity. A pin bumped
