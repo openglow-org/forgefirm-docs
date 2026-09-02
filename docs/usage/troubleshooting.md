@@ -69,6 +69,7 @@ when; this is what you do.
 | `CRITICAL` | Fire blocked, hold, no resume for the rest of the job | Let the loop cool. The next job judges the line afresh. A loop that ran through the pause tier and kept climbing needs looking at. |
 | `COLD` | Fire blocked; the coolant is under the floor | Let the room and the machine warm up. The gate clears a degree above the floor. |
 | `WARMUP` | The job holds with the loop heater on and the fans idle | Wait for the coolant to reach the warm-up gate; the job then runs and verifies flow. |
+| `SENSOR` | Fire blocked, hold; the reason names the coolant sensor the machine cannot read | Wait a moment: a passing read failure clears by itself and the job resumes. One that stands means the sensor or its wiring needs looking at; the coolant readings on the Status tab show which one is missing. |
 | `AIRFLOW` | Fire blocked, hold, no resume for the rest of the job; the reason names the fan, the reading, and the floor | Check that fan. The next job judges every fan afresh after the spin-up grace. A fan that reads differently from the shipped floor on a healthy machine gets its own floor on the Machine tab. |
 | `FLAME` | Hold, fire blocked, while a lid-IR reading is over its alert | Look at the bed. The hold releases when the reading is back under the alert. |
 | `FIRE` | Motion stopped, laser locked, the smoke airflow held; no resume until the next job | Deal with the fire. The fire watch is not a fire alarm: never leave a running laser unattended. |

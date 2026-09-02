@@ -133,6 +133,7 @@ or an overheating loop. The banner says so.
 | Upstream coolant at or over 38 °C during a job | `CRITICAL`: fire blocked, hold, no resume this job; the ceiling's hold stands until the loop is under 31 °C. |
 | Coolant under `cool_temp_min` | `COLD`: fire blocked, hold; released a degree above the floor. |
 | A session opened under `cool_temp_start` | `WARMUP`: hold with the loop heater on and the fans idle until the gate is reached, then the run starts with a flow check. |
+| A coolant sensor unreadable for two ticks in a row | `SENSOR`: fire blocked, hold, heater off; released the moment both sensors read again. The other coolant gates keep their state meanwhile. |
 | Lid IR over an alert threshold for two ticks | `FLAME`: hold, fire blocked; released once the reading is back under the alert for five ticks. |
 | Lid IR over a critical threshold | `FIRE`: motion stopped, laser locked, hold until the next run session. |
 | Head accelerometer over an alert threshold | `BUMP`: hold, fire blocked; released after five quiet polls. |

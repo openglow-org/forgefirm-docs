@@ -298,6 +298,7 @@ and it clears on its own.
 | `COLD` | The coolant under `cool_temp_min`: fire blocked, hold; back a degree above it. |
 | `WARMUP` | A session opened under `cool_temp_start`: held with the loop heater on and the fans idle until the gate is reached, then run with the flow check requested. |
 | `CRITICAL` | The coolant at or over the critical line in a run session: fire blocked, hold, no resume this job. |
+| `SENSOR` | A coolant sensor unreadable for two ticks in a row: fire blocked, hold, heater off; released the moment both sensors read again. The other coolant gates keep their state while the engine is blind. A flow check in flight is abandoned and asked for again; a warm-up gets its heater back. |
 | `AIRFLOW` | A fan under its floor: fire blocked, hold, no resume this job. |
 | `FLAME` | The fire watch's pause tier: hold, fire blocked; released when the reading clears. |
 | `FIRE` | The fire watch's fail tier: motion stopped, latch locked, hold until the next run session. |
@@ -616,11 +617,11 @@ plus rename) at ~1 Hz and on every verdict change:
   `true`, `false`). The publisher never writes a document longer than its
   buffer.
 - `verdict` is one of `OK`, `SUSPECT`, `FAULT`, `OVERTEMP`, `COLD`,
-  `WARMUP`, `CRITICAL`, `AIRFLOW`, `FLAME`, `FIRE`, `BUMP`, `CRASH`
+  `WARMUP`, `CRITICAL`, `SENSOR`, `AIRFLOW`, `FLAME`, `FIRE`, `BUMP`, `CRASH`
   ([What the verdicts do](#what-the-verdicts-do)). `hold=true` asks the
   active controller for a feed hold; `resume_ok=true` signals recovery
   (auto-resume is the controller's call). `OVERTEMP`, `COLD`, `WARMUP`,
-  `FLAME`, and `BUMP` are pause tiers. `CRITICAL`, `AIRFLOW`, `CRASH`, and
+  `SENSOR`, `FLAME`, and `BUMP` are pause tiers. `CRITICAL`, `AIRFLOW`, `CRASH`, and
   `FIRE` are the fail tier: they hold for the rest of the run session and
   never offer a resume in it; `CRITICAL`, `AIRFLOW`, and `CRASH` end with
   the session (the ceiling's pause tier keeps holding while the loop is
