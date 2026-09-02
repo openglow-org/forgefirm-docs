@@ -96,7 +96,7 @@ Cloud mode reads two files:
 | Where | Keys |
 |---|---|
 | `/data/etc/gfhome.conf` (seeded from `/etc/gfhome.conf.sample`) | `SERVICE.*` (server and status URLs), `FACTORY_FIRMWARE.CHECK` / `STATUS_FILE`, `FORGECTRL.URL`, `LOGGING.SAVE_PULS` / `SAVE_SENT_IMAGES` (both default off) and `LOGGING.CAPTURE_DIR` (default `/data/forgefirm/captures/<app>`), `MOTION.*`, `THERMAL.*`. |
-| `/data/forgefirm.conf` (managed from the control panel) | `controller_mode`, `homing_mode`, the identity overrides `gf_serial` / `gf_password`, the pause pair `cloud_pause_backtrack_ticks` / `cloud_resume_lead_ticks`, the download guards `pulse_warn_threshold_bytes` / `pulse_reject_threshold_bytes`, and the log levels `log_gfcloud_*` and `log_gfhome_*`. [Settings](settings.md) has each key. |
+| `/data/forgefirm.conf` (managed from the control panel) | `controller_mode`, `homing_mode`, the identity overrides `gf_serial` / `gf_password`, the pause pair `cloud_pause_backtrack_ticks` / `cloud_resume_lead_ticks`, the cooling-hold bound `cloud_hold_max_s`, the download guards `pulse_warn_threshold_bytes` / `pulse_reject_threshold_bytes`, and the log levels `log_gfcloud_*` and `log_gfhome_*`. [Settings](settings.md) has each key. |
 
 The GF Cloud tab's **Print pause** card holds the pause pair, and its **Job
 size** card holds the download guards: a cloud print arrives as one compressed
@@ -164,6 +164,12 @@ rule in full.
   material already burned instead of starting cold. Both counts are settings
   (`cloud_pause_backtrack_ticks`, `cloud_resume_lead_ticks`). Motions and
   hunts do not pause.
+- **The cooling engine can pause a print too.** A hold from it (a warm-up
+  on a cold machine, coolant over the ceiling, a suspected flow fault) pauses
+  the print the same way, laser off, and the print resumes by itself when the
+  engine clears it. A print that arms on a cold machine waits for the
+  warm-up before it starts. A hold that lasts longer than `cloud_hold_max_s`
+  (30 minutes by default) cancels the print instead.
 - **A lid or interlock open, or a cancel from the app, ends the job.** Motion
   stops, whatever remains in the ring is dropped so nothing can play later,
   and the head parks back at the job's starting point, ignoring the lid, as

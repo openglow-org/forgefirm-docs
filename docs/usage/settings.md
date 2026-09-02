@@ -67,6 +67,7 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | `rail_settle_s` | 2.5 | Motor-rail off period when a controller takes the device standalone. 0 disables. |
 | `cloud_pause_backtrack_ticks` | 2000 | Cloud pause: laser-off backtrack after the stop (0 to 30000). |
 | `cloud_resume_lead_ticks` | 1950 | Cloud resume: laser-off lead before firing again (0 to 30000). |
+| `cloud_hold_max_s` | 1800 | Cloud: how long a print may be held on the cooling verdict before it is canceled (60 to 7200). |
 
 The laser keys apply at the next job. Grbl `$` settings (steps/mm, rates,
 accelerations, laser mode) are set through your sender in the usual way; the

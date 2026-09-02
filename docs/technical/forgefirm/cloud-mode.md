@@ -211,9 +211,9 @@ buffered at once, not how long a job may be (below).
   edge (the switch thread wakes the run loop; the level read every 100 ms is
   the backstop). The client takes no `EVIOCGRAB` on the switch device.
     - The lid or interlock loop opens during a print or motion, or the
-      service cancels it, or the cooling verdict pulls fire: controlled stop
-      (`cnc/stop`, position kept), job canceled; a print then parks (with
-      the lid open, if it is) and reports the cancel. The park first drops
+      service cancels it: controlled stop (`cnc/stop`, position kept), job
+      canceled; a print then parks (with the lid open, if it is) and
+      reports the cancel. The park first drops
       what the job left in the ring (the rest of an aborted print, or the
       whole print after a cancel at the button wait), the factory's
       "clearing pulse data", so nothing plays ahead of it; a job that never
@@ -225,6 +225,19 @@ buffered at once, not how long a job may be (below).
       a feeder alive.
     - The lid or interlock opens during the pre-print button wait: latch
       relocked, job canceled; a press with the lid open never arms.
+    - **The cooling verdict**, per the engine's contract
+      ([Cooling engine](cooling-engine.md)), the same as the GRBL
+      controller: `fire_ok=false` locks the laser latch at once; `hold`
+      pauses the print the way the button does (controlled stop, laser-off
+      backtrack, `print:paused`) and `resume_ok` resumes it with the latch
+      back and the laser lead; a hold that stands longer than
+      `cloud_hold_max_s` (default 1800 s) cancels the job, since the fail
+      tiers never offer a resume. A verdict that goes missing (the engine
+      gone with the laser armed) locks and holds, turns the check heater
+      off, and writes the run airflow once. Before the run, a print whose
+      armed session opens under a hold (`WARMUP`, `COLD`, a hot loop) waits
+      it out the same bounded way; only an absent engine refuses to arm.
+      Motions and hunts are not armed and are not held.
     - The kernel leaves the run on its own (a fault, a disable): the job
       ends canceled, never completed, and a park that faults reports no
       success; the service re-hunts rather than dead-reckon from a position
@@ -384,7 +397,7 @@ The operator's procedure for the credentials and the panel fields is on
 | Where | Keys |
 |---|---|
 | `/data/etc/gfhome.conf` (seeded from `/etc/gfhome.conf.sample`) | `SERVICE.*` (server and status URLs), `FACTORY_FIRMWARE.CHECK` / `STATUS_FILE`, `FORGECTRL.URL`, `LOGGING.SAVE_PULS` / `SAVE_SENT_IMAGES` (both default off) and `LOGGING.CAPTURE_DIR` (default `/data/forgefirm/captures/<app>`), `MOTION.*` (including `WARM_UP_DELAY` and `COOL_DOWN_DELAY`), `THERMAL.*`. |
-| `/data/forgefirm.conf` (managed from the forgectrl UI) | `controller_mode` (`grbl` / `cloud`, read by the forgectrl supervisor, which spawns exactly one controller at boot and on every mode switch; the init scripts defer to it), `homing_mode`, identity overrides `gf_serial` / `gf_password` (a serial override re-derives the hostname), the pause pair `cloud_pause_backtrack_ticks` / `cloud_resume_lead_ticks`, the download guards `pulse_warn_threshold_bytes` / `pulse_reject_threshold_bytes` (bytes of compressed body held in memory, unset = 32 MiB warn and 128 MiB refuse, 0 lifts either), and the log levels `log_gfcloud_disk` / `log_gfcloud_remote` and `log_gfhome_*` (each `off`..`debug`; read at process start, so applied at reboot). |
+| `/data/forgefirm.conf` (managed from the forgectrl UI) | `controller_mode` (`grbl` / `cloud`, read by the forgectrl supervisor, which spawns exactly one controller at boot and on every mode switch; the init scripts defer to it), `homing_mode`, identity overrides `gf_serial` / `gf_password` (a serial override re-derives the hostname), the pause pair `cloud_pause_backtrack_ticks` / `cloud_resume_lead_ticks`, the cooling-hold bound `cloud_hold_max_s`, the download guards `pulse_warn_threshold_bytes` / `pulse_reject_threshold_bytes` (bytes of compressed body held in memory, unset = 32 MiB warn and 128 MiB refuse, 0 lifts either), and the log levels `log_gfcloud_disk` / `log_gfcloud_remote` and `log_gfhome_*` (each `off`..`debug`; read at process start, so applied at reboot). |
 
 ### The gfutilities configuration file
 

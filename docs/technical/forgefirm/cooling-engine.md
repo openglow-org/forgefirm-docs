@@ -628,7 +628,9 @@ plus rename) at ~1 Hz and on every verdict change:
   hot), `FIRE` holds until the next one starts. Controllers key on the
   flags, not the name; an unknown name with `hold=true` holds.
 - **Enforcement stays in the controller.** The fire gate and hold/resume
-  issuance run in-process in each controller; the verdict file is an input
+  issuance run in-process in each controller (the GRBL controller as a feed
+  hold and cycle start, the cloud client as its laser-off pause and retraced
+  resume, bounded by `cloud_hold_max_s`); the verdict file is an input
   they must survive losing. The channel is not fast enough for anything
   safety-critical. The hardware AND-gate is the safety boundary; this is
   equipment protection.
