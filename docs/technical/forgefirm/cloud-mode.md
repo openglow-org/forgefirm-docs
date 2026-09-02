@@ -217,7 +217,12 @@ buffered at once, not how long a job may be (below).
       what the job left in the ring (the rest of an aborted print, or the
       whole print after a cancel at the button wait), the factory's
       "clearing pulse data", so nothing plays ahead of it; a job that never
-      moved parks nothing.
+      moved parks nothing. The feeder is stopped before that clear, on every
+      way out of the job (a cancel, a blocked verdict, a timed-out button
+      wait, a crash): a print longer than the ring parks its feeder on a
+      full ring with the rest of the print in hand, and one left alive
+      would refill the ring behind the clear. The park refuses to run with
+      a feeder alive.
     - The lid or interlock opens during the pre-print button wait: latch
       relocked, job canceled; a press with the lid open never arms.
     - A hunt ignores the lid (lens travel plus the service's XY hunt
