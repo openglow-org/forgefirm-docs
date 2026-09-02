@@ -71,8 +71,9 @@ the kernel relocks it whenever the pulse device is closed.
 Emission permission is FIRE ∧ chain. The laser-off guarantee rests on FIRE, and
 the kernel drops FIRE within one tick on end-of-data or underrun.
 
-Fire only ever rides motion segments of laser blocks. Jogs, rapids and homing
-are fire-free by construction, not by convention.
+Fire only ever rides motion segments of laser blocks. Rapids and homing are
+fire-free by construction, not by convention; a jog is shipped dark by the
+stream whatever the modal spindle says.
 
 ## Emission witnesses
 

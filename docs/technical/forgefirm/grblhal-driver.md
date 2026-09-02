@@ -116,8 +116,11 @@ power onto the pulse stream's power bytes and fire bits:
 - The **fire bit** (bit 4 of a step byte) requests emission for that one
   tick, and only that tick. Because power and fire travel with the steps,
   power and position cannot drift apart.
-- Fire only ever rides motion segments of laser blocks. Jogs, rapids, and
-  homing are fire-free by construction, not by convention.
+- Fire only ever rides motion segments of laser blocks. Rapids and homing
+  are fire-free by construction, not by convention. A jog carries the modal
+  spindle in Grbl, so the stream masks fire for as long as the core is
+  jogging: every jog tick ships dark whatever S is in force, and the cut
+  after it lights from the state the jog did not disturb.
 - The driver obeys the three stream rules of the hardware: power before
   fire, no two power bytes in a row, and end dark. The reasons are on
   [The laser](../machine/laser.md). The duty setting persists after a

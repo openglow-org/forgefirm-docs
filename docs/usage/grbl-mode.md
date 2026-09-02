@@ -71,8 +71,9 @@ a sender's console with a standard jog command, for example `$J=G91X40F1200`.
   (a mode switch away and back, or a reboot). `$$` reports the new value at
   once, but the mapping in force stays the one loaded at start.
 
-Fire only ever rides motion segments of laser blocks. Jogs, rapids, and homing
-are fire-free by construction, not by convention.
+Fire only ever rides motion segments of laser blocks. Rapids and homing are
+fire-free by construction, not by convention, and a jog is always shipped dark,
+even with the laser on and the button pressed: the Move panel never fires.
 
 ## Arming: the button press is part of every job
 
