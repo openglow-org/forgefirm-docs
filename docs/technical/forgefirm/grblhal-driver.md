@@ -30,19 +30,21 @@ SDMA + EPIT playback engine (`glowforge.ko`, `/dev/glowforge`), the same
 jitter-free hardware step generator the factory firmware uses, fed live
 from grblHAL's planner instead of from a cloud-generated file.
 
-Three threads carry the work:
+Four threads carry the work:
 
 - **grbl protocol thread**: the parser, planner, and protocol loop. Grbl 1.1
   protocol over raw TCP (`-p 23`, compatible with LightBurn, UGS, and cncjs)
   or stdio.
-- **stepper producer thread**: replaces a hardware step timer. It runs the
-  core's stepper interrupt callback against a virtual step clock
-  (1000 x the machine tick), wall-clock paced, and maps each step event onto
-  the pulse-byte grid.
+- **stepper producer thread** (`SCHED_FIFO`): replaces a hardware step
+  timer. It runs the core's stepper interrupt callback against a virtual
+  step clock (1000 x the machine tick), wall-clock paced, and maps each step
+  event onto the pulse-byte grid.
 - **shipper thread** (`SCHED_FIFO`): writes due bytes to `/dev/glowforge`
   with a bounded queue (default 200 ms, which is also the feed-hold latency).
   It owns the kernel run/stop/streaming/underrun state machine and the
   factory's PIC run/hold stepper-current scheme.
+- **cooling reporter thread**: reports the job state to the forgectrl
+  cooling engine at 1 Hz ([Cooling engine](cooling-engine.md)).
 
 The machine constants (steps/mm, maximum rates, accelerations) are measured
 from the factory machine and its pulse streams. Their sources are noted in
@@ -95,9 +97,10 @@ meet:
   ([The image and the BSP](image-and-bsp.md)).
 - The shipper's queue is bounded (default 200 ms) so a feed hold or a power
   override takes effect within that time.
-- The shipper never logs, except a fault. The shared `fflog` emitter uses a
-  non-blocking socket, so a stalled log daemon can never park a controller
-  thread ([Logging](logging.md)).
+- The shipper logs only a fault and the start of a deferred run, through a
+  raw write. The shared `fflog` emitter uses a non-blocking socket, so a
+  stalled log daemon can never park a controller thread
+  ([Logging](logging.md)).
 - A feed that does fall behind is detected as an underrun and treated as a
   fault, never as silent damage (see "Faults" below).
 
@@ -109,8 +112,10 @@ power onto the pulse stream's power bytes and fire bits:
 - `$32` (laser mode) is **on by default**, so `M3`/`M4` and `S` behave the
   way senders expect. `M4` gives dynamic power scaled with speed through the
   acceleration ramps; `M3` gives constant power.
-- `$30` is 1000, and S values map linearly onto the 7-bit power byte:
-  `S1000` is full power, `S500` about half.
+- `$30` is 1000, and S values command a light fraction of full through the
+  dose curve: `S1000` is full power, and the density a lower S delivers is
+  the one the curve maps its light fraction onto (see "The dose curve"
+  below), not a linear share of the power byte.
 - Power changes are emitted ahead of the tick they apply to, so a power
   change and the motion it belongs to stay together.
 - The **fire bit** (bit 4 of a step byte) requests emission for that one
