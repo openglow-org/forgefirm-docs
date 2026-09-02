@@ -100,15 +100,18 @@ transmit power. Automatic follows the country the access point advertises,
 else the world rules; a selected country pins it. The setting applies
 immediately and at every boot.
 
-The design intent: every machine tunable, shared, cloud-override, and
-GRBL-mode, has a home in one of these tabs.
+Every machine tunable, shared, cloud-override, and GRBL-mode, has a home in
+one of these tabs, with three exceptions: `cool_laser_heat_cw` and
+`cool_laser_heat_density` are bench-measured coefficients set by hand in the
+settings file, and `cool_aa_offset_counts` is written by the air-assist
+offset diagnostic's Apply button.
 
 ## The routes an operator uses
 
 | Endpoint | Purpose |
 |---|---|
 | `GET /status` | Machine operational status as JSON (state, position when homed, fans, coolant, switches, `gates_off`, the `grbl` state block while a GRBL controller runs, the `diag` flag) |
-| `GET /settings` | Current settings as JSON (plus the system hostname, firmware version, and the `gates` table: range, recommended band, off end and state per gate setting) |
+| `GET /settings` | Current settings as JSON (plus `machine_id`, the fuse-derived identity, the firmware version, and the `gates` table: range, recommended band, off end and state per gate setting) |
 | `POST /settings?key=value&...` | Set any subset of known keys ([Settings](settings.md)) |
 | `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `motion-fault`), pid, motion verdict |
 | `POST /mode?controller=grbl\|cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |

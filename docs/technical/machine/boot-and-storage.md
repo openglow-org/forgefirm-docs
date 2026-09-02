@@ -30,6 +30,11 @@ The factory user-area MBR (per the factory `.fw` manifest):
 fits a 200 MiB slot with headroom. ForgeFIRM never repartitions: it lives in
 the two rootfs slots, and `/data` keeps its full factory size.
 
+A watchdog-timeout reboot is special: U-Boot arms WDOG1 (60 s) before Linux
+starts, and after a timeout reset it boots the factory recovery instead of
+the selected slot, until the next power-on reset
+([Recovery](../../install/recovery.md#the-factory-recovery-mode)).
+
 ## U-Boot and the saved environment
 
 **U-Boot lives in boot0** at 1 KiB (IMX IVT header), not in the user area. Any

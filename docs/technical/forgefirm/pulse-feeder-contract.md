@@ -309,6 +309,7 @@ The fast beam-stop path on a feeder stall is the ring-drain chain: the ring
 runs dry, the SDMA script forces the FIRE and step lines low in the same
 tick, the driver leaves the running state, the charge pump self-terminates
 on its next 200 ms tick, and the HV watchdog disarms the chain. Cloud mode
-preloads whole jobs, so its ring does not drain on a feeder stall; that
+preloads a job that fits the ring, so that ring does not drain on a feeder
+stall (a job longer than the ring is live-fed past it, and can); that
 residual is covered by the cooling engine's hung-controller dead-man
 ([forgectrl](forgectrl.md#watchdog-scope)).

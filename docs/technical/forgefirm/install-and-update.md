@@ -146,13 +146,17 @@ procedure and the variables are on
 [Acceptance](../../developers/acceptance.md).
 
 One version source: `FORGEFIRM_RELEASE` = git tag = `/etc/forgefirm-version`
-= `.fw` meta-version; the script enforces agreement.
+= `.fw` meta-version; the script enforces agreement. A component's version
+is its pin file's `PV` (it moves with every `SRCREV` bump); version strings
+inside the component sources are informational.
 
-`release.sh --dev` packs a **dev-key-signed** `forgefirm-dev.fw` from the
-release rootfs for the panel's upload path. Dev archives are signed with the
-dev key, never unsigned. The image ships the release key and the Glowforge
-keyring only, so on the machine a dev archive classifies as unsigned and
-takes the button-held path.
+`release.sh --dev` packs `forgefirm-dev.fw` from the **dev image** (forgetest
+and the bench tools included) for the panel's upload path, signed with the
+dev key so it is never an unsigned file in transit. The machine holds the
+release key and the Glowforge keyring only, so there a dev archive classifies
+as unsigned and installs through the operator-present path: the upload's
+unsigned confirmation with the machine button held. No gate runs on it, and
+the slot inventory shows its `-dev-` stamped version.
 
 **Cloud-mode compatibility baseline.** The cloud client's connect-time probe
 records `{latest_gf_version, tested_against_gf}` to
@@ -262,7 +266,8 @@ slot scheme.
 - **Env:** SD = `0/0/1//dev/mmcblk1p1`; slot N = `1/0/N//dev/mmcblk2pN`
   (`mmcdev/mmchwpart/mmcpart/mmcroot`, always one transaction).
 - **Archive layout:** `/data/forgefirm/archive/` holds
-  `factory-rootfs-<ver>.img.gz`, `boot0.img`, `boot1.img`, and `manifest`
+  `factory-rootfs-<ver>.img.gz`, `recovery-boot0.img.gz`,
+  `recovery-boot1.img.gz`, and `manifest`
   (slot versions, dates, checksums).
 
 ## Decisions
@@ -274,12 +279,14 @@ slot scheme.
   side.
 - Size gates live in two layers: bitbake fails past the 200 MiB slot;
   `release.sh` warns at 170 MiB and fails at 195 MiB.
-- Dev archives are always signed with the dedicated dev key
-  (`release.sh --dev`), never unsigned.
+- Dev archives (`release.sh --dev`) carry the dev key's signature, which no
+  machine holds: on the machine they install through the button-held
+  unsigned path.
 - Production signing key: held offline by the operator (never in the repo,
   CI, or cloud-synced plaintext), public key embedded in the installer.
   Production-signed archives verify with fwup 1.16 and the factory's 0.14.2
-  (raw public key form); dev-signed archives are rejected. Custody optimizes
+  (raw public key form); a dev-signed archive verifies against no key the
+  machine has and takes the button-held path. Custody optimizes
   against compromise over loss: loss means users re-run a fresh installer;
   compromise means attacker-signed firmware on fielded machines.
 - U-Boot bootcount and auto-revert are out of scope; the recovery ladder

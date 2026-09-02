@@ -540,7 +540,10 @@ plain value). `GET /settings` carries a `gates` object (per key: `gate`,
 `def`, `lo`, `hi`, `band`, `off`, `value`, `state` of `ok | warn | off`,
 classified from the stored value). `GET /cool/status` and `GET /status`
 carry `gates_off`, the gate names at their off end as the engine resolved
-them at the last run start. The panel warns beside a field outside its band,
+them at the last run start. The panel classifies the stored values it gets
+from `GET /settings`, which the engine adopts at the next run start, so
+between a save and that start, or under a `GFCOOL_*` override, the banner
+and `gates_off` can differ. The panel warns beside a field outside its band,
 says "this gate is OFF" at the off end, and shows a standing banner on the
 Status tab while any gate is off. None of it is reported to the cloud.
 

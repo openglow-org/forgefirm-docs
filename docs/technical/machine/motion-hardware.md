@@ -14,7 +14,7 @@ the step stream itself works is on [The step engine](step-engine.md).
 | Property | Value |
 |---|---|
 | X/Y resolution | 0.15 mm per full step, ×8 microstepping → 53.333 µsteps/mm |
-| Z resolution | 0.3534 mm per half-step → 2.832 half-steps/mm |
+| Z resolution | 0.70612 mm per full step, driven in half-steps (0.3531 mm) → 2.832 half-steps/mm |
 | Work area | 495 × 279 mm |
 | Z travel | about 10.6 mm (0.417"), hall-referenced at the top |
 | Max X/Y rate | 12000 mm/min (200 mm/s) |
@@ -50,8 +50,10 @@ complementary from one Y step and direction pair. The drivers expose:
 - Current decay mode per axis (`x_decay`, `y_decay`): 0 = slow (fast stop,
   slow response), 1 = mixed (decay pin high impedance), 2 = fast (fast
   response, slow stop).
-- Drive current set through the PIC: `x_step_current` 0 to 127 and
-  `y_step_current` 0 to 31 (0 = minimum, maximum at the top of each range).
+- Drive current set through the PIC: `x_step_current` and `y_step_current`
+  are 10-bit DAC values (0 to 1023, 0 = minimum). The two axes' DAC scales
+  differ by design; the factory runs X at 135 (33 at hold) and Y at 22 (5 at
+  hold), and ForgeFIRM writes the same.
 - Fault lines from the drivers: bit 0 = X, bit 1 = Y1, bit 2 = Y2
   (`faults`); each can be masked (`ignored_faults`).
 - A per-motor lock (`motor_lock`, bits X, Y1, Y2, Z) that holds an axis still

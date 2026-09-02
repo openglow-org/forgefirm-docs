@@ -11,8 +11,9 @@ stated once. The sysfs attribute reference (names, permissions, groups) is on
 sensor is and how its reading converts.
 
 The reference implementation of the conversions is forgectrl `src/status.c`;
-the GRBL controller carries the same coolant conversion for its in-process
-gate, and `gfhardware`'s `cooling.py` implements it for the cloud client.
+`gfhardware`'s `cooling.py` implements the coolant conversion for the cloud
+client. The GRBL controller converts nothing: it enforces the cooling engine's
+published verdict.
 Consumers must not reintroduce private variants.
 
 Most analog readings come through the board's PIC analog/digital I/O

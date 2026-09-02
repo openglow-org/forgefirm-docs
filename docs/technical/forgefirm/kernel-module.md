@@ -319,6 +319,15 @@ not evidence that the latch hardware responded. The physical proof is
 `laser_on` and `laser_on_sampled`, which read the gated output of the safety
 AND-gate. forgectrl's `/status` reports bit 3 as `laser_locked`.
 
+### Debug surface
+
+Eleven attributes have no consumer in ForgeFIRM and no acceptance test:
+`cnc/interlock_latch_reset` (the same line as bit 4 of `interlock_circuit`),
+`head/accel_irq`, and the PIC `id`, `hv_voltage`, `grp_all`, `grp_sensors`,
+`grp_hv`, `grp_outputs`, `grp_button_leds`, `raw` and `hex`. They are a
+debug surface for the bench; the `raw` and `hex` writers reach every PIC
+register, as root.
+
 ### interlock_latch_reset
 
 Read, ASCII, 0-1
@@ -713,15 +722,16 @@ Water temperature, upstream of the heater. Same conversion.
 
 ### x_step_current
 
-Read/Write, ASCII, 0-127
+Read/Write, ASCII, 0-1023 (a 10-bit DAC value; the module refuses more)
 
-X stepper drive current. 0 = Min, 127 = Max.
+X stepper drive current. 0 = minimum. The factory runs 135, 33 at hold.
 
 ### y_step_current
 
-Read/Write, ASCII, 0-31
+Read/Write, ASCII, 0-1023 (a 10-bit DAC value; the module refuses more)
 
-Y stepper drive current. 0 = Min, 31 = Max.
+Y stepper drive current. 0 = minimum; the Y DAC scale differs from X by
+design. The factory runs 22, 5 at hold.
 
 ## /sys/glowforge/thermal
 

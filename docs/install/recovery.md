@@ -68,6 +68,10 @@ lead into recovery mode:
 - **A blank or corrupt boot environment.** The compiled-in default
   environment boots recovery, so a machine with no usable saved environment
   lands in recovery mode, not in a brick.
+- **A hardware watchdog timeout.** U-Boot arms the SoC watchdog with a 60 s
+  timeout before Linux starts. A kernel hard hang lets it reset the SoC,
+  and the bootloader reads the timeout flag and boots recovery. Power-cycle
+  the machine to boot normally again; the flag clears on a power-on reset.
 
 The recovery boots the factory's recovery kernel (3.14.28) and device tree
 from the boot partitions, and runs the factory setup application: WiFi

@@ -92,9 +92,10 @@ two ways to use the ring, and the mode you run decides which:
   falls behind far enough to empty the ring, the machine enters an
   **underrun** state: motion stops instantly, and position is no longer
   trusted.
-- **Preloading (cloud mode).** The whole job is written into the ring before
-  it starts. Nothing can starve, but a whole-file preload is capped by the
-  ring size: roughly 1 MiB per 100 seconds at the cloud's 10 kHz tick, so
+- **Preloading (cloud mode).** The job is written into the ring before it
+  starts, and a job that fits the ring cannot starve. A longer job is topped
+  up as the ring drains, live-fed like GRBL mode, and can underrun the same
+  way. What fits is capped by the ring size: roughly 1 MiB per 100 seconds at the cloud's 10 kHz tick, so
   about 56 minutes at 32 MiB. How the cloud client handles a job longer than
   the ring is on [Cloud mode](../forgefirm/cloud-mode.md).
 

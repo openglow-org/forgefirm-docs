@@ -54,8 +54,10 @@ modules ([Logging](logging.md)).
 Two images come from one bitbake run: `forgefirm-image` (the release image)
 and `forgefirm-image-dev` (the dev image, a strict superset that the bench
 runs). Both build on the BSP's `glowforge-image`. The dev image adds a root
-login without a password, python3, gdb and strace, the acceptance tool
-`forgetest`, and the bench tools; a release image never has them, and
+login without a password, the python3 `mmap` and `ctypes` modules, gdb and
+strace, the acceptance tool `forgetest`, and the bench tools; a release
+image never has them (it does carry the interpreter and the modules the
+cloud controller and the homing runner import), and
 `release.sh` refuses a release rootfs with a passwordless root entry
 ([Build](../../developers/building.md)).
 
@@ -112,9 +114,8 @@ on `ttymxc0`; the kernel has no virtual console (no display), so there is no
 getty on `tty1`.
 
 Firmware: the WL18xx blobs (`linux-firmware-wl18xx`) and the VPU blob for
-the i.MX6 Solo/DualLite (`vpu_fw_imx6d.bin`). The e-paper controller
-firmware, the Quad's VPU blob, and the SDMA RAM firmware for the i.MX6 and
-i.MX7 are removed: no EPDC, a DualLite VPU, and an SDMA that runs its ROM
+the i.MX6 Solo (`vpu_fw_imx6d.bin`). The e-paper controller firmware and the
+SDMA RAM firmware for the i.MX6 are removed: no EPDC, and an SDMA that runs its ROM
 scripts by design (the built-in driver probes before the rootfs, and every
 client on the board uses ROM scripts; the pulse script is loaded by
 `glowforge.ko` itself).
@@ -219,8 +220,7 @@ configuration, in the `meta-openglow` repository.
 
 The device tree is `glowforge.dts` with `openglow_common.dtsi`, overlaid
 into `arch/arm/boot/dts/nxp/imx/` (6.12 keeps 32-bit device trees there).
-An i.MX6 Solo is a DualLite with only one core, so the tree deletes
-`cpu@1`. The `chosen` node carries `console=ttymxc0,115200` only, as a
+The Solo has one core, so the tree deletes the base include's `cpu@1`. The `chosen` node carries `console=ttymxc0,115200` only, as a
 fallback: U-Boot always overwrites `bootargs` from its environment
 (`mmcargs` carries the real `root=`). There is no `root=` in the tree, so a
 boot that fell through to it would stop at a visible rootfs panic instead of
