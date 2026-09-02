@@ -255,8 +255,10 @@ read colder, so the lift reads as a drop), and `/status` applies the same
 correction, so the over-temperature gates and the panel read the coolant as
 it is. The value is the machine's own: the `aa-offset-calibrate` diagnostic
 (the fan stepped idle to run and back three times, tube dark, heater off,
-the step on both sensors at every edge averaged) recommends it and the
-panel's Apply writes it. Zero, the default, is the factory behavior, which
+the step on both sensors at every edge read as the difference of two 3 s
+windows, each the interquartile mean of 48 samples, so the short excursions
+the readings carry with I2C traffic to the PIC fall out) recommends it and
+the panel's Apply writes it. Zero, the default, is the factory behavior, which
 never corrected the shift.
 
 ### One bad reading is a suspicion, not a fault
