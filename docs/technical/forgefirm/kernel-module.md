@@ -70,8 +70,11 @@ emission the hardware would not allow.
   impedance, so the SDMA stream physically cannot raise it. **Locked by
   default; the final close of `/dev/glowforge` relocks** (the release of the
   open file, once every inherited copy of the descriptor is gone). Unlocking never restores
-  the FIRE drive while a run or ramp is in flight. Only run start and the
-  resume waypoint do, and only if the latch is unlocked at that moment.
+  the FIRE drive while a run or ramp is in flight. Only run start does, and
+  only if the latch is unlocked at that moment; nothing in the driver writes
+  the GPIO data register while the script runs. A resume's laser-off lead
+  is the script's own doing: it masks the laser bits out of every word it
+  writes until the waypoint byte, then clears the mask itself.
 - **Charge pump only while running.** The 200 ms retrigger starts with the
   run, and the callback returns without rearming as soon as the state leaves
   `running` (stop, halt, fault, underrun). The stop, disable, and unload pin
@@ -86,8 +89,11 @@ emission the hardware would not allow.
   drill records are in the
   [campaign log](https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
 - **FIRE backstop.** At end-of-data and on underrun the SDMA script drops FIRE
-  and the step lines within one tick. The FIRE line is parked Hi-Z at every
-  run end, and only a latch unlock plus a new run restores it.
+  and the step lines within one tick, then publishes end-of-data in a mailbox
+  word the driver reads without a channel-0 transfer, so an end-of-data that
+  arrives while a waypoint is still pending is decoded as what it is. The
+  FIRE line is parked Hi-Z at every run end, and only a latch unlock plus a
+  new run restores it.
 - **Interlock latch drive.** The board's interlock latch is reset by a closed
   loop but can only be *set* by the SoC's INTERLOCK_RESET line; an open loop
   alone does not trip it. The driver owns that line through an in-kernel

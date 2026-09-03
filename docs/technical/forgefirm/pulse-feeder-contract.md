@@ -142,7 +142,10 @@ Write, ASCII, -268435455 to 268435455
   as a preloaded program: what bounds the walk is the ring's retained
   history, not how the ring is filled.
 - **Positive values:** accelerate forward, run the number of requested
-  steps, re-enable the laser, and continue the program normally.
+  steps with the laser held off, re-enable the laser at that byte, and
+  continue the program normally. The hold and the release are the SDMA
+  script's own (a mask it applies to every word it writes and clears at
+  the waypoint byte), so the lead is exact to the byte.
 - **Zero:** accelerate forward, continue the program without re-enabling
   the laser.
 
