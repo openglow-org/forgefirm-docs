@@ -183,6 +183,17 @@ the job ends in an alarm with the latch relocked. The coolant verdict is
 re-checked after the press, so a window can never open against a fault that
 appeared during the wait.
 
+The re-check waits for a verdict that answers this job. Forcing the airflow
+profile on is a report to the cooling engine, and the engine applies the run
+duties and the flow interrogation when it reads that report. Until it does,
+the verdict on file is the one computed for the idle session before the arm,
+which says fire is fine because at idle nothing is wrong. So the controller
+holds at the re-check until the engine's own armed flag comes back in the
+verdict, and refuses the job if it does not arrive within five seconds. A
+press that lands the instant the button lights is the case this covers: it
+reaches the re-check before the engine has ticked, and without the wait the
+first fire goes out with the fans still at their idle duty.
+
 **The window is per job, not per fire.** It survives `S` changes and
 `M5`/`M3` toggles, so nothing re-prompts mid-job. It closes, relocking the
 latch, when any of these happens:

@@ -612,16 +612,27 @@ plus rename) at ~1 Hz and on every verdict change:
 ```json
 { "seq": 1234, "ts_mono": 5678.9,
   "fire_ok": true, "verdict": "OK",
-  "hold": false, "resume_ok": true,
+  "hold": false, "resume_ok": true, "armed": true,
   "reason": "", "down_c": 21.3, "up_c": 21.1 }
 ```
 
 - `ts_mono` is `CLOCK_MONOTONIC` seconds. **Readers must treat a missing
   file or `ts_mono` older than 2 s as `fire_ok=false, hold=true`.** A body
   without its closing brace is a torn read, not a verdict; an absent
-  `fire_ok`, `hold`, or `resume_ok` key takes the fail-safe value (`false`,
-  `true`, `false`). The publisher never writes a document longer than its
-  buffer.
+  `fire_ok`, `hold`, `resume_ok`, or `armed` key takes the fail-safe value
+  (`false`, `true`, `false`, `false`). The publisher never writes a document
+  longer than its buffer.
+- `armed` is the engine's own view of the armed window, and it is what makes
+  a verdict an answer to the session it is read against. **A controller must
+  not fire inside its armed window on a verdict whose `armed` is false.** The
+  window opens before the engine has seen the job-state report, and the
+  verdict standing on file until then was computed for the idle session that
+  preceded the arm: at idle nothing is wrong, so it reads `fire_ok=true`
+  while the fans are still at their idle duty. The engine sets `armed` from
+  the reported window before it applies the run profile and before it
+  publishes, so a verdict carrying `armed=true` was computed with the run
+  session open. A controller waits for it at the arm rather than firing, and
+  refuses the job if it does not arrive.
 - `verdict` is one of `OK`, `SUSPECT`, `FAULT`, `OVERTEMP`, `COLD`,
   `WARMUP`, `CRITICAL`, `SENSOR`, `AIRFLOW`, `FLAME`, `FIRE`, `BUMP`, `CRASH`
   ([What the verdicts do](#what-the-verdicts-do)). `hold=true` asks the
@@ -641,8 +652,9 @@ plus rename) at ~1 Hz and on every verdict change:
   safety-critical. The hardware AND-gate is the safety boundary; this is
   equipment protection.
 - `fire_ok` additionally requires a fresh job-state report: an armed window
-  the engine cannot see never reads `fire_ok=true`. A controller about to
-  fire is, by this contract, reporting at 1 Hz.
+  the engine cannot see never reads `fire_ok=true`, and never reads
+  `armed=true` either. A controller about to fire is, by this contract,
+  reporting at 1 Hz.
 - **Emergency fallback:** if the verdict goes stale while the laser is
   armed, the controller (besides gating fire and holding) writes the run fan
   duties directly once, compiled-in factory values with no config

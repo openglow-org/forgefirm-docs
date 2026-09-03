@@ -237,7 +237,11 @@ buffered at once, not how long a job may be (below).
       off, and writes the run airflow once. Before the run, a print whose
       armed session opens under a hold (`WARMUP`, `COLD`, a hot loop) waits
       it out the same bounded way; only an absent engine refuses to arm.
-      Motions and hunts are not armed and are not held.
+      That wait also holds until the engine's own `armed` flag comes back in
+      the verdict, so a print never starts on the verdict computed for the
+      idle session before its arm, which would read clean while the fans
+      were still at their idle duty. Motions and hunts are not armed and are
+      not held.
     - The kernel leaves the run on its own (a fault, a disable): the job
       ends canceled, never completed, and a park that faults reports no
       success; the service re-hunts rather than dead-reckon from a position
