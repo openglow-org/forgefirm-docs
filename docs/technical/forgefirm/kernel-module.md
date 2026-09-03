@@ -612,15 +612,20 @@ Z axis microstepping. 0: Full, 1: 2 (half-step).
 
 ## /sys/glowforge/pic
 
-Every transaction with the PIC is paced: the module waits until `pic_gap_us`
-microseconds (a module parameter, 1000 by default, writable at runtime under
-`/sys/module/glowforge/parameters/`) have passed since the last transaction
-ended before it starts the next, whoever the reader is. The PIC's converter
-is disturbed by SPI traffic: a read that follows another transaction within a
-fraction of a millisecond comes back high and wide, and one half a
-millisecond or more later reads tight, so the pacing is what makes the
-cooling engine, `/status`, a diagnostic and a bench sampler read the same
-value whatever the others do. Zero turns it off.
+The PIC (a PIC16F1713) converts its analog inputs in a free-running loop,
+about 25 µs a channel, and a read returns the last conversion of that
+channel, at most one loop (about 0.35 ms) old; a read never triggers a
+conversion. What a conversion counts depends on the SoC's load at that
+moment: the PIC converts against its own supply while the sensor dividers
+hang on the board's reference, and the CPU's idle-to-busy step moves the
+count by about 6 on the coolant thermistors (both regimes tight). A reader
+that wakes and reads at once gets an idle-regime value; one that has been
+busy gets the other. So the module keeps the CPU busy for `pic_settle_us`
+microseconds (a module parameter, 500 by default, writable at runtime under
+`/sys/module/glowforge/parameters/`) before every transaction, longer than
+one PIC loop, and the value read was converted under the same load whoever
+the reader is and whatever it was doing: the cooling engine, `/status`, a
+diagnostic and a bench sampler read the same value. Zero turns it off.
 
 ### button_led_1, button_led_2, button_led_3
 

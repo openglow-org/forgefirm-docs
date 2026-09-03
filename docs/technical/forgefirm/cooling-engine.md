@@ -256,10 +256,10 @@ correction, so the over-temperature gates and the panel read the coolant as
 it is. The value is the machine's own: the `aa-offset-calibrate` diagnostic
 (the fan stepped idle to run and back three times, tube dark, heater off,
 the step on both sensors at every edge read as the difference of two 3 s
-windows, each the interquartile mean of 48 samples, so what other readers'
-traffic still puts in a window falls out; the module itself paces every PIC
-transaction a millisecond apart, which keeps a read that follows another
-from coming back high) recommends it and the panel's Apply writes it. Zero, the default, is the factory behavior, which
+windows, each the interquartile mean of 48 samples, so the rare excursion
+a sample carries falls out; the module itself keeps the CPU busy before
+every PIC transaction, so a reading no longer depends on whether the reader
+had just woken) recommends it and the panel's Apply writes it. Zero, the default, is the factory behavior, which
 never corrected the shift.
 
 ### One bad reading is a suspicion, not a fault
