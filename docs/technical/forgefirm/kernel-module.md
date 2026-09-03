@@ -612,6 +612,16 @@ Z axis microstepping. 0: Full, 1: 2 (half-step).
 
 ## /sys/glowforge/pic
 
+Every transaction with the PIC is paced: the module waits until `pic_gap_us`
+microseconds (a module parameter, 1000 by default, writable at runtime under
+`/sys/module/glowforge/parameters/`) have passed since the last transaction
+ended before it starts the next, whoever the reader is. The PIC's converter
+is disturbed by SPI traffic: a read that follows another transaction within a
+fraction of a millisecond comes back high and wide, and one half a
+millisecond or more later reads tight, so the pacing is what makes the
+cooling engine, `/status`, a diagnostic and a bench sampler read the same
+value whatever the others do. Zero turns it off.
+
 ### button_led_1, button_led_2, button_led_3
 
 Read/Write, ASCII, 0-1023 (0 = OFF, 1023 = FULL)
