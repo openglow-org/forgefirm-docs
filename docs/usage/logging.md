@@ -69,8 +69,8 @@ firmware version, kernel ring buffer, uptime, memory, disk, processes, effective
 log levels, and the settings with secrets masked.
 
 The bundle is **sanitized by default**, for attaching to a public issue report.
-Known identifiers (serial, hostname, cloud credentials, panel token, WiFi
-network) and pattern classes (network addresses, e-mail addresses, bearer and
+Known identifiers (serial, hostname, cloud credentials, panel token, camera
+key, WiFi network) and pattern classes (network addresses, e-mail addresses, bearer and
 basic credentials, JWTs, key=value secrets, long hex and base64 blobs) become
 placeholders. A placeholder keeps the same number for the same value within the
 bundle, so hosts can still be told apart. The sanitizer removes what it knows
@@ -83,6 +83,6 @@ to keep everything for your own use.
 |---|---|
 | `GET /logs` | Loggers with configured and effective levels and on-disk sizes, the remote target, `pending_reboot` |
 | `GET /logs/tail?name=&lines=&from=` | The last `lines` of a logger's live file, or everything since byte offset `from` (incremental follow) |
-| `POST /logs/export?sanitize=1\|0` | Streams the `tar.gz` bundle, sanitized by default |
+| `POST /logs/export?sanitize=1\|0` | Streams the `tar.gz` bundle, sanitized by default; it carries the commissioning record as `system/commissioning.json` ([Commissioning](commissioning.md#the-record)) |
 
-All three require the panel token ([The control panel](control-panel.md)).
+All three require a login ([The control panel](control-panel.md#access)).

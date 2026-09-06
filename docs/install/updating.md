@@ -53,8 +53,8 @@ slot write takes the update lock (`/data/forgefirm/update.lock`, shared with
 the installer), requires the machine idle with no diagnostic running,
 refuses the slot the machine booted from, verifies the signature before
 writing, and re-verifies the written filesystem afterward. Every
-state-changing action is behind the panel's authentication (the panel token
-and origin checks).
+state-changing action is behind the panel's authentication (a login session
+and origin checks; [The control panel](../usage/control-panel.md#access)).
 
 ### Inventory
 

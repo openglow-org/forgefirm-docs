@@ -58,13 +58,15 @@ login without a password, the python3 `mmap` and `ctypes` modules, gdb and
 strace, the acceptance tool `forgetest`, and the bench tools; a release
 image never has them (it does carry the interpreter and the modules the
 cloud controller and the homing runner import), and
-`release.sh` refuses a release rootfs with a passwordless root entry
+`release.sh` refuses a release rootfs whose `sshd_config` permits a root
+login or an empty password, and one whose root entry carries a password
+(root has none and works at the console only)
 ([Build](../../developers/building.md)).
 
 The release image installs, on top of the BSP base:
 
 - `grblhal-glowforge`: the grblHAL motion controller (Grbl over TCP:23).
-- `forgectrl`: the machine-services daemon (HTTP :8080).
+- `forgectrl`: the machine-services daemon (HTTPS :443, HTTP :80).
 - `gfhome`: one-shot Glowforge web-service homing, invoked by the controller
   for `$H` when `homing_mode = gfcloud`.
 - `gfcloud`: the full Glowforge web-service controller daemon, started when

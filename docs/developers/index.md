@@ -32,7 +32,7 @@ repository is checked out into one base working directory,
 |---|---|---|
 | [`forgefirm`](https://github.com/openglow-org/forgefirm) | The base of the build and of the release: the `meta-forgefirm` Yocto layer, the kas configuration, the image recipes, the install and release scripts, the acceptance tool (`forgetest/`), the bench actuator firmware (`fixture/`), the bench tools (`scripts/bench/`), and the release artifacts (`releases/`). Two documents stay in this repository: `docs/BRINGUP.md`, the status document and cold-start runbook until the first production release, and `docs/CAMPAIGN-LOG.md`, the dated bench record. | MIT for the layer metadata. Each component has its own license. |
 | [`meta-openglow`](https://github.com/openglow-org/meta-openglow) | The BSP layers, on the `scarthgap` branch. `meta-glowforge-bsp` defines the machine `glowforge`: the kernel, the device tree, U-Boot, and the board recipes. `meta-openglow-core` has the distro-neutral recipes that the images share. The ForgeFIRM build uses it as a sibling checkout. | MIT for the layer metadata |
-| [`forgectrl`](https://github.com/openglow-org/forgectrl) | The machine-services daemon, in C, on HTTP port 8080. It supervises the controller, brokers the pulse device, and gates motion liveness. It operates the cooling engine, the cameras, telemetry, settings, diagnostics, logging, the web control panel, and the A/B update system. [forgectrl](../technical/forgefirm/forgectrl.md) is the machine-services contract. | MIT |
+| [`forgectrl`](https://github.com/openglow-org/forgectrl) | The machine-services daemon, in C, on HTTPS port 443 and HTTP port 80. It supervises the controller, brokers the pulse device, and gates motion liveness. It operates the cooling engine, the cameras, telemetry, settings, diagnostics, logging, the web control panel, and the A/B update system. [forgectrl](../technical/forgefirm/forgectrl.md) is the machine-services contract. | MIT |
 | [`grblHAL-glowforge`](https://github.com/openglow-org/grblHAL-glowforge) | The grblHAL driver for the stock control board: the controller for GRBL mode. The grblHAL core is a git submodule at `src/grbl` ([openglow-org/grblHAL-core](https://github.com/openglow-org/grblHAL-core), branch `forgefirm`). The machine constants are in `src/boards/glowforge.h`. | GPL-3.0-or-later |
 | [`kernel-module-glowforge`](https://github.com/openglow-org/kernel-module-glowforge) | `glowforge.ko`: the SDMA + EPIT pulse engine, the laser latch, the safety readbacks, and the sensors. [Pulse feeder contract](../technical/forgefirm/pulse-feeder-contract.md) is the pulse-stream feeder contract. | GPL-2.0-or-later |
 | [`python3-gfhardware`](https://github.com/openglow-org/python3-gfhardware) | The `gfhardware` Python library for the machine hardware, and the cloud-mode applications in `forgefirm-app/`: `gfcloud.py` (the cloud-mode controller daemon), `gfhome.py` (one-shot homing through the Glowforge service), and `ffmachine.py` (the hardware glue that both use). [Cloud mode](../technical/forgefirm/cloud-mode.md) describes cloud mode. | MIT, with one LGPL-2.1-or-later component (see Licenses) |
@@ -51,7 +51,7 @@ graph TD
         grbl["grblHAL-glowforge<br>grblHAL core + the ForgeFIRM driver"]
         gfcloud["python3-gfhardware<br>gfcloud, on Glowforge-Utilities"]
     end
-    forgectrl["forgectrl<br>machine services, HTTP port 8080"]
+    forgectrl["forgectrl<br>machine services, HTTPS 443, HTTP 80"]
     subgraph image["The image (Yocto)"]
         ko["kernel-module-glowforge<br>glowforge.ko: SDMA + EPIT, laser latch, readbacks"]
         cams["Cameras<br>ov5648, video-mux, imx6-mipi-csi2, imx-media, VPU"]
@@ -84,7 +84,20 @@ makes both images: `forgefirm-image`, the release image, and
 ## Licenses
 
 The code is free software under MIT and GPL licenses. The text of this site
-is CC BY-SA 4.0. These are the details that go past a one-word license:
+is CC BY-SA 4.0.
+
+Every image carries its own license accounting: the build writes the
+image's license manifest (every installed package with its license) and
+copies each package's license texts onto the rootfs, then packs both into
+`/usr/share/forgefirm/licenses.tar.gz` and removes the loose tree, so the
+texts the licenses ask to travel with the software travel with it at the
+cost of one compressed file. The control panel shows the manifest at
+`GET /licenses`, the "Licenses" link at the foot of every panel page,
+serves the bundle at `GET /system/licenses`, and the manifest alone at
+`GET /system/licenses/manifest`. Keep that step in every image you
+redistribute.
+
+These are the details that go past a one-word license:
 
 - **grblHAL-glowforge** is GPL-3.0-or-later. It is derived from the
   [grblHAL Simulator](https://github.com/grblHAL/Simulator): the platform

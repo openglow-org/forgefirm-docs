@@ -51,6 +51,12 @@ which the `WsClient` drains to the service. The library that implements this is
 - The machine signs in at `/machines/sign_in` with its serial number and
   password. `sign_in` returns two JWTs: `auth_token` (Bearer, ~6 h) and
   `ws_token` (a path component of the WS URL, ~30 s expiry, single-use).
+- Every HTTPS request and the WebSocket handshake carry a `User-Agent`.
+  gfutilities sends `SERVICE.USER_AGENT`, which ForgeFIRM sets to
+  `ForgeFIRM/<version>` from the image stamp; the library's own default is
+  `OpenGlow/<factory firmware version>`. The service serves a session under
+  the ForgeFIRM agent as it serves a stock machine: sign-in, the hunt, the
+  captures, and prints.
 - The WS client reconnects through a loop that re-runs `sign_in` for a fresh
   `ws_token` and rebuilds the URL on every reconnect.
 - The service drops the socket on its own schedule, roughly hourly in a long

@@ -287,7 +287,8 @@ the bench tools see `GF_HOST` and `GF_TOKEN` too.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `FORGECTRL_PORT` | 8080 | The HTTP port |
+| `FORGECTRL_PORT` | 80 | The HTTP port: the read-only routes, loopback writes, and the redirect to HTTPS |
+| `FORGECTRL_TLS_PORT` | 443 | The HTTPS port: the login, the panel, every state change |
 | `FORGECTRL_STREAM_Q` | 75 | The JPEG quality of the stream (1 to 100) |
 | `FORGECTRL_STREAM_FPS` | unset | The frame-rate ceiling of the stream (frames/s). Unset or 0 = the sensor maximum |
 | `FORGECTRL_LAMP` | 132 | The illumination level during capture (0 to 1023) |
@@ -328,8 +329,9 @@ numbers. The open tab reloads when you save a file under `src/ui/`. The
 option `--bundle` serves the page inlined, in the same way as the daemon. The
 API calls from the page go to one of two backends:
 
-- **A real machine.** Set `GF_HOST` (an IP literal, with `:port` if the port
-  is not 8080) and `GF_TOKEN` (the panel token, `/data/forgefirm/panel.token`
+- **A real machine.** Set `GF_HOST` (an IP literal, with `:port` when the
+  machine does not listen on the default port) and `GF_TOKEN` (the panel
+  token, `/data/forgefirm/panel.token`
   on the machine). Put them in the environment, or in a git-ignored `.env`
   at the root of the repository. `.env.example` is the template, and the
   server reads the file again when it changes. The server embeds the token

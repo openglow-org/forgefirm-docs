@@ -57,16 +57,25 @@ One stage, no intermediate reboots. The installer:
 
 ## After the first boot
 
-A release image has no shell login: root is locked, no password exists, and
-nothing on the site needs one. Everything an owner does runs from the control
-panel. The developer image is the one with a root login and no password (see
-[Building](../developers/building.md)); it is for the bench, never for a
-machine in use.
+The machine boots into ForgeFIRM, and the serial console prints the panel's
+addresses. Open `https://forgefirm.local/` or `https://<ip>/` in a browser
+and accept the browser's certificate warning once. To check the certificate
+first, open `http://<ip>/cert`: it shows the fingerprint with no warning to
+accept ([The control panel](../usage/control-panel.md#the-address)). The
+setup then runs: the
+advisories, your account, the preferences, the machine facts, and the cloud
+decision ([Commissioning](../usage/commissioning.md)). No controller runs for
+a sender until the setup is complete.
 
-The machine boots into ForgeFIRM. The factory firmware is in the archive on
-`/data` ([Back to the factory firmware](factory-restore.md)). The control panel
-is at the machine's address on HTTP port 8080
-([Control panel](../usage/control-panel.md)). Routine updates do not use the
-installer; they run from the panel's System tab ([Updating](updating.md)).
-Rerunning the installer is only for recovering a broken ForgeFIRM install
-([Recovery](recovery.md)).
+Root has no password and works at the serial console only; SSH refuses root.
+SSH is off at every boot until you turn it on from the panel's System tab.
+It opens with your account's name and password
+([The control panel](../usage/control-panel.md#login)). A development image
+keeps SSH on ([Build](../developers/building.md)); it is for the bench,
+never for a machine in use.
+
+The factory firmware is in the archive on `/data`
+([Back to the factory firmware](factory-restore.md)). Routine updates do not
+use the installer; they run from the panel's System tab
+([Updating](updating.md)). Rerunning the installer is only for recovering a
+broken ForgeFIRM install ([Recovery](recovery.md)).

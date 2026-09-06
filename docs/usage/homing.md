@@ -31,19 +31,23 @@ controller re-reads it on every `$H`.
 
 `$H` from any sender runs the factory-style camera homing cycle through the
 Glowforge service. The service takes a lid image, moves the head, takes
-another, and computes where the head is; the machine then moves to the home
-corner and references the lens (Z) against the hall sensor at the top of its
-travel.
+another, and computes where the head is; the machine moves to the home
+corner. The service's lens hunt is answered as done without moving the lens;
+after the session the lens takes its own reference on the hall sensor's edge,
+Z is set to the focal point's height above the tray at that edge, the number
+[Commissioning](commissioning.md#the-sheet) measured, and the lens then moves
+to the park height, `lens_park_z_mm` on the Machine tab (default 3 mm), so a
+home ends focused about 3 mm above the bed.
 
 - **It needs a Glowforge account and a live service session.** This is the
   one part of GRBL mode that reaches the Glowforge service; everything else in
   GRBL mode runs without it. The cycle uses the machine's own credentials
   (the factory fuse identity, or the overrides on the GF Cloud tab; see
-  [Cloud mode](cloud-mode.md)).
+  [Cloud mode](cloud-mode.md)) and names its software as ForgeFIRM.
 - **It needs the lid closed.** The camera steps need it, and the move to the
   home corner is an ordinary motion action: refused with the lid open, and
-  stopped if the lid opens partway through. Only the lens hunt inside the
-  session ignores the lid.
+  stopped if the lid opens partway through. The lens reference after the
+  session does not need the lid.
 - **It takes about a minute.** A full cycle runs in 50 to 65 s. While it
   runs, `$H` suspends the stream engine, runs the session, and hands the
   machine back; your sender keeps getting status reports.
@@ -58,9 +62,11 @@ travel.
 After a successful home the position is anchored and the panel shows it
 normally. The home corner is the back-left corner of the bed, and the workspace
 is all-positive from there (+Y runs toward the front of the machine; Z counts
-positive upward). `gfcloud_home_x/y/z` on the Machine tab set the machine
-coordinates the head is at after a completed homing (defaults 0 / 0 / Z max):
-leave them blank until a measurement says otherwise. To calibrate: home, jog to
+positive upward). `gfcloud_home_x/y` on the Machine tab set the machine X and
+Y the head is at after a completed homing (defaults 0 / 0): leave them blank
+until a measurement says otherwise. Z after a home is `lens_park_z_mm`, the
+focus height the lens parks at; the focus card measured where the hall edge
+sits in that frame. To calibrate: home, jog to
 a known reference, and enter the measured offsets.
 
 Do not let a sender home automatically on connect: LightBurn's **Auto-home on

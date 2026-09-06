@@ -5,9 +5,11 @@ title: Cloud mode
 # Cloud mode
 
 ForgeFIRM's optional **factory cloud mode** runs the machine under the
-Glowforge web service: the machine presents itself as a stock Glowforge, and
-the Glowforge phone or web app drives it end to end: connect homing, Set
-Focus, material imaging, and full prints (button press, cut, return-home).
+Glowforge web service: the machine signs in with its own identity, names its
+software to the service as `ForgeFIRM/<version>` through the User-Agent, and
+uses the service the way a stock machine does; the Glowforge phone or web app
+drives it end to end: connect homing, Set Focus, material imaging, and full
+prints (button press, cut, return-home).
 It is distinct from the `gfhome.py` one-shot, which borrows the service only
 for a camera-referenced homing cycle ([Homing](homing.md)). This page
 describes the components, the scope, how a job runs, the policies, and the
@@ -55,7 +57,10 @@ directory.
 
 - **Authenticates** a machine to the web service (`/machines/sign_in`) using
   its serial number and password, retrieving the session and WebSocket
-  tokens.
+  tokens. Every request and the WebSocket handshake carry the User-Agent
+  from `SERVICE.USER_AGENT`: ForgeFIRM sets it to `ForgeFIRM/<version>` from
+  the image stamp `/etc/forgefirm-version`, and the library's own default is
+  `OpenGlow/<factory firmware version>`.
 - **Checks for firmware** advertised by the service (a version probe only;
   see "Firmware-update policy").
 - Opens the **real-time WebSocket control channel** to the status service
@@ -190,10 +195,19 @@ writes into the ring, and plays:
 2. The client downloads it and validates the header before a byte reaches
    the ring.
 3. The header's own parameters are applied: the machine tick (10 kHz for
-   prints and hunts), the acceleration ramp, and the per-job fan duties,
-   which are passed to the cooling engine as the run profile.
-4. The button wait arms the laser, exactly as in GRBL mode.
-5. The ring plays to the end; the client supervises it and reports state.
+   prints and hunts), the acceleration ramp, the Z step mode (`ZSmd`, 0 is
+   full-step: the service's focus is a count of full steps up from its
+   zero, 4 full steps below the hall edge), and the per-job fan duties,
+   which are passed to the
+   cooling engine as the run profile.
+4. The lens is unlocked for the motion (`cnc/motor_lock` bit 3 clear) and
+   its driver is set to the drive current (`head/z_current` 0); both go
+   back at idle. With the idle lock left in place the service's focus
+   steps would be counted and never made, and at the hold current the lens
+   rises two steps into the service's ramp and stalls ([The motion
+   hardware](../machine/motion-hardware.md#the-lens-and-its-travel)).
+5. The button wait arms the laser, exactly as in GRBL mode.
+6. The ring plays to the end; the client supervises it and reports state.
 
 There is no live re-planning. The ring is filled before the button is asked
 for and topped up as it drains, so the ring size caps how much of a job is
@@ -400,7 +414,7 @@ The operator's procedure for the credentials and the panel fields is on
 
 | Where | Keys |
 |---|---|
-| `/data/etc/gfhome.conf` (seeded from `/etc/gfhome.conf.sample`) | `SERVICE.*` (server and status URLs), `FACTORY_FIRMWARE.CHECK` / `STATUS_FILE`, `FORGECTRL.URL`, `LOGGING.SAVE_PULS` / `SAVE_SENT_IMAGES` (both default off) and `LOGGING.CAPTURE_DIR` (default `/data/forgefirm/captures/<app>`), `MOTION.*` (including `WARM_UP_DELAY` and `COOL_DOWN_DELAY`), `THERMAL.*`. |
+| `/data/etc/gfhome.conf` (seeded from `/etc/gfhome.conf.sample`) | `SERVICE.*` (server and status URLs, and `USER_AGENT`: the User-Agent the service sees, default `ForgeFIRM/<version>` with the version from `/etc/forgefirm-version`), `FACTORY_FIRMWARE.CHECK` / `STATUS_FILE`, `FORGECTRL.URL`, `LOGGING.SAVE_PULS` / `SAVE_SENT_IMAGES` (both default off) and `LOGGING.CAPTURE_DIR` (default `/data/forgefirm/captures/<app>`), `MOTION.*` (including `WARM_UP_DELAY` and `COOL_DOWN_DELAY`), `THERMAL.*`. |
 | `/data/forgefirm.conf` (managed from the forgectrl UI) | `controller_mode` (`grbl` / `cloud`, read by the forgectrl supervisor, which spawns exactly one controller at boot and on every mode switch; the init scripts defer to it), `homing_mode`, identity overrides `gf_serial` / `gf_password` (a serial override re-derives the hostname), the pause pair `cloud_pause_backtrack_ticks` / `cloud_resume_lead_ticks`, the cooling-hold bound `cloud_hold_max_s`, the download guards `pulse_warn_threshold_bytes` / `pulse_reject_threshold_bytes` (bytes of compressed body held in memory, unset = 32 MiB warn and 128 MiB refuse, 0 lifts either), and the log levels `log_gfcloud_disk` / `log_gfcloud_remote` and `log_gfhome_*` (each `off`..`debug`; read at process start, so applied at reboot). |
 
 ### The gfutilities configuration file
@@ -416,6 +430,7 @@ is supported within a section.
 |---|---|---|
 | `[SERVICE]` | `server_url` | HTTPS API base (default `https://app.glowforge.com`). |
 | | `status_service_url` | WebSocket control URL (`wss://status.glowforge.com`). |
+| | `user_agent` | The User-Agent the service sees (default `OpenGlow/<fw_version>`). |
 | `[MACHINE]` | `serial`, `password` | **Credentials** the machine signs in with (below). |
 | | `hostname`, `head_id`, `head_serial`, `head_firmware` | Optional identity overrides reported in the settings report. |
 | `[FACTORY_FIRMWARE]` | `check` | Whether to query the advertised firmware version. |
@@ -478,7 +493,8 @@ so a reboot never comes up offline by accident, and the log carries
 gfutilities' `Emulator` in place of the hardware machine. The serial,
 hostname, and password come from the fuses (or the shared config's
 overrides) exactly as for the real client, the session signs in and opens
-the WebSocket exactly as the real client does, and every action the service
+the WebSocket exactly as the real client does (the same `ForgeFIRM/<version>`
+User-Agent), and every action the service
 sends is answered the way the emulator answers it: canned frames for the
 captures (the dev image's gfutilities fixtures under
 `/usr/share/gfutilities/emulator/`, captured on a machine of this type with

@@ -51,7 +51,10 @@ steps and fire; if it is set, the byte sets laser power.
 
 The Z convention is hardware-verified: bit 6 set moves the lens up, away from
 the bed, the position counter counts it as +Z, and the kernel's single-step
-control follows the same sense.
+control follows the same sense. A Z step in the stream reaches the motor only
+while bit 3 of `cnc/motor_lock` is clear; the factory's idle posture sets it,
+and both ForgeFIRM controllers set it at their start and lift it for a motion
+that moves the lens ([The kernel module](../forgefirm/kernel-module.md#motor_lock)).
 
 **Speed is density, not clock.** The tick rate never changes inside a job.
 Going faster means setting a step bit in more of the bytes; going slower means

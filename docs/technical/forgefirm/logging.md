@@ -98,13 +98,15 @@ cap protects.
 |---|---|
 | `GET /logs` | Loggers with configured and effective levels and on-disk sizes, the remote target, `pending_reboot` |
 | `GET /logs/tail?name=&lines=&from=` | The last `lines` of a logger's live file, or everything since byte offset `from` (incremental follow) |
-| `POST /logs/export?sanitize=1` or `=0` | Streams a `tar.gz` of every logger's files plus a system snapshot (version, dmesg, uptime, memory, disk, processes, effective levels, settings with secrets masked) |
+| `POST /logs/export?sanitize=1` or `=0` | Streams a `tar.gz` of every logger's files plus a system snapshot (version, dmesg, uptime, memory, disk, processes, effective levels, settings with secrets masked, and the commissioning record as `system/commissioning.json`, indented so the sanitizer sees one value per line) |
 
-All three require the panel token ([forgectrl](forgectrl.md#http-api)).
+All three require a login session or the panel token
+([forgectrl](forgectrl.md#http-api)).
 
 The export is sanitized by default for public issue reports. The sanitizer
 (`src/sanitize.c`) is two-layer: exact known values first (serial, hostname,
-cloud credentials, panel token, WiFi SSID, PSK, and identity), then pattern
+cloud credentials, panel token, camera key, WiFi SSID, PSK, and identity),
+then pattern
 classes (bearer and basic credentials, JWTs, key=value secrets, e-mail
 addresses, MAC addresses, IPv4 and IPv6 addresses with loopback kept, hex of
 32 or more characters, base64-like strings of 40 or more). Placeholders are

@@ -43,7 +43,12 @@ listens on TCP port 23 at your machine's address, shown below as
    to the factory corner, Z to the hall sensor; requires a signed-in Glowforge
    session), `switches` (physical limit switches, planned), or `none` (`$H` is
    rejected). Run `$H` deliberately from the Console tab when you want a true
-   machine origin ([Homing](homing.md)).
+   machine origin ([Homing](homing.md)). Z is the focal point's height above
+   the tray: a Z of 3 focuses on the top of 3 mm material, and the job's Z
+   moves the lens. The lens never moves without a reference: before a home,
+   any Z move is refused (a jog with an error, a job with the soft-limit
+   alarm), and after one, a Z beyond the lens's free travel is refused the
+   same way. The reach is on the control panel's Machine tab, under Lens.
 7. Finish. If a stale device profile already exists, edit its IP instead of
    creating a new one.
 8. Device Settings (wrench icon): **S-Value Max = 1000** (matches `$30`).
@@ -106,6 +111,16 @@ with the head re-parked.
   Position, distance buttons.
 - **Console tab**: raw Grbl: `?` status, `$$` settings, `$X` unlock,
   `$J=G91X10F1200` jog.
+
+## The camera
+
+LightBurn can show the lid camera behind your design. Add it in LightBurn's
+camera setup as a custom camera with the stream URL from the panel: open the
+Status tab, press **Camera URL** on the lid camera card, and paste the
+stream line. It reads `http://<machine-ip>/?action=stream&key=<key>`, with
+no port. The key lets LightBurn read the camera without a login, whether or
+not the reads are closed to the network. The camera works only with the lid
+closed ([Cameras](cameras.md#watching-it)).
 
 ## Power
 

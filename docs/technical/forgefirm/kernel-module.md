@@ -410,6 +410,13 @@ a program. This does not prevent the Z axis from moving when commanded by
 `z_step`.
 Bits: 0: X Axis, 1: Y1 Axis, 2: Y2 Axis, 3: Z Axis
 
+The factory's idle posture is 8 (the lens locked out of the pulse path), and
+both ForgeFIRM controllers take that posture at their start. A program that
+moves the lens needs the bit clear for its run: the cloud client clears it for
+every motion and puts it back after, and a commissioning card that steps the
+lens clears it for its session. A print streamed with the bit set burns every
+line at one height and counts the Z steps it never made.
+
 ### position
 
 Read, Binary, 32 bytes (little-endian)
@@ -550,14 +557,16 @@ Digital output from the beam detector. How it operates is not characterized.
 
 Read, ASCII, 0-1
 
-Output from the lens home position sensor.
+Output from the lens position sensor.
 0: Not at home position
 1: At home position
 
-This changes to 1 when the lens is at or above a specific positive position.
-This position varies from unit to unit. To adjust for this, the Glowforge
-service sends a "hunt" program to the device that tells it how many steps
-toward the bed to move to reach the 0 focus level.
+Home reads 1 from an edge low in the lens's travel up to the top stop (on the
+reference head the edge is 13 half-steps above the bottom stop, of 36 stop to
+stop). The edge's height varies from unit to unit. The Glowforge service's
+"hunt" program steps the lens 4 full steps down from the edge; that point is
+its zero, and its prints count full steps up from there. The lens and its travel
+are on [The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel).
 
 ### measure_laser
 
@@ -596,7 +605,10 @@ Head white illumination LED PWM. 0 = Off, 1023 = 100 %.
 
 Read/Write, ASCII, 0-1
 
-Z stepper drive current. 0: high, 1: low.
+Z stepper drive current. 0: high, 1: low. The lens rises only at the high
+current; the low current is a hold current, at which the motor stalls two
+steps into a move up at the service's rate. Set 0 before a Z move and 1
+after.
 
 ### z_enable
 
@@ -608,7 +620,9 @@ Enable or disable the Z driver. 0: enabled, 1: disabled.
 
 Read/Write, ASCII, 0-1
 
-Z axis microstepping. 0: Full, 1: 2 (half-step).
+Z axis microstepping. 0: Full, 1: 2 (half-step). The service's pulse headers
+carry `ZSmd` 0, so its Z steps are full steps; ForgeFIRM's own lens moves use
+half-steps, about 0.34 mm each.
 
 ## /sys/glowforge/pic
 

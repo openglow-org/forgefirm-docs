@@ -20,6 +20,11 @@ terminal with UTF-8 encoding for the best experience from ForgeFIRM (PuTTY
 works well). The console test points and their nets are in
 [Buses](../technical/machine/buses.md).
 
+The console login is `root` with no password, on the factory firmware and
+on ForgeFIRM alike. On ForgeFIRM root works at the console only: SSH refuses
+root, and the panel's account opens SSH
+([The control panel](../usage/control-panel.md#login)).
+
 ## Machines with a Micro-USB port
 
 Older Glowforges have a Micro-USB serial port connector on the control

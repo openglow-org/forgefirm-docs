@@ -34,8 +34,10 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 
 | Key | Meaning |
 |---|---|
-| `controller_mode` | `grbl` or `cloud`: the boot-time mode. `POST /mode` switches live and persists it ([Modes](modes.md)). |
-| `homing_mode` | `$H` behavior: `gfcloud`, `switches` (planned, not available), or `none` ([Homing](homing.md)). |
+| `controller_mode` | `grbl` or `cloud`: the boot-time mode. `POST /mode` switches live and persists it ([Modes](modes.md)). `cloud` needs `cloud_enabled=1`. |
+| `homing_mode` | `$H` behavior: `gfcloud`, `switches` (planned, not available), or `none` ([Homing](homing.md)). `gfcloud` needs `cloud_enabled=1`. |
+| `cloud_enabled` | `0` (default) or `1`: whether cloud mode exists. The setup's cloud step sets it ([Commissioning](commissioning.md#cloud-mode)). While 0, the GF Cloud tab, the Factory cloud button, and the gfcloud homing choice do not exist, `controller_mode=cloud` and `homing_mode=gfcloud` are refused, and nothing contacts the Glowforge service. Through `POST /settings`, `1` takes `phrase=I UNDERSTAND` as the step does, and `0` takes `homing_mode` to `none` and `controller_mode` to `grbl` when they point at the cloud. |
+| `panel_open_reads` | `1` (default) or `0`: whether the read-only routes answer any client on the network without a login. 0 closes them to logged-in sessions and the machine itself ([The control panel](control-panel.md#access)). |
 | `gfcloud_home_x/y/z` | Machine coordinates after a completed homing (mm). |
 | `gfcloud_home_timeout_s` | Web-service homing session budget (30 to 3600 s). |
 | `gf_serial` | Cloud sign-in serial override (digits). |
@@ -52,8 +54,8 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 
 | Setting | Default | Effect |
 |---|---|---|
-| `controller_mode` | `grbl` | Which controller runs: `grbl` or `cloud`. |
-| `homing_mode` | unset (behaves as `none`) | What `$H` does: `gfcloud`, `switches`, `none`. Set `gfcloud` for camera homing. |
+| `controller_mode` | `grbl` | Which controller runs: `grbl` or `cloud` (`cloud` needs `cloud_enabled=1`). |
+| `homing_mode` | unset (behaves as `none`) | What `$H` does: `gfcloud`, `switches`, `none`. Set `gfcloud` for camera homing (needs `cloud_enabled=1`). |
 | `gfcloud_home_x/y/z` | 0 / 0 / Z max | Coordinates assigned after a successful camera home. |
 | `gfcloud_home_timeout_s` | 300 | How long a homing session may take before it alarms. |
 | `lid_policy` | `cancel` | `cancel` = factory behavior; `hold` = stock Grbl door parking. |

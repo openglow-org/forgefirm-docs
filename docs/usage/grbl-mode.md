@@ -116,7 +116,7 @@ window is on [The grblHAL driver](../technical/forgefirm/grblhal-driver.md).
 | You do | What happens |
 |---|---|
 | Feed hold (`!`) | Controlled ramp to a stop, position kept. The ramp runs lit (velocity-scaled under `M4`), the stop is dark, and the disarm grace keeps counting. |
-| Cycle start (`~`) | Resumes from the hold, lit from the first step: a pause is a sharp corner in time, and the corner rolloff governs its mark. If the grace closed the window during the pause, the button lights first and your press resumes the job. |
+| Cycle start (`~`) | Resumes from the hold, lit from the first step: a pause is a sharp corner in time, and the corner rolloff governs its mark. If the grace closed the window during the pause, the button lights first and your press resumes the job. Under a cooling hold with no resume (`AIRFLOW`, `CRITICAL`), the job is held again within a second and the console says why: reset it. |
 | Your sender disconnects mid-job | The job is held where the cut stopped and the window closes. The next sender finds it in Hold: `~` lights the button and a press resumes it, or `^X` ends it. |
 | Jog cancel (`0x85`) | Controlled stop, jog abandoned, position kept. |
 | Soft reset (`^X`) | Controlled deceleration into Alarm, latch relocked, machine position retained; `$X` clears the alarm. |

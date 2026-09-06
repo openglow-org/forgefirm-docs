@@ -68,7 +68,8 @@ each gate does.
 |---|---|---|---|---|---|
 | `cool_temp_min` | 5 °C | 0 to 40 °C | 3 to 8 °C | 0 | Coolant floor, a fire gate; it clears 1 °C above itself. |
 | `cool_temp_start` | 16 °C | 0 to 40 °C | 12 to 20 °C | 0 | Warm-up gate: a session opening under it holds with the loop heater on until the coolant reaches it. Kept above the floor. |
-| `cool_tec_present` | 0 | 0 or 1 | | | Whether a thermoelectric cooler (a Pro's chiller) is fitted. The line has no readback, so this is the operator's word; leave it 0 on a Basic or a Plus. |
+| `cool_tec_present` | 0 | 0 or 1 | | | Whether a thermoelectric cooler (a Pro's chiller) is fitted. The line has no readback, so this is the operator's word; leave it 0 on a Basic or a Plus. The setup's TEC check proves the drive and clears it when nothing cools ([Commissioning](commissioning.md#the-checks)). |
+| `cool_temp_offset_c` | 0 | -5 to 5 C | | | Added to both coolant readings after the conversion: the per-machine offset from one room-thermometer reading in the setup's sensors check. |
 | `cool_tec_on_c` | 20 °C | 6 to 32 °C | 18 to 24 °C | never | TEC on threshold (upstream coolant reading). Kept above `cool_tec_off_c`. |
 | `cool_tec_off_c` | 18 °C | 5 to 31 °C | 16 to 22 °C | never | TEC off threshold. The TEC runs only while the fans run, and never within a degree of the coolant floor. |
 | `cool_fire_q1_alert` | 275 | 0 to 1023 | 250 to 450 | 0 | Flame watch, lowest sorted lid-IR reading: the pause tier. |
@@ -130,7 +131,7 @@ or an overheating loop. The banner says so.
 | Suspicion unresolved past the budget | Escalates to `FAULT`. |
 | Three cleared suspicions in one job | Aggregated "check your coolant" warning. |
 | Upstream coolant above 33 °C | `OVERTEMP`: hold + forced cooling; auto-resume under 31 °C. |
-| Upstream coolant at or over 38 °C during a job | `CRITICAL`: fire blocked, hold, no resume this job; the ceiling's hold stands until the loop is under 31 °C. |
+| Upstream coolant at or over 38 °C during a job | `CRITICAL`: fire blocked, hold, no resume this job (a resume under it is held again within a second; reset the job); the ceiling's hold stands until the loop is under 31 °C. |
 | Coolant under `cool_temp_min` | `COLD`: fire blocked, hold; released a degree above the floor. |
 | A session opened under `cool_temp_start` | `WARMUP`: hold with the loop heater on and the fans idle until the gate is reached, then the run starts with a flow check. |
 | A coolant sensor unreadable for two ticks in a row | `SENSOR`: fire blocked, hold, heater off; released the moment both sensors read again. The other coolant gates keep their state meanwhile. |
@@ -139,7 +140,7 @@ or an overheating loop. The banner says so.
 | Head accelerometer over an alert threshold | `BUMP`: hold, fire blocked; released after five quiet polls. |
 | Head accelerometer over the abort threshold | `CRASH`: motion stopped, laser locked, hold for the rest of the run session. |
 | A fan under its floor inside the spin-up grace | Nothing yet: the gate reads `grace`. |
-| A fan under its floor for three seconds after the grace | `AIRFLOW`: fire blocked, hold, no resume this job; fans held at run duty; the next job starts the gates fresh. |
+| A fan under its floor for three seconds after the grace | `AIRFLOW`: fire blocked, hold, no resume this job (a resume under it is held again within a second; reset the job); fans held at run duty; the next job starts the gates fresh. |
 | Purge-air current absent at run duty | `AIRFLOW`, the same way. |
 | A gate setting at its off end (ceiling 60 °C, check window 0 s) | No verdict from that gate; a run-start log line, `gates_off` in `/status`, and a standing panel banner. |
 | Job ends | 15 s smoke clear at run duty, then reduced airflow until the loop is under the resume gate. |

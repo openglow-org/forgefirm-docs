@@ -48,7 +48,7 @@ graph TD
         grbl["grblHAL-glowforge<br>grblHAL core + ForgeFIRM driver"]
         gfcloud["gfcloud (Python)<br>factory action dispatch"]
     end
-    forgectrl["forgectrl<br>machine-services daemon, HTTP port 8080"]
+    forgectrl["forgectrl<br>machine-services daemon, HTTPS 443, HTTP 80"]
     ko["glowforge.ko<br>SDMA + EPIT pulse engine, laser latch, safety readbacks"]
     cams["Cameras<br>ov5648, video-mux, imx6-mipi-csi2, imx-media, VPU encode"]
     senders --> grbl
@@ -76,7 +76,8 @@ The layers, from the top:
   ([The grblHAL driver](grblhal-driver.md)). `gfcloud` is a Python daemon:
   it dispatches the factory actions and preloads factory pulse files
   ([Cloud mode](cloud-mode.md)).
-- **forgectrl**, the machine-services daemon on HTTP port 8080: the
+- **forgectrl**, the machine-services daemon on HTTPS port 443 and HTTP
+  port 80: the
   supervisor that spawns and respawns the selected controller, the
   pulse-device broker (one exclusive hold of `/dev/glowforge`; the
   controllers inherit the file descriptor), the motion-liveness gate, the

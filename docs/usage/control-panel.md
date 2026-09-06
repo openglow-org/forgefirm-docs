@@ -5,17 +5,50 @@ title: The control panel
 # The control panel
 
 The web control panel is the machine's local user interface, served by the
-machine-services daemon `forgectrl` on HTTP port 8080. This page describes its
-tabs and the HTTP routes an operator uses.
+machine-services daemon `forgectrl` over HTTPS. This page describes its
+address, the login, its tabs, and the HTTP routes an operator uses.
 
 !!! danger "Read the Safety page first"
 
     ForgeFIRM is not the manufacturer's firmware. Read [Safety](../safety/index.md)
     before you run a job.
 
+## The address
+
+Open `https://forgefirm.local/` or `https://<ip>/`. The machine answers to
+`forgefirm.local` over mDNS, and to its fuse hostname as `<name>.local`.
+The serial console prints the addresses at its login banner.
+
+The panel is served over HTTPS with a certificate the machine makes at its
+first start. The browser warns once; accept the warning. The certificate's
+SHA-256 fingerprint is on the System tab's Commissioning card. Compare it
+with what the browser shows. To check
+it before you accept the warning, open `http://<ip>/cert` (plain HTTP, no
+login, no redirect): the page shows the fingerprint, the names on the
+certificate, and its validity, and offers the certificate itself at
+`http://<ip>/cert.pem` for a browser or a device that should trust it. The
+certificate lives under the machine's data directory and survives
+updates.
+
+Plain HTTP on port 80 serves only the read-only routes, for LightBurn's
+camera and other readers ([Access](#access)).
+
+## Login
+
+The first run of the panel creates one account, a name and a password
+([Commissioning](commissioning.md)). After that the panel asks for a login.
+The session is a cookie, sent over HTTPS only, and it expires after 12
+hours idle. Five wrong attempts from one address lock the login for 30 s.
+The **Sign out** button in the header ends the session. The same name and
+password open SSH ([System](#system)).
+
+Forgot the password? Hold the machine's button while you turn the machine
+on, for ten seconds, until the button blinks amber. The setup then asks for
+a new account ([Commissioning](commissioning.md#a-forgotten-password)).
+
 ## The page
 
-Open `http://<machine-ip>:8080/`. The panel is a self-contained single page
+The panel is a self-contained single page
 (no external assets) on Bootstrap, carrying the OpenGlow visual identity in a
 light and a dark theme (the header toggle: light, dark, or the system
 preference). Every settings field on every tab shares one save bar: it appears
@@ -53,7 +86,9 @@ feeds the charge-pump watchdog with the lid closed
 The Status tab shows a standing banner while any cooling gate is turned off
 ([Cooling and fans](cooling-and-fans.md)), and a compatibility warning when the
 Glowforge service has moved past the firmware version cloud mode is tested
-against ([Cloud mode](cloud-mode.md)).
+against ([Cloud mode](cloud-mode.md)). While the commissioning gate holds
+the machine, the tab shows a banner with a link to continue the setup
+([Commissioning](commissioning.md#the-gate)).
 
 ### Machine
 
@@ -63,7 +98,9 @@ flow verification, and the airflow gates ([Cooling and fans](cooling-and-fans.md
 
 ### GF Cloud
 
-Glowforge web-service overrides: machine identity (serial and password; blank
+The tab exists only while cloud mode is turned on (`cloud_enabled`,
+[Commissioning](commissioning.md#cloud-mode)). Glowforge web-service
+overrides: machine identity (serial and password; blank
 means the factory fuse identity), the homing-session timeout, the print-pause
 counts, and the job-size guards ([Cloud mode](cloud-mode.md)).
 
@@ -75,10 +112,16 @@ grace), the laser dose and the dose-curve recorder, the lid and interlock
 policy, the motor-rail settle time, and the lid lamp
 ([GRBL mode](grbl-mode.md), [Settings](settings.md)).
 
-### Diagnostics
+### Commissioning
 
-Tools that take the hardware over (the active controller is suspended through
-the supervisor for the duration): cooling system verification and calibration
+The checks the setup ran, with the version each completed at and what the
+machine asks for again (required or recommended, with the reason), and a
+link to the setup to run one again ([Commissioning](commissioning.md)). The
+**What changed?** menu names a replaced part or a service, and the checks
+that depend on it are asked for again
+([What changed](commissioning.md#what-changed)). Below them, the cooling
+tools that take the hardware over (the active controller is suspended
+through the supervisor for the duration): verification and calibration
 ([Diagnostics](diagnostics.md)).
 
 ### Logs
@@ -94,6 +137,14 @@ restore, the WiFi regulatory region (power save is kept off), and reboot.
 [Updating](../install/updating.md),
 [Back to the factory firmware](../install/factory-restore.md), and
 [Recovery](../install/recovery.md) describe the update and restore tools.
+
+Two more cards. **Remote access** turns SSH on until the next reboot: SSH
+is off at every boot, and a development image keeps it on. It opens with
+the panel account's name and password; root has no password and works at
+the serial console only. **Commissioning** shows the state of the setup and
+the certificate fingerprint, with a link to run a step again, the printable
+summary of the record, and the record itself as a download
+([Commissioning](commissioning.md#the-record)).
 
 The WiFi region (`wifi_country`) sets the radio's allowed channels and
 transmit power. Automatic follows the country the access point advertises,
@@ -111,13 +162,21 @@ offset diagnostic's Apply button.
 | Endpoint | Purpose |
 |---|---|
 | `GET /status` | Machine operational status as JSON (state, position when homed, fans, coolant, switches, `gates_off`, the `grbl` state block while a GRBL controller runs, the `diag` flag) |
-| `GET /settings` | Current settings as JSON (plus `machine_id`, the fuse-derived identity, the firmware version, and the `gates` table: range, recommended band, off end and state per gate setting) |
+| `GET /settings` | Current settings as JSON (plus `machine_id`, the fuse-derived identity, the firmware version, `tls_fingerprint`, and the `gates` table: range, recommended band, off end and state per gate setting) |
 | `POST /settings?key=value&...` | Set any subset of known keys ([Settings](settings.md)) |
-| `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `motion-fault`), pid, motion verdict |
+| `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `motion-fault`, or `gated` with `why`), pid, motion verdict |
 | `POST /mode?controller=grbl\|cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever: stop halts the active controller and holds supervision suspended; start resumes it ([Modes](modes.md)) |
 | `GET /cool/status` | Cooling-engine state: phase, verdict, temps, report age, `gates_off`, the effective `limits`, `fan_gates` |
 | `GET /grbl/settings` | The GRBL controller's `$$` view, while a GRBL controller runs |
+| `GET /login`, `POST /login`, `POST /logout` | The login page, the login (`name`, `password`), and the sign-out |
+| `GET /setup`, `GET /wiz`, `GET /wiz/record`, `GET /wiz/record.html`, `GET /advisories/<id>`, `POST /wiz/...` | The setup, its record (as JSON, a download, or the printable summary), and the what-changed menu ([Commissioning](commissioning.md#the-routes)) |
+| `GET /system/ssh`, `POST /system/ssh?enable=0\|1` | SSH state, and the switch that turns it on until the next reboot |
+| `GET /system/camera-key`, `POST /system/camera-key?rotate=1` | The camera key with the URLs that carry it, and a new key ([Cameras](cameras.md#watching-it)) |
+| `GET /cert`, `GET /cert.pem` | The certificate page (fingerprint, names, validity) and the certificate in PEM form; on plain HTTP too, no login, no redirect, so the fingerprint can be checked before the browser's warning is accepted |
+| `GET /licenses` | The Licenses page every panel page links in its footer: the manifest of every installed package with its license, and the bundle download |
+| `GET /system/licenses`, `GET /system/licenses/manifest` | The image's license bundle (`tar.gz`: the manifest and the full license texts), and the manifest alone as text |
+| `POST /restore/factory-return?confirm=1` | The setup's factory-return exit ([Commissioning](commissioning.md#go-back-to-the-factory-firmware)) |
 
 `POST /cool/state` is the active controller's job-state report to the cooling
 engine, not an operator route; it accepts loopback connections only.
@@ -133,14 +192,26 @@ routes ([Updating](../install/updating.md)).
 
 ### Access
 
-Every route that changes machine state needs the panel token. The panel page
-carries the token, so the browser needs nothing more. A script of your own
-reads it from `/data/forgefirm/panel.token` on the machine and sends it as a
-bearer token. State-changing requests must also address the machine by its
-address literal, and a browser request must not be cross-site; that is what
-stops a hostile page in another tab from reaching your machine. It is not
-protection against other people on your network.
+The panel has two listeners. HTTPS on port 443 serves everything. HTTP on
+port 80 serves only the read-only routes to your network. Those are
+`GET /status`, the camera routes, `/settings`, `/grbl/settings`, `/mode`, `/cool/status`,
+`/diag/status`, `/curve/status`, `/curve/ladder.gcode`, `/slots`,
+`/update/status`, `/wiz`, `/wiz/advisories/press`, and `/advisories/<id>`.
+A request over HTTP that changes state is answered only from the machine
+itself; every other client is redirected to HTTPS.
 
-Two things need the physical button held as well as the token: reading the
+Every route that changes machine state needs a login session, and a browser
+request must not be cross-site. That is what stops a hostile page in
+another tab from reaching your machine. The read-only routes answer any
+client on your network by default, so LightBurn can read the camera without
+a login. The setting `panel_open_reads=0` closes them to logged-in sessions
+and to the machine itself ([Settings](settings.md)).
+
+A script that runs on the machine can use the panel token instead of a
+session. It reads `/data/forgefirm/panel.token` and sends it in the
+`X-ForgeFIRM-Token` header. A script on the network needs a login session
+too, except on a development image.
+
+Two things need the physical button held as well as the login: reading the
 fuse identity (`GET /fuse-identity`, which returns the serial, the derived
 hostname, and the password) and installing an unsigned firmware image.

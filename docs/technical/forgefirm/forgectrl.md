@@ -5,7 +5,8 @@ title: forgectrl
 # forgectrl
 
 forgectrl is the machine-services daemon of ForgeFIRM. It runs on the
-factory i.MX6 control board and serves HTTP on port 8080. This page is the
+factory i.MX6 control board and serves HTTPS on port 443 and HTTP on port
+80. This page is the
 machine-services contract: the switch map, the safety-chain readbacks,
 telemetry, mode supervision, pulse-device ownership, the clocks rule, and the
 hardware ownership table. The source is
@@ -66,12 +67,39 @@ Parts of the contract live on their own pages:
 - The **web control panel**, **camera service**, **telemetry**,
   **diagnostics**, persisted **machine settings**, the **logging** tree, and
   the A/B **update system**.
+- **Commissioning.** The first-run setup, the login, and the gate that
+  holds every controller until the setup is complete
+  ([below](#commissioning-and-the-gate)).
 
 ## HTTP API
 
-Every state-changing call is behind forgectrl's auth layer: a bearer token
-plus origin checks. The token is `/data/forgefirm/panel.token` on the
-machine, and the panel page carries it. Unsigned firmware installs
+forgectrl runs two listeners. HTTPS on port 443 serves every route. Its
+certificate is self-signed, made at the first start, and kept under
+`/data/forgefirm/` across updates. `GET /settings` reports its SHA-256
+fingerprint as `tls_fingerprint`; the panel's Commissioning card and
+`GET /cert` show the same fingerprint. HTTP on port 80
+serves only the read-only routes to the LAN. Those are `GET /status`, the camera routes and the
+mjpg-streamer aliases, `/settings`, `/grbl/settings`, `/mode`,
+`/cool/status`, `/diag/status`, `/curve/status`, `/curve/ladder.gcode`,
+`/slots`, `/update/status`, `/wiz`, `/wiz/advisories/press`, and
+`/advisories/<id>`. A state-changing route over HTTP answers a loopback
+client only; every other client is redirected to HTTPS. mDNS announces the
+machine as `forgefirm.local` and as its fuse hostname `<name>.local`; the
+console banner (`/etc/issue`) prints the addresses.
+
+Every state-changing call is behind forgectrl's auth layer: the panel
+token plus origin checks, and, once the setup has created the account, a
+login session. The session is a cookie, HTTPS only, with a 12 h idle expiry.
+The sessions are kept in a root-only file under `/run/forgefirm`, so a
+restart of the daemon keeps you logged in and a reboot does not; the login
+page returns to the page that sent you to it. Five wrong attempts from one
+address lock the login for 30 s. The same name
+and password open SSH. The token is `/data/forgefirm/panel.token`, sent as
+`X-ForgeFIRM-Token`, and the panel page carries it. A script on the machine
+writes with the token alone; so does any client on a development image. A
+client on the network needs the session too. The read-only routes answer any
+LAN client while `panel_open_reads` is 1 (the default); 0 closes them to
+sessions and loopback. Unsigned firmware installs and `GET /fuse-identity`
 additionally require the physical button held.
 
 The HTTP surface carries accept-side caps: 64 connections in total and 16
@@ -83,11 +111,16 @@ costs one bounded error, never a pinned thread.
 
 | Route | Purpose |
 |---|---|
-| `GET /` | The control panel ([Control panel](../../usage/control-panel.md)) |
+| `GET /` | The control panel ([Control panel](../../usage/control-panel.md)); the setup until it is complete |
+| `GET /login`, `POST /login`, `POST /logout` | The login page, the login (`name`, `password`), the sign-out |
+| `GET /setup`, `GET /wiz`, `GET /wiz/record`, `GET /advisories/<id>`, `POST /wiz/advisories/accept`, `POST /wiz/advisories/press`, `GET /wiz/advisories/press`, `POST /wiz/advisories/press/cancel`, `POST /wiz/account`, `POST /wiz/preferences`, `POST /wiz/machine`, `POST /wiz/cloud`, `POST /wiz/complete` | The setup ([Commissioning](../../usage/commissioning.md#the-routes)); an advisory's `ETag` is its hash; `GET /wiz` carries the what-changed menu (`changes`) |
+| `GET /wiz/record?download=1`, `GET /wiz/record.html`, `POST /wiz/changed` (`what`) | The record as a download named after the sheet id; the printable summary (`recordhtml.c`: one page, no script, every value escaped, the steps in catalog order with the sentence, the settings written with their values before, and the numbers); a replaced part or a service mapped to the wizards to run again (`commission.c`: the table of changes, required for the wizards whose settings were measured on the old part, recommended for the ones that prove it; a required flag never drops to recommended, and a run clears it). The record routes take a login session or the token |
+| `POST /wiz/<id>/start`, `POST /wiz/<id>/answer` (`seq`, `value`), `POST /wiz/<id>/abort`, `POST /wiz/<id>/takeover`, `GET /wiz/dark`, `GET /wiz/shot?cam=lid\|head` | The checks (the dark wizards) and the sheet cards (the live wizards): one runs at a time on a worker thread; the status carries the phase, the progress, the time so far, the log, the open prompt with its sequence number and how long it waits (`timeout_s`, `since_s`), the result (a live card's carries a `summary` sentence), the settings the wizard wrote with their values before (`applied`), and the run's ownership (`owned`: a login session drives it; `mine`: the requester's); the login session that started a run answers and aborts it, another session is refused (409) until it takes the run over, and a requester with no session (a tool with the token) is never held back; the shot is the cameras check's last snapshot |
+| `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A sheet card's preview (the drawing the daemon streams, from the record's facts) and its program body; the live wizards stream their programs through the daemon's own sender (`jobstream.c`: lines in flight up to half the controller's RX ring, ok per line, a $ command, M102 and the program end sent alone as barriers, the emission witnesses sampled at 25 Hz) in loopback posture, with the lens referenced on its hall sensor first; the focus card homes the lens on its bottom stop to place the hall edge in the carriage's travel, and its result is the focus model in the lens's own half-steps ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)) |
 | `GET /status` | Machine operational status as JSON: state, position when homed, fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
-| `GET /settings` | Current settings as JSON, plus `machine_id` (the fuse-derived identity), the firmware version, and the `gates` table: range, recommended band, off end, and state per gate setting |
-| `POST /settings?key=value&...` | Set any subset of known keys. An empty value clears a key to its built-in default. Refused (409) unless the machine is idle |
-| `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `motion-fault`), pid, motion verdict |
+| `GET /settings` | Current settings as JSON, plus `machine_id` (the fuse-derived identity), the firmware version, `tls_fingerprint`, and the `gates` table: range, recommended band, off end, and state per gate setting |
+| `POST /settings?key=value&...` | Set any subset of known keys. An empty value clears a key to its built-in default. Refused (409) unless the machine is idle. `cloud_enabled=1` from 0 takes `phrase=I UNDERSTAND` (400 without it); `cloud_enabled=0` takes `homing_mode` to `none` and `controller_mode` to `grbl` when they point at the cloud |
+| `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `motion-fault`, or `gated` with `why`), pid, motion verdict |
 | `POST /mode?controller=grbl` or `=cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever ([Mode supervision](#mode-supervision)) |
 | `POST /cool/state` | Controller job-state report, level-triggered at ~1 Hz ([Cooling engine](cooling-engine.md#job-state-reports)) |
@@ -98,7 +131,9 @@ costs one bounded error, never a pinned thread.
 | `POST /curve/record`, `GET /curve/status`, `POST /curve/stop`, `GET /curve/ladder.gcode` | The dose-curve recorder ([below](#the-dose-curve-recorder)) |
 | `GET /logs`, `GET /logs/tail`, `POST /logs/export` | The logging tree ([Logging](logging.md)) |
 | `GET /cam/stream`, `GET /cam/snapshot`, `GET /cam/status`, `GET /cam/h264`, the mjpg-streamer aliases | The camera service ([Video pipeline](video-pipeline.md)) |
-| `GET /slots`, `POST /boot`, `POST /update/check`, `POST /update/download`, `POST /update/apply`, `POST /update/upload`, `GET /update/status`, `POST /restore/factory`, `POST /system/reboot` | The update manager ([Install and update](install-and-update.md#the-update-manager)) |
+| `GET /slots`, `POST /boot`, `POST /update/check`, `POST /update/download`, `POST /update/apply`, `POST /update/upload`, `GET /update/status`, `POST /restore/factory`, `POST /restore/factory-return?confirm=1`, `POST /system/reboot` | The update manager ([Install and update](install-and-update.md#the-update-manager)) |
+| `GET /system/ssh`, `POST /system/ssh?enable=0` or `=1` | SSH state, and the switch that turns it on until the next reboot; off at every boot, kept on by a development image |
+| `GET /system/camera-key`, `POST /system/camera-key?rotate=1` | The per-machine camera key (`/data/forgefirm/camera.key`, 128 bits) with the stream and snapshot URLs that carry it, and its rotation. A valid key, as the `key` query parameter or the `X-ForgeFIRM-Camera-Key` header, authorizes any read-only route on either listener, origin checks included, and never a write |
 
 Settings persist in `/data/forgefirm.conf`, shared with the grblHAL
 controller (re-read on every `$H` and at every run start) and the gfhome
@@ -112,6 +147,55 @@ counters anchored at the last completed homing (`/run/grblhal.homed`,
 written by the controller). Controller-side facts reach forgectrl only
 through pushed state: the `/run` anchor files, the job-state reports, and
 the `grbl.state` file below.
+
+### Commissioning and the gate
+
+The first run of the panel is the setup: the advisories, the account, the
+preferences, the machine facts, and the cloud decision
+([Commissioning](../../usage/commissioning.md)). It is served at `/` until
+it is complete and at `/setup` afterward. The advisories step ends with one
+press of the machine's button, requested by `POST /wiz/advisories/press`;
+the button breathes teal while it waits. A document that changes in a later
+release must be accepted again.
+
+The record is `/data/forgefirm/commissioning.json`. It holds the advisories
+with their hashes and acceptance times, the account name, and the machine
+facts. It also holds each wizard's completed version with its results and
+applied settings, and the flags. The sheet id is derived from the serial with the salt in
+`/data/forgefirm/sheet.salt`; it never reveals the serial. The account
+record is `/data/forgefirm/users`. The record grows with every result, so
+its routes hand out a malloc'd dump, never a fixed buffer; the sanitized
+log export carries it as `system/commissioning.json`
+([Logging](logging.md)).
+
+The button LED during the setup (`led.c`, written only while no controller
+runs): breathing teal for the acceptance press; breathing white while a
+wizard holds the machine with the controller stopped (`wiz_controller_stop`
+in `wizdark.c` sets it, `wiz_controller_start` hands the LED back dark
+before the spawn, since the controller drives it for its arm wait);
+blinking amber while a check waits for the lid to close (`wiz_led_attention`),
+and for the password reset hold; solid green at completion, out when the
+panel is first served.
+
+The gate: until the setup is complete, the supervisor spawns no controller.
+The same holds while a required step is out of date or a required flag is
+raised. `GET /mode` reports `controller: gated` with `why`, and the panel's
+Status tab shows a banner. The file `/run/forgefirm/commissioning-override`,
+created as root, lifts the hardware gate until the next reboot. It never
+lifts the advisories or the account, and the panel says so.
+
+`cloud_enabled` (0 or 1, default 0) is set by the cloud step. While it is
+0, the GF Cloud tab, the Factory cloud button, and the gfcloud homing
+choice do not exist. `controller_mode=cloud` and `homing_mode=gfcloud`
+are refused, and nothing contacts the Glowforge service. `POST /settings`
+takes `cloud_enabled=1` only with `phrase=I UNDERSTAND`, the step's typed
+acknowledgment, and `cloud_enabled=0` takes `homing_mode` and
+`controller_mode` off the cloud as the step does. The hardware
+wizards are the checks (the dark validation) and the sheet (the live
+cards); a live card's laser keys (`laser_floor_density`,
+`laser_dose_curve`, `laser_corner_gamma`) may be overridden for its one
+job, the originals kept in `/data/forgefirm/curverec.saved` so a daemon
+restart puts them back.
 
 ## Switches and button
 
@@ -227,7 +311,7 @@ What forgectrl itself does for laser safety:
 
 ## Telemetry
 
-`GET /status` on forgectrl (port 8080) is the machine-state source for every
+`GET /status` on forgectrl is the machine-state source for every
 latency-tolerant consumer: the control panel, the cloud client's reporting,
 and anything external. It carries:
 
@@ -283,7 +367,7 @@ points, and the ready `laser_dose_curve` value; `POST /curve/stop` ends or
 aborts; `GET /curve/ladder.gcode` serves the exact job the recorder streams,
 for inspection. The panel's Apply writes the fit through the ordinary
 settings path. This is the one sanctioned Grbl-socket use in the daemon:
-gated on the state file's sender flag, local only, one line in flight. The
+gated on the state file's sender flag, local only, the ring half full at most. The
 dose model itself is on [grblHAL driver](grblhal-driver.md).
 
 ## Mode supervision
@@ -296,7 +380,9 @@ init scripts do not start controllers; they defer to the supervisor and
 remain only as manual emergency stops.
 
 - `GET /mode` returns
-  `{"mode":"grbl|cloud","controller":"running|stopped|standby|motion-fault","pid":N,"motion":"verified|unverified|fault"}`.
+  `{"mode":"grbl|cloud","controller":"running|stopped|standby|motion-fault|gated","pid":N,"motion":"verified|unverified|fault"}`,
+  with `why` beside a `gated` controller
+  ([Commissioning and the gate](#commissioning-and-the-gate)).
 - `POST /mode?controller=grbl` or `=cloud` is the live switch: idle-gated
   (machine idle, no diagnostic), stops the active controller (SIGTERM to
   SIGKILL escalation on its process group), persists `controller_mode`,
@@ -387,7 +473,11 @@ inherited fd; the real-time feed path is never proxied.
   out of a running child, and again after a SIGKILL), and the cooling engine
   is the dead-man for *hangs*: a reporter silent past 5 s with the window
   armed or the kernel still running gets the same two writes
-  ([Cooling engine](cooling-engine.md#job-state-reports)). The broker fd is
+  ([Cooling engine](cooling-engine.md#job-state-reports)). A controller the
+  supervisor stops on purpose is a death, not a hang: the supervisor clears the
+  engine's last report at the stop, so the liveness probe it runs next, the one
+  program that plays with no controller alive, is not counted as a silent one.
+  The broker fd is
   opened `O_CLOEXEC` and only the controller spawn clears the flag, so
   helper children (curl, fwup, media-ctl, ...) can never hold the device
   open past an exec and defeat the final-close backstop. Below that remain

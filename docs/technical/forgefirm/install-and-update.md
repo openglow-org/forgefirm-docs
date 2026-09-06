@@ -195,11 +195,33 @@ signature before writing, and re-verify the written filesystem.
 | `POST /update/upload` | Streamed multipart upload to `/data` |
 | `GET /update/status` | The background job's state |
 | `POST /restore/factory` | Factory restore from the archive (md5 checked); `source=cloud` answers 501 until it ships |
+| `POST /restore/factory-return?confirm=1` | The setup's factory-return exit (below) |
 | `POST /system/reboot` | Reboot |
 
-Every state-changing call is behind forgectrl's auth layer (bearer token
-plus origin checks); unsigned installs additionally require the physical
-button held ([forgectrl](forgectrl.md#http-api)).
+Every state-changing call is behind forgectrl's auth layer (a login
+session, the panel token, and origin checks); unsigned installs
+additionally require the physical button held
+([forgectrl](forgectrl.md#http-api)).
+
+**The factory return.** Every screen of the first-run setup carries a
+footer link, "Go back to the factory firmware"
+([Commissioning](../../usage/commissioning.md#go-back-to-the-factory-firmware)).
+After a confirmation, `POST /restore/factory-return?confirm=1` runs. It
+restores the archived factory image into the other slot, when that slot no
+longer holds one. Then it moves the boot selection and reboots. It runs as
+the update manager's background job, under the same lock and interlocks.
+Reinstalling ForgeFIRM afterward is the installer again from the console.
+
+**What `/data/forgefirm/` holds.** Beside the archive and the update lock:
+
+- the commissioning record (`commissioning.json`);
+- the sheet salt (`sheet.salt`);
+- the TLS key and certificate;
+- the account record (`users`);
+- the panel token (`panel.token`).
+
+They live on `/data`, outside both slots, so every update and the factory
+return leave them in place.
 
 Functions of the panel page:
 

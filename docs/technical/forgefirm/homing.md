@@ -59,7 +59,9 @@ because the stock `run()` loop can neither stop nor close the socket. The
 service's sequence, as it runs against the current service, is `settings`,
 `hunt`, `lid_image`, a single corner move, `lid_image`, then silence: the
 service takes a lid image, moves the head, takes another, and computes where
-the head is ([The cloud protocol](../machine/cloud-protocol.md)).
+the head is ([The cloud protocol](../machine/cloud-protocol.md)). The hunt is
+answered as done without moving the lens or playing its file: the session
+borrows the service for its camera homing only.
 
 Completion is guarded:
 
@@ -71,8 +73,8 @@ Completion is guarded:
   failure, not a homing.** Position counters advancing are not proof of
   motion.
 
-The session then re-homes the lens against the hall sensor, for a
-deterministic Z.
+After the service goes quiet the lens takes the run's one reference, on the
+hall sensor's edge, and the driver places it in Z.
 
 ### The lid
 
@@ -89,7 +91,9 @@ homing session; there is no hunt outside one.
 - **A service session.** This is the factory homing method, so it signs in
   to the Glowforge service with the machine's built-in identity (the fuse
   serial and password), or with the `gf_serial` / `gf_password` overrides
-  ([Cloud mode](cloud-mode.md)). The service holds one session per machine.
+  ([Cloud mode](cloud-mode.md)), and names its software as
+  `ForgeFIRM/<version>` through the User-Agent, as cloud mode does. The
+  service holds one session per machine.
   It is the one part of GRBL mode that needs the service, and an internet
   connection.
 - **The lid closed**, for the motion and for the camera captures.
@@ -98,8 +102,13 @@ homing session; there is no hunt outside one.
 ### The position after a home
 
 After a successful session the machine coordinates are set to
-`gfcloud_home_x`, `gfcloud_home_y`, and `gfcloud_home_z` (defaults 0, 0, and
-Z maximum). The factory home is the machine origin, the back-left corner,
+`gfcloud_home_x` and `gfcloud_home_y` (defaults 0 and 0), and Z to the park
+height: the runner leaves the lens on the hall's rising edge, whose focal
+height the focus card measured (`lens_hall_edge_z_mm`), then moves it the
+whole half-steps to `lens_park_z_mm` (default 3 mm), inside the window every
+head reaches without touching a stop
+([The grblHAL driver](grblhal-driver.md#the-lens-z)).
+The factory home is the machine origin, the back-left corner,
 with the workspace all-positive from there
 ([The motion hardware](../machine/motion-hardware.md)). The position is then
 anchored, and the panel shows it normally.
@@ -146,5 +155,5 @@ serves it from there and never queries the Grbl socket
 Anything that invalidates position (an underrun, a stream fault) drops the
 anchor deliberately, so a stale origin cannot be reused
 ([The grblHAL driver](grblhal-driver.md)). Z is never driven blind, homed or
-not: the lens carriage is referenced against the hall sensor at the top of
-travel ([The motion hardware](../machine/motion-hardware.md)).
+not: the lens carriage is referenced against the hall sensor's edge, low in
+its travel ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)).

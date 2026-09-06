@@ -104,6 +104,7 @@ nav:
   - Usage:
       - usage/index.md
       - The control panel: usage/control-panel.md
+      - Commissioning: usage/commissioning.md
       - Modes: usage/modes.md
       - GRBL mode: usage/grbl-mode.md
       - LightBurn: usage/lightburn.md

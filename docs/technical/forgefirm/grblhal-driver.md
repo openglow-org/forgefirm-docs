@@ -141,7 +141,10 @@ period is skipped and its debt carried. `laser_floor_density` is the S-range
 floor, the lowest density that still marks; the driver loads it into `$35`
 at every spindle precompute, so `$35` is derived, never typed. S commands a
 light fraction, and `laser_dose_curve` maps it onto the density that
-delivers it; `laser_corner_gamma` is the corner rolloff under `M4`. The
+delivers it; `laser_corner_gamma` is the corner rolloff under `M4`. `M102`
+reloads the three inside a job, synchronized behind every buffered motion,
+through the same spindle configuration the arm runs: the commissioning
+sheet's cards change them between their passes. The
 analog rendering (continuous FIRE at a duty) is not selectable on a machine.
 It fires the tube's strike transient as a spot at every beam-on, and exists
 only as the host harness's conservatism reference. The settings and their
@@ -341,7 +344,10 @@ two channels ([The cooling engine](cooling-engine.md) owns both formats):
   (flow verification, over-temperature, the airflow floors on every fan, the
   lid-IR emission witness); a stale or failed verdict relocks in-process.
   Auto-resume after an over-temperature hold is the controller's call, on
-  the verdict's `resume_ok`.
+  the verdict's `resume_ok`. A job resumed under a standing hold (the
+  button, `~`, a sender) is held again within the client's next poll, and
+  the sender is told why: a verdict with no resume is a reset, never a
+  pause.
 
 The thermal gates are settings with a wide range whose far end turns the gate
 off by value, loudly ([Cooling and fans](../../usage/cooling-and-fans.md)).
@@ -366,6 +372,45 @@ loop. The head accelerometer is the motion witness, and
 `homing_mode = gfcloud` it suspends the stream engine, runs a service-driven
 homing session in a child process that inherits the pulse device, and hands
 the machine back. The mechanism is on [Homing](homing.md).
+
+## The lens (Z)
+
+The driver's Z is the focal point's height above the tray: Z 0 focuses on
+the bed, Z 3 focuses 3 mm above it, on the top of 3 mm material. The lens is
+a 2 in lens under a collimated beam, so the focal point moves 1:1 with the
+lens and +Z is lens up; the travel is the lens carriage's 0.485 in
+([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)).
+Every head shares the lens screw and its travel, so the Z scale is a
+constant: `$102` is 2.922 half-steps per millimeter (36 over the carriage's
+12.32 mm), about 0.34 mm a half-step. What differs from head to head is the
+step along the travel at which the hall sensor trips. That rising edge is
+the one reference the head has, and the commissioning focus card measures
+the one number the head needs: `lens_hall_edge_z_mm`, the focal height above
+the tray when the lens sits on it. A home in gfcloud mode leaves the lens on
+that edge, sets Z to the number, placed on the whole step the controller
+counts (so the reported position and the home position agree), and then
+parks the focus at `lens_park_z_mm`, a user setting (default 3 mm; the runner
+takes the whole half-steps from the edge to the nearest step at the park
+height). The park and the Z envelope keep to the head's free travel as the
+focus card found its stops (`lens_stop_below_steps`, `lens_stop_above_steps`),
+or, until it has or when the stops could not be found, to the fallback
+window of ten half-steps below the edge to twelve above; the lens is never
+driven onto a stop on a user's machine. The defaults are the bench
+reference machine's, placeholders until the card has run. The homing
+session answers the service's lens hunt as done without moving the lens;
+the lens reference is the session's own, after the service goes quiet.
+The lens is in the pulse path like X and Y: a job's or a jog's Z moves it,
+in half-steps, at its drive current during a run and its hold current at
+rest. The lens is never moved without a reference: the driver's Z soft limit
+is always on, whatever `$20` says, and until Z is referenced it holds Z
+where it is (a jog is refused with error 15, a program move raises the
+soft-limit alarm before it starts). A gfcloud home references the lens on
+its hall edge and opens the envelope to the head's free travel (the found
+stops, a half-step of slack at each end); a commissioning card, which
+references the lens itself, tells the driver with `M103 Z<focal height at
+the edge> P<free half-steps below> Q<above>` (P and Q optional: the
+settings, else the fallback window). Beyond the free travel, referenced,
+the same refusal. The panel's Machine tab shows the reach.
 
 ## Where the driver sits in the safety design
 

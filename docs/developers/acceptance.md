@@ -72,11 +72,16 @@ Each test declares, in code (`forgetest/forgetest/suite/*.py`):
   none. The page lists them before a start. A bench actuator that covers a
   channel can do them.
 - **precheck**: a condition that the machine must meet for the test to start
-  at all. `kernel.fire-line` needs HV not reporting good, which is the rule
-  of the kernel for a zero-duty latch unlock. `cloud.mode-switch` needs
-  `homing_mode = gfcloud`. A start that the precheck refuses is not a
-  result. The page says why. A queue skips the test with the reason and
-  continues. Nothing is recorded.
+  at all, and that the test cannot make for itself. `kernel.fire-line` needs
+  HV not reporting good, which is the rule of the kernel for a zero-duty
+  latch unlock. `commission.gate-blocks-controllers` needs a completed
+  commissioning record to start from. A start that the precheck refuses is
+  not a result. The page says why. A queue skips the test with the reason
+  and continues. Nothing is recorded. A precheck never names a setting the
+  operator should change: a test that needs a setting, a record, or an
+  account makes it itself and puts the found state back at the end, so
+  every test starts from the page as the machine is, and a queue runs
+  through.
 
 Neither `actions` nor `precheck` is part of the definition that the gate
 sees. `GET /catalog` on the tool lists the definitions. The page shows them
@@ -320,7 +325,8 @@ item:
 
 - **Fixed** resting values that the boot establishes. They are the defaults
   of the kernel module, the start-up writes of forgectrl, and the init
-  writes of the GRBL controller. The kernel values: `motor_lock=8`, `x/y_mode=8`,
+  writes of the GRBL controller. The kernel values: `motor_lock=0` (every
+  axis in the pulse path; the driver's Z soft limit guards the lens), `x/y_mode=8`,
   `x/y_decay=1`, `step_freq=28160`, `ramp_rate=125000`, `streaming=0`,
   `state=idle`, the latch locked, the hold currents. Also the head lamp and
   button LEDs off, the heater and TEC off, and the lid lamp at the

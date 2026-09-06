@@ -24,6 +24,11 @@ A machine that came from the legacy dual-partition installer reclaims that
 partition on its first ForgeFIRM boot
 ([Upgrading from a legacy install](../install/legacy-migration.md)).
 
+The first visit to the control panel runs the setup: the advisories, your
+account, the preferences, the machine facts, and the cloud decision
+([Commissioning](commissioning.md)). Until the setup is complete, no
+controller runs for a sender.
+
 At boot the machine-services daemon, `forgectrl`, starts. It starts the one
 controller that the `controller_mode` setting selects: the GRBL controller
 (the default) or the cloud client ([Modes](modes.md)). Before the first
@@ -34,12 +39,14 @@ motion fault instead of starting a controller, and the panel offers a retry
 
 ## Finding the machine on the network
 
-The machine serves two things on its network address, shown in this
-documentation as `<machine-ip>`:
+The machine answers to `forgefirm.local` over mDNS, and to its fuse
+hostname as `<name>.local`. Its network address is shown in this
+documentation as `<machine-ip>`. The serial console prints the addresses.
 
-| Port | Service |
+| Address | Service |
 |---|---|
-| `http://<machine-ip>:8080/` | The web control panel, with the HTTP routes behind it |
+| `https://forgefirm.local/` or `https://<machine-ip>/` | The web control panel, with the HTTP routes behind it |
+| `http://<machine-ip>/` | The read-only routes over plain HTTP: status, settings, the cameras ([The control panel](control-panel.md#access)) |
 | `<machine-ip>:23` | The Grbl 1.1 protocol, in GRBL mode ([GRBL mode](grbl-mode.md)) |
 
 The panel's header names the machine by its factory identity: the factory
@@ -65,7 +72,8 @@ seven tabs:
 - **Logs**: log levels, the remote syslog target, a live log viewer, and the
   log export.
 - **System**: firmware slots, ForgeFIRM updates, image install and restore,
-  the WiFi regulatory region, and reboot.
+  the WiFi regulatory region, remote access (SSH), the commissioning card,
+  and reboot.
 
 [The control panel](control-panel.md) describes each tab.
 
@@ -73,7 +81,8 @@ seven tabs:
 
 | Page | What it covers |
 |---|---|
-| [The control panel](control-panel.md) | Every tab, and the HTTP routes an operator uses. |
+| [The control panel](control-panel.md) | The address, the login, every tab, and the HTTP routes an operator uses. |
+| [Commissioning](commissioning.md) | The first run: the advisories, your account, the machine facts, the gate, and the way back. |
 | [Modes](modes.md) | GRBL mode against cloud mode, and how to switch. |
 | [GRBL mode](grbl-mode.md) | Connecting a sender, arming the laser, pausing, stopping, faults. |
 | [LightBurn](lightburn.md) | Device setup, job start mode, a good first job. |

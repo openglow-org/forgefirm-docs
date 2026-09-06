@@ -36,8 +36,9 @@ switching is a live operation from the panel's Status tab.
 
 === "Cloud mode"
 
-    Cloud mode runs the factory experience: the machine presents itself as a
-    stock Glowforge to the Glowforge web service, so the phone and web apps
+    Cloud mode runs the factory experience: the machine signs in to the
+    Glowforge web service as itself, names its software as ForgeFIRM, and uses
+    the service the way a stock machine does, so the phone and web apps
     work as they do on factory firmware: the camera bed image, the lens hunt,
     "push the button to print". It is optional, off by default, and kept and
     maintained on purpose.
@@ -68,7 +69,10 @@ side-by-side comparison of the two modes.
 ## Switching modes
 
 Switch from the panel's Status tab, with the controller-mode selector. The
-switch is allowed only when the machine is idle and no diagnostic is running.
+Factory cloud choice exists only once the setup's cloud step turned cloud
+mode on (`cloud_enabled=1`, [Commissioning](commissioning.md#cloud-mode)).
+The switch is allowed only when the machine is idle and no diagnostic is
+running.
 It stops the active controller, persists `controller_mode`, starts the other
 controller, and waits for that controller's first job-state report to reach the
 cooling engine. The setting persists across reboots: the machine boots into the

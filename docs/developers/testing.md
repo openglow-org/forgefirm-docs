@@ -139,7 +139,7 @@ The daemon runs against a mock or a manifest file:
 
 ```
 FORGETEST_DATA=/tmp/ft FORGETEST_MANIFEST=../tree-manifest.json \
-FORGECTRL_URL=http://<machine>:8080 python3 -m forgetest --port 8090
+FORGECTRL_URL=http://<machine> python3 -m forgetest --port 8090
 ```
 
 `scripts/manifest-from-tree.py` makes `tree-manifest.json` from the recipe
@@ -153,7 +153,7 @@ pins.
 | `FORGETEST_BENCH_DIR` | `/usr/share/forgetest/bench` | The installed bench scripts |
 | `FORGETEST_BENCH_DATA` | `<FORGETEST_DATA>/bench` | Passed to the bench tools: the directory for their data files (with `GF_HOST=127.0.0.1` and the panel token in `GF_TOKEN`) |
 | `FORGETEST_MARKER` | `/run/forgetest.active` | The takeover marker |
-| `FORGECTRL_URL`, `FORGECTRL_TOKEN_FILE` | `http://127.0.0.1:8080`, `/data/forgefirm/panel.token` | The forgectrl client |
+| `FORGECTRL_URL`, `FORGECTRL_TOKEN_FILE` | `http://127.0.0.1`, `/data/forgefirm/panel.token` | The forgectrl client |
 | `GF_SYSFS_ROOT` | `/sys/glowforge/` | The sysfs of the kernel module |
 | `GRBL_HOST`, `GRBL_PORT` | 127.0.0.1, 23 | The Grbl TCP port |
 

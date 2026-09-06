@@ -59,7 +59,10 @@ a smoke clear is the right physical response to a job that died mid-cut. If
 the silence happens while the laser is armed, or while the pulse engine
 still says a program is playing, the engine additionally stops motion and
 locks the laser latch itself. It also refuses to let exhaust and intake drop
-below cooldown duty while a program is still running.
+below cooldown duty while a program is still running. A controller the
+supervisor stops on purpose does not count as silent: the supervisor clears
+the last report at the stop, and the engine has no reporter until the next
+controller speaks, so the supervisor's own liveness probe plays unwatched.
 
 **A cloud job brings its own envelope.** The pulse file the Glowforge
 service sends opens with the job's operating limits, and the cloud client
@@ -156,6 +159,14 @@ a job).
   profile is written, and again when a fan is commanded faster mid-run (the
   armed window opening raises a lowered fan). Nothing counts inside it,
   because the big exhaust fan takes seconds to reach speed.
+- **The first fire waits for the fans.** The engine acknowledges the
+  armed window (`armed` in the verdict) only once every gated fan reads at
+  or above its floor, and the controller waits for that acknowledgment
+  before it opens the window: the button lights, the fans come up, then
+  the beam. The controller's wait is the grace plus 5 s; an
+  acknowledgment that never comes refuses the arm (`ALARM:3`, "the
+  cooling service did not take the job"), which is what a fan that cannot
+  reach its floor looks like.
 - **Three consecutive 1 Hz ticks under the floor trip the gate**, and a
   single reading at or above it in between clears the count, so a tach
   reading that wanders does not end a job.
@@ -231,7 +242,10 @@ Under laser load the tube itself heats the coolant, and that heat would read
 as a stagnant loop. Two tunables ride with the flow gate and are not gates:
 `cool_laser_heat_cw` and `cool_laser_heat_density`, the tube's share of a
 heater rise in °C per raw-second of `pic/hv_current` under each power model
-(defaults 3.06e-5 and 2.36e-5, legal 0 to 2e-4). The model the controller
+(defaults 3.06e-5 and 2.36e-5, legal 0 to 2e-4; the commissioning sheet's
+flow-load card measures them, with the check held for the card so the
+heater does not swamp the tube's share: `cool_flow_check_hold`, released
+at the run's end or after ten minutes whatever happens). The model the controller
 reports with its job state selects which applies (density, on every
 machine), and density is assumed when the report carries none. The check
 reads its baseline as the mean of the settled window the gate verified and
@@ -636,8 +650,9 @@ plus rename) at ~1 Hz and on every verdict change:
 - `verdict` is one of `OK`, `SUSPECT`, `FAULT`, `OVERTEMP`, `COLD`,
   `WARMUP`, `CRITICAL`, `SENSOR`, `AIRFLOW`, `FLAME`, `FIRE`, `BUMP`, `CRASH`
   ([What the verdicts do](#what-the-verdicts-do)). `hold=true` asks the
-  active controller for a feed hold; `resume_ok=true` signals recovery
-  (auto-resume is the controller's call). `OVERTEMP`, `COLD`, `WARMUP`,
+  active controller for a feed hold, and for it again if the job is
+  resumed under it; `resume_ok=true` signals recovery (auto-resume is the
+  controller's call). `OVERTEMP`, `COLD`, `WARMUP`,
   `SENSOR`, `FLAME`, and `BUMP` are pause tiers. `CRITICAL`, `AIRFLOW`, `CRASH`, and
   `FIRE` are the fail tier: they hold for the rest of the run session and
   never offer a resume in it; `CRITICAL`, `AIRFLOW`, and `CRASH` end with

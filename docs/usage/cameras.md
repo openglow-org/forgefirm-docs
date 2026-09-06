@@ -82,7 +82,8 @@ deliberately no setting to turn it off.
 
 ## Watching it
 
-**In the panel.** Open `http://<machine-ip>:8080/` and go to the **Status** tab.
+**In the panel.** Open `https://forgefirm.local/` or `https://<machine-ip>/`
+and go to the **Status** tab.
 The *Lid camera* card shows a still by default with **Live** and **Refresh**
 buttons; **Live** switches the same frame to the running stream (H.264 when the
 browser supports it, MJPEG otherwise), and **Stop** returns to the snapshot.
@@ -103,17 +104,28 @@ browser supports it, MJPEG otherwise), and **Stop** returns to the snapshot.
 
 The `?action=` pair exists because a lot of software (print-server dashboards,
 camera widgets, anything written against mjpg-streamer) assumes those exact
-URLs. Point such a client at `http://<machine-ip>:8080/` and it will work.
+URLs. Point such a client at `http://<machine-ip>/` and it works.
 
 Every one of them answers **`409`** with the lid open, so a client that checks
 status codes can tell "close the lid" apart from "the camera is broken".
 
-**Access.** Reading the camera needs no token. It does need a request that
-addresses the machine by IP address (or `localhost`) and, from a browser, one
-that is not cross-site; that is what stops a hostile page in another tab from
-reaching into your machine. It is not protection against other people on your
-LAN. Anything that *changes* machine state does need the panel's token. In
-practice: paste the URL into any local client and it works.
+**Access.** Reading the camera needs no login by default. The read-only
+routes answer any client on your network, over plain HTTP on port 80 or
+over HTTPS. A browser request must not be cross-site; that is what stops a
+hostile page in another tab from reaching into your machine. The setting
+`panel_open_reads=0` closes the reads to logged-in sessions and the machine
+itself ([Settings](settings.md)). Anything that *changes* machine state
+needs a login ([The control panel](control-panel.md#access)).
+
+**The camera key.** A program with no login, LightBurn or a stream viewer,
+reads the cameras with the machine's camera key. Press **Camera URL** on
+the Status tab's lid camera card: the panel shows the stream and snapshot
+URLs with the key in them, ready to paste. The key is a `key` query
+parameter, or the `X-ForgeFIRM-Camera-Key` header, on any read-only route,
+over HTTP or HTTPS, with the reads open or closed. It authorizes reads and
+nothing else. **New key** on the same card makes a fresh one; every URL that
+carried the old key stops working. Treat the URL as a password for the
+camera image.
 
 **LightBurn** consumes the lid stream for its camera overlay while it drives
 motion over the Grbl connection; the two coexist.

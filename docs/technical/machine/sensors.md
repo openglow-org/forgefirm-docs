@@ -108,11 +108,13 @@ off, about 628 with it on.
 
 ## Head sensors
 
-- **Lens hall sensor** (`head/hall_sensor`, 0 or 1): the lens home-position
-  sensor. 1 = at the home position. It changes to 1 when the lens is at or
-  above a specific positive position, and that position varies from unit to
-  unit; the factory's hunt program tells each machine how many steps toward
-  the bed reach the zero focus level (see [Homing](../forgefirm/homing.md)).
+- **Lens hall sensor** (`head/hall_sensor`, 0 or 1): the lens position
+  reference. 1 = home, read from an edge low in the lens's travel (13
+  half-steps above the bottom stop on the reference head) up to the top
+  stop; the edge's height varies from unit to unit. The factory's hunt steps
+  4 full steps down from the edge to its zero, and its prints count up from
+  there ([The motion hardware](motion-hardware.md#the-lens-and-its-travel),
+  [Homing](../forgefirm/homing.md)).
 - **Beam detector** (`head/beam_detect_analog`, 0 to 65535;
   `head/beam_detect_digital`, 0 or 1): the analog and digital outputs of the
   beam detector in the head. How the detector operates is not fully

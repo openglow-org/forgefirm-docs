@@ -26,7 +26,7 @@ to update, and how to recover. Read [Safety](../safety/index.md) first, and
 | Page | Contents |
 |---|---|
 | [Serial access](serial-access.md) | The console on the control board: the Micro-USB port of early machines, the OpenGlow serial adapter, or a soldered 1.8 V FTDI cable. |
-| [Install](install.md) | The one-stage installer, run at the factory console. |
+| [Install](install.md) | The one-stage installer, run at the factory console, and the first boot. |
 | [Back to the factory firmware](factory-restore.md) | The factory archive, and how to restore the factory firmware from it. |
 | [Updating](updating.md) | Signed `.fw` releases and the update manager in the control panel. |
 | [Recovery](recovery.md) | The recovery ladder and the factory recovery mode. |
@@ -87,3 +87,13 @@ holds `factory-rootfs-<ver>.img.gz` for each factory version, `boot0.img`
 and `boot1.img`, and a `manifest` with the slot versions, dates, and
 checksums. A restore runs from the control panel
 ([Back to the factory firmware](factory-restore.md)).
+
+## The first boot
+
+After the install the machine boots into ForgeFIRM, and the serial console
+prints the panel's addresses. Open `https://forgefirm.local/` or
+`https://<ip>/`, accept the browser's certificate warning once, and complete
+the setup ([Commissioning](../usage/commissioning.md)). Root has no password
+and works at the serial console only. SSH is off until you turn it on from
+the panel, and it opens with the account the setup creates
+([Install](install.md#after-the-first-boot)).

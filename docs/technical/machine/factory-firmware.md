@@ -127,7 +127,7 @@ count is the one that should be zero.
 | `STfr` | **Applied**: step frequency. |
 | `XSrc`, `YSrc` / `XShc`, `YShc` | **Applied**: stepper current while running / idle. |
 | `XSdm`, `YSdm` / `XSmm`, `YSmm` | **Applied**: decay mode / microstep mode. |
-| `ZSmd` | **Applied**: Z mode. |
+| `ZSmd` | **Applied**: Z microstep mode; 0 is full-step, and every capture carries 0, so the service's Z counts are full steps (15 for 0.5 in of material, 4 for 0.1 in, from the service's zero, 4 full steps below the hall edge, where its hunt parks the lens: [The motion hardware](motion-hardware.md#the-lens-and-its-travel)). |
 | `CMrx`, `CMrn` | **Passed through** as the job's coolant window (millidegrees, sent as degrees) on every `POST /cool/state` while the job is loaded. The engine applies each only where it is stricter than its configured value, never looser, never to a gate the operator turned off; the coolant ceiling is the consumer. |
 | `EFrx`, `IFrx`, `AArx` | **Passed through** as the tach floors (the maximum periods, sent as the minimum speed each means in the kernel's units); the airflow gates are the consumers, and a header can only raise a floor for its job. A sentinel (0, 1023, the signed extremes, the unsigned rail) or an absurd value is dropped. |
 | `AArn`, `EFrn`, `IFrn` | **Read, inert**: the tach minimum periods are maximum speeds, which nothing gates on. |

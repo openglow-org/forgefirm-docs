@@ -16,8 +16,10 @@ the operator.
 
 ## What it is
 
-In cloud mode the machine presents itself as a stock Glowforge, and the app
-drives it end to end: connect homing, Set Focus, material imaging, and full
+In cloud mode the machine signs in with its own identity, tells the service
+that its software is ForgeFIRM (the User-Agent is `ForgeFIRM/<version>`), and
+uses the service the way a stock machine does; the app drives it end to end:
+connect homing, Set Focus, material imaging, and full
 prints (button press, cut, return home). It is optional, off by default, and
 kept and maintained on purpose. It is distinct from camera-referenced homing in
 GRBL mode, which borrows the service only for a homing cycle
@@ -39,8 +41,11 @@ The client, its scope, and its handling of a job are in
 ## Selecting cloud mode
 
 Select **Factory cloud** with the controller-mode selector on the panel's
-Status tab, while the machine is idle ([Modes](modes.md)). The setting persists
-across reboots. Switching back to GRBL mode is the same selector.
+Status tab, while the machine is idle ([Modes](modes.md)). The choice exists
+only once the setup's cloud step turned cloud mode on (`cloud_enabled=1`,
+[Commissioning](commissioning.md#cloud-mode)); while it is off, nothing
+contacts the Glowforge service. The setting persists across reboots.
+Switching back to GRBL mode is the same selector.
 
 ## Credentials
 
@@ -66,8 +71,8 @@ Blank fields mean the factory fuse identity.
 ### Reading your machine's identity
 
 The panel can show it: `GET /fuse-identity` returns the serial, the derived
-hostname, and the password. It needs the panel token and the physical button
-held while the request is made, and it is fetched on demand only.
+hostname, and the password. It needs a login and the physical button held
+while the request is made, and it is fetched on demand only.
 
 At a console ([Serial access](../install/serial-access.md)) the identity comes
 from the i.MX6 OCOTP fuses: the serial from `HW_OCOTP_MAC0`, the password from
@@ -95,7 +100,7 @@ Cloud mode reads two files:
 
 | Where | Keys |
 |---|---|
-| `/data/etc/gfhome.conf` (seeded from `/etc/gfhome.conf.sample`) | `SERVICE.*` (server and status URLs), `FACTORY_FIRMWARE.CHECK` / `STATUS_FILE`, `FORGECTRL.URL`, `LOGGING.SAVE_PULS` / `SAVE_SENT_IMAGES` (both default off) and `LOGGING.CAPTURE_DIR` (default `/data/forgefirm/captures/<app>`), `MOTION.*`, `THERMAL.*`. |
+| `/data/etc/gfhome.conf` (seeded from `/etc/gfhome.conf.sample`) | `SERVICE.*` (server and status URLs, and `USER_AGENT`: the User-Agent the service sees, default `ForgeFIRM/<version>` with the version from `/etc/forgefirm-version`), `FACTORY_FIRMWARE.CHECK` / `STATUS_FILE`, `FORGECTRL.URL`, `LOGGING.SAVE_PULS` / `SAVE_SENT_IMAGES` (both default off) and `LOGGING.CAPTURE_DIR` (default `/data/forgefirm/captures/<app>`), `MOTION.*`, `THERMAL.*`. |
 | `/data/forgefirm.conf` (managed from the control panel) | `controller_mode`, `homing_mode`, the identity overrides `gf_serial` / `gf_password`, the pause pair `cloud_pause_backtrack_ticks` / `cloud_resume_lead_ticks`, the cooling-hold bound `cloud_hold_max_s`, the download guards `pulse_warn_threshold_bytes` / `pulse_reject_threshold_bytes`, and the log levels `log_gfcloud_*` and `log_gfhome_*`. [Settings](settings.md) has each key. |
 
 The GF Cloud tab's **Print pause** card holds the pause pair, and its **Job

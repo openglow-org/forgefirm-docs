@@ -14,9 +14,9 @@ the step stream itself works is on [The step engine](step-engine.md).
 | Property | Value |
 |---|---|
 | X/Y resolution | 0.15 mm per full step, ×8 microstepping → 53.333 µsteps/mm |
-| Z resolution | 0.70612 mm per full step, driven in half-steps (0.3531 mm) → 2.832 half-steps/mm |
+| Z resolution | about 0.34 mm per half-step (36 half-steps over the carriage's travel), driven in half-steps; the driver's default `$102` is 2.832 half-steps/mm |
 | Work area | 495 × 279 mm |
-| Z travel | about 10.6 mm (0.417"), hall-referenced at the top |
+| Z travel | 0.485 in (12.32 mm), the lens carriage's slot; the hall sensor's edge 13 half-steps above the bottom stop |
 | Max X/Y rate | 12000 mm/min (200 mm/s) |
 | Max Z rate | 300 mm/min |
 | Acceleration | 700 mm/s² X, 590 mm/s² Y, 50 mm/s² Z |
@@ -28,8 +28,73 @@ there. **+Y moves the gantry toward the front of the machine.** Z counts
 positive upward, away from the bed.
 
 Z is never driven blind: the lens carriage is referenced against a hall sensor
-at the top of travel, and moves are supervised against it. The sensor and the
-unit-to-unit variation of its trip point are on [Sensors](sensors.md).
+low in its travel, and moves are supervised against it. The sensor and the
+unit-to-unit variation of its trip point are on [Sensors](sensors.md); the
+lens, its travel, and the focus are below.
+
+## The lens and its travel
+
+The head carries a 2 in focal length lens (Glowforge's own figure) under a
+collimated beam, so the focal point moves with the lens, 1:1: a millimeter
+of lens is a millimeter of focus height. The lens sits in a carriage that
+travels 0.485 in (12.32 mm) between two mechanical stops, driven by a small
+stepper through a lead screw. Every head shares the screw, so a half-step
+is the same height everywhere, about 0.34 mm: ForgeFIRM takes the travel as
+36 half-steps (`$102` is 2.922 per millimeter), a half-step of leeway at each
+end of what the bench reference machine counts (its stops sit 18 half-steps
+below its hall edge and 20 above, 38 in all).
+
+The hall sensor is the only position reference. It reads home from an edge
+partway up the travel to the top stop. The rising edge, the first position
+that reads home going up, found by stepping down out of the zone and back
+up, is what everything references; it is exact and repeatable, where a
+count that ends in a stall against a stop is not (the rotor slips whole
+steps against the stop and re-engages up to three full steps out of phase,
+so such a count reads low by an even number at random). Going down, the
+sensor lets go four to six half-steps under the edge; the lens rings a
+little on every step, which is the jitter in that band. Where along the
+travel the edge sits differs from head to head, and that is the one
+per-head number for Z: the commissioning focus card references the lens on
+the edge, burns a ladder over the head's free travel, and the user's pick
+on the sheet's thickness gives the focal height when the lens is on the
+edge (`lens_hall_edge_z_mm`). The free travel itself is found by the head
+accelerometer: a free half-step rings, on every second step strongly, and
+at a stop the ring dies two to four steps before the rotor would slip, so
+the card steps toward each stop one half-step at a time, calls contact on
+the first quiet strong step, backs off two, and proves by the count back to
+the edge that nothing slipped (`lens_stop_below_steps`,
+`lens_stop_above_steps`; 14 below and 20 above on the bench reference
+machine). Nothing in ForgeFIRM drives the lens onto a stop on a user's
+machine; when the stops cannot be found on a head, every move keeps a
+fallback window, ten half-steps below the edge to twelve above, that clears
+both stops on any head whose edge sits within six half-steps of the bench
+reference machine's, and the user is told. See
+[Commissioning](../../usage/commissioning.md#the-sheet).
+
+The factory's focus law, from its own Z commands, is a count of full steps
+up from its zero, where its hunt parks the lens: 4 full steps down from the
+hall edge. It runs about 2.8 half-steps per millimeter of material and
+saturates at 30 half-steps, its idea of the usable travel.
+
+In GRBL mode Z is the focal point's height above the tray: Z 0 focuses on
+the bed, Z 3 on the top of 3 mm material, and +Z is lens up. A home leaves
+the lens on the hall edge, sets Z to the edge's focal height on the step
+grid (ten half-steps, Z 3.42 mm, on the bench reference machine), and parks
+the focus at `lens_park_z_mm`, a user setting, 3 mm by default
+([The grblHAL driver](../forgefirm/grblhal-driver.md#the-lens-z)). Z may go
+below the tray: the tray comes out for tall work.
+
+The lens is never moved without a reference first: in GRBL mode a job's Z
+moves it within the free travel once a home, or a commissioning card, has
+referenced it, and the driver refuses Z otherwise.
+
+The lens rises only at the driver's drive current (`z_current` 0). At the
+hold current (1) the motor lifts the lens two steps into the service's ramp
+(630, 164 and 115 ms, then 77 ms per step) and stalls; lowering works at
+either current (measured on the bench head with single steps at the ramp's
+timing). Every path that moves the lens sets the drive current first and the
+hold current after: the homing sweeps, the focus card, and the cloud client's
+motions.
 
 The machine has **no limit or home switches** as it ships. What that means in
 practice, how each mode establishes an origin and how the machine behaves
