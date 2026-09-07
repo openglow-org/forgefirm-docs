@@ -93,8 +93,10 @@ the machine, the tab shows a banner with a link to continue the setup
 ### Machine
 
 Shared settings: display units, the homing method and the post-homing position
-calibration, and the cooling tunables. The cooling cards are the coolant loop,
-flow verification, and the airflow gates ([Cooling and fans](cooling-and-fans.md)).
+calibration, the lens, the stepper drive (the X and Y microstep mode,
+[Settings](settings.md#settings-that-affect-motion)), and the cooling
+tunables. The cooling cards are the coolant loop, flow verification, and the
+airflow gates ([Cooling and fans](cooling-and-fans.md)).
 
 ### GF Cloud
 

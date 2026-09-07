@@ -44,8 +44,9 @@ a sender's console with a standard jog command, for example `$J=G91X40F1200`.
     ```
 
     Environment: `GFSINK` (the pulse device; unset = null-sink test mode),
-    `GFSINK_RATE` (the machine tick, default 28160 Hz, the factory's own
-    travel-move tick; accepted 1000 to 165000), `GFSINK_DEPTH_MS` (the queue
+    `GFSINK_RATE` (a machine tick override; the default is the microstep
+    mode's, 28160 Hz at 8, the factory's own travel-move tick, doubled at 16
+    and quadrupled at 32; accepted 1000 to 165000), `GFSINK_DEPTH_MS` (the queue
     depth, default 200; at least 20 and no more than half the stream ring at
     the chosen rate). An out-of-range value is reported and the default is
     used. Standalone, the driver opens the device itself and every takeover

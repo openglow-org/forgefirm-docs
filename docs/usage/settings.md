@@ -59,21 +59,24 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | `gfcloud_home_x/y/z` | 0 / 0 / Z max | Coordinates assigned after a successful camera home. |
 | `gfcloud_home_timeout_s` | 300 | How long a homing session may take before it alarms. |
 | `lid_policy` | `cancel` | `cancel` = factory behavior; `hold` = stock Grbl door parking. |
+| `xy_microsteps` | `8` | The X and Y microstep mode: `8` (the factory's), `16` or `32`. The GRBL controller reads it at its start and derives `$100`/`$101`, its machine tick (28160 Hz at 8, doubled at 16, quadrupled at 32) and the kernel stop ramp from it, so nothing else needs typing; `$100`/`$101` are derived, never typed. Saving a change restarts an idle GRBL controller. Cloud mode runs at the service's own 8. 32 asks four times the step rate of 8 and depends on the machine ([The motion hardware](../technical/machine/motion-hardware.md)). |
 | `laser_button_timeout_s` | 300 | How long the machine waits at the button prompt. |
 | `laser_disarm_s` | 60 | Spindle-off grace before the armed window closes. |
 | `laser_floor_density` | 10 | The S-range floor, percent of full: the lowest pulse density that still marks. Loaded into `$35` at every spindle precompute; `$35` is derived, never typed. |
 | `laser_dose_curve` | (built-in measured default) | The measured dose curve as density:light percent pairs; S commands a light fraction and the driver maps it onto the density that delivers it. `off` = identity; a bad value falls back to the default. The panel's recorder measures and applies a machine's own. |
 | `laser_corner_gamma` | 2 | The corner rolloff under M4: delivered light follows (v/v_programmed)^gamma, so 1 is plain proportionality and higher values starve the slow spots where heat accumulates. Rides the curve. Range 0.25 to 4. |
-| `laser_pulse_ticks` | 20 | Density base period in machine ticks (35.5 us each). |
-| `laser_pulse_min_ticks` | 3 | Shortest density pulse in ticks; below it a period is skipped and its debt carried. |
+| `laser_pulse_ticks` | 20 | Density base period in ticks of the 28160 Hz reference tick (35.5 us each); the driver scales it to the tick in force, so the period is a time at every microstep mode. |
+| `laser_pulse_min_ticks` | 3 | Shortest density pulse in the same ticks; below it a period is skipped and its debt carried. |
 | `rail_settle_s` | 2.5 | Motor-rail off period when a controller takes the device standalone. 0 disables. |
 | `cloud_pause_backtrack_ticks` | 2000 | Cloud pause: laser-off backtrack after the stop (0 to 30000). |
 | `cloud_resume_lead_ticks` | 1950 | Cloud resume: laser-off lead before firing again (0 to 30000). |
 | `cloud_hold_max_s` | 1800 | Cloud: how long a print may be held on the cooling verdict before it is canceled (60 to 7200). |
 
-The laser keys apply at the next job. Grbl `$` settings (steps/mm, rates,
+The laser keys apply at the next job. Grbl `$` settings (rates,
 accelerations, laser mode) are set through your sender in the usual way; the
-defaults are baked in from the factory machine's own measured values. If you
+defaults are baked in from the factory machine's own measured values, and
+the X and Y steps per millimeter (`$100`, `$101`) follow `xy_microsteps`
+rather than a typed value. If you
 change a baked default and it does not appear to take, remember that stored
 settings win: `$RST=$` restores the defaults. A spindle `$` setting takes
 effect when the controller restarts ([GRBL mode](grbl-mode.md)).

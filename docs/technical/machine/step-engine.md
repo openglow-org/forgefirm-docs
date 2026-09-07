@@ -63,9 +63,12 @@ deceleration) and then resampled onto this fixed grid.
 
 Two consequences worth knowing:
 
-- **Resolution is bounded by the tick rate.** At the default GRBL machine tick
-  of 28160 Hz, one axis can take at most 28160 steps per second, about
-  528 mm/s, comfortably above the machine's 200 mm/s top speed.
+- **Resolution is bounded by the tick rate.** At the GRBL machine tick of
+  28160 Hz for ×8 microstepping, one axis can take at most 28160 steps per
+  second, about 528 mm/s, comfortably above the machine's 200 mm/s top
+  speed. The GRBL tick scales with the microstep mode (56320 Hz at ×16,
+  112640 Hz at ×32), so the ceiling in millimeters per second is the same
+  at every mode.
 - **There is a hardware ceiling.** The playback script needs about 6 µs per
   byte, so beyond roughly 165 kHz the timer outruns it and the effective
   consumption rate saturates (measured on hardware: 164.6 kHz sustained at a
@@ -77,8 +80,11 @@ Two consequences worth knowing:
 
 The step frequency (`step_freq`) ranges from 1000 to 200000 Hz, default 10000,
 and cannot change while a program runs. The factory firmware uses 10 kHz for
-prints and hunts and 28160 Hz for travel moves; GRBL mode defaults to
-28160 Hz, and cloud mode takes the tick from each job's header.
+prints and hunts and 28160 Hz for travel moves; GRBL mode runs at 28160 Hz
+times the microstep mode over 8 ([the grblHAL driver](../forgefirm/grblhal-driver.md#the-xy-scale)),
+and cloud mode takes the tick from each job's header. The stop ramp
+(`ramp_rate`, Hz per second of step frequency) follows the tick, so a
+controlled stop covers the same distance at every tick.
 
 ## The ring, and two ways to fill it
 

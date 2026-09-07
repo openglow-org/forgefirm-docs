@@ -103,7 +103,9 @@ The engine runs in phases. Duties are the factory machine's own values.
 Notes on the phases:
 
 - **The pump runs whenever the machine is on**, including at idle.
-  Circulation is cheap; a stagnant loop with a warm tube is not.
+  Circulation is cheap; a stagnant loop with a warm tube is not. The one
+  exception is the quiet hold below, an idle-only listening with the laser
+  latched.
 - **The heater is off at idle by design.** An always-on flow heater
   measurably warms the loop within minutes, eating headroom below the start
   gate for no benefit while nothing can fire. The warm-up hold is the one
@@ -129,6 +131,20 @@ job's own header carries the duties and the client passes them through, so a
 print gets the fan profile the service designed for it and a lens hunt stays
 quiet.
 
+**The quiet hold.** A listening to the head accelerometer wants the machine
+quiet, because a running fan or pump is in the reading. The commissioning
+focus card's stop finder takes the engine's quiet hold for its listening:
+the air assist, exhaust, intake and purge fans off whatever the phase says,
+the pump still running (the finder was proven that way). The bench tools
+take the same hold through `POST /cool/quiet?on=1`, and with `pump=1` the
+coolant pump and the TEC go off as well, so the machine is silent: the one
+pump-off state besides the heater-only flow diagnostics, and a dry one,
+since the laser stays latched at idle. Release with `on=0`;
+`GET /cool/status` shows the hold as `quiet_hold`. The hold is taken only
+from an idle machine with no diagnostic running, and the engine releases it
+itself the moment a run session opens or after 600 s, so a job never runs
+with the machine held quiet and a listener that died cannot leave it so.
+
 ### Airflow gates: a fan that is not moving the air
 
 Commanding a fan and getting airflow are two different things, and the
@@ -153,8 +169,8 @@ a job).
   from a GRBL job), and a fan the job runs slower is measured, published as
   `unjudged`, and not judged: the factory's hunts and homing moves run with
   the exhaust and the intakes off and the air assist at idle, and nothing
-  can fire during them. The purge fan has no duty (it is always on) and is
-  judged in every run.
+  can fire during them. The purge fan has no duty (it is on whenever the
+  machine is not held quiet for a listening) and is judged in every run.
 - **A spin-up grace** (`cool_fan_grace_s`) runs from the moment the run
   profile is written, and again when a fan is commanded faster mid-run (the
   armed window opening raises a lowered fan). Nothing counts inside it,

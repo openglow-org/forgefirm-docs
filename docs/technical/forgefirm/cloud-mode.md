@@ -334,7 +334,14 @@ with it:
   pulse-data format), both checked before a byte reaches the ring. A
   mismatch is `refusing the job:` in the log and a cancel to the service.
 - **Applies** the step frequency, the stepper currents (running and idle),
-  the decay and microstep modes, and the Z mode.
+  the decay and microstep modes, and the Z mode. The microstep mode is the
+  header's, the service's own ×8, whatever the `xy_microsteps` setting says:
+  the service plans every stream at ×8 for this machine type, so cloud mode
+  runs at that scale, and a header at any other mode is **refused** with the
+  serial and format checks, before a byte reaches the ring (`refusing the
+  job:` in the log, `:cancelled` to the service): a stream at a finer mode <!-- style: ignore -->
+  is one this machine has never run in cloud mode, and the report of such a
+  refusal is what starts that work.
 - **Hands the run-phase fan duties** (`AArd`, `EFrd`, `IFrd`) to the
   forgectrl cooling engine as the per-job profile, on the scale the service
   uses (air assist 0 to 1023, exhaust and intake 0 to 65535). While the laser
@@ -694,3 +701,11 @@ ring with the cancel from the app. What is left:
   on as part of its idle posture; the `WPon` pulse-header key has no
   applier. If per-job pump control is ever wanted, it belongs in the engine's
   per-job profile (the `/cool/state` report), not here.
+- **Microstep modes finer than 8:** the service plans every stream at ×8
+  and says so in every header, whatever the machine reports (the machine
+  reports 1, as the factory firmware does). GRBL mode runs at 8, 16 or 32
+  from the `xy_microsteps` setting; cloud mode runs at the header's 8 and
+  refuses a header at any other mode. A finer mode in cloud mode would take
+  either the service planning finer or a local expansion of its ×8 stream
+  in the feeder, and waits, by decision, for a user's report of such a
+  refusal.

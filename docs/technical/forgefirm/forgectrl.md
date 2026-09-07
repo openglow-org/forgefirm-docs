@@ -124,7 +124,8 @@ costs one bounded error, never a pinned thread.
 | `POST /mode?controller=grbl` or `=cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever ([Mode supervision](#mode-supervision)) |
 | `POST /cool/state` | Controller job-state report, level-triggered at ~1 Hz ([Cooling engine](cooling-engine.md#job-state-reports)) |
-| `GET /cool/status` | Cooling-engine state: phase, verdict, `fire_ok`, `hold`, `resume_ok`, temps, report age, `gates_off`, the effective `limits`, `fan_gates`, `fire_watch`, `accel_watch` |
+| `GET /cool/status` | Cooling-engine state: phase, verdict, `fire_ok`, `hold`, `resume_ok`, temps, report age, `gates_off`, the effective `limits`, `fan_gates`, `fire_watch`, `accel_watch`, `quiet_hold` |
+| `POST /cool/quiet?on=1` or `=0`, with `pump=1` | The quiet hold for a listening to the head accelerometer (the bench tools; the commissioning finder uses the same hold inside the daemon): every fan off, and with `pump=1` the coolant pump and the TEC too, the machine silent. Taken only from an idle machine with no diagnostic running; the engine releases it itself when a run session opens or after 600 s ([Cooling engine](cooling-engine.md#what-the-fans-do-and-when)) |
 | `POST /diag/flow-verify`, `POST /diag/flow-calibrate`, `POST /diag/aa-offset-calibrate`, `POST /diag/abort`, `GET /diag/status` | The diagnostics runner ([Diagnostics](../../usage/diagnostics.md)) |
 | `GET /fuse-identity` | The machine's fuse identity ([Control panel](../../usage/control-panel.md)) |
 | `GET /grbl/settings` | The controller's `$$` view, verbatim; 404 with no live controller |
@@ -138,6 +139,10 @@ costs one bounded error, never a pinned thread.
 Settings persist in `/data/forgefirm.conf`, shared with the grblHAL
 controller (re-read on every `$H` and at every run start) and the gfhome
 homing runner (read at session start), so changes apply without restarts.
+The one exception is `xy_microsteps`, which the controller reads at its
+start only: a change of its stored value restarts a running GRBL
+controller after the write (the machine is idle by the gate below), and
+any other controller picks it up at its next start.
 Writes are refused (409) unless the machine is idle, because the controller
 and the homing runner both read this file mid-run.
 

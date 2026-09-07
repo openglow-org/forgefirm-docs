@@ -51,6 +51,30 @@ from the factory machine and its pulse streams. Their sources are noted in
 [`src/boards/glowforge.h`](https://github.com/openglow-org/grblHAL-glowforge/blob/main/src/boards/glowforge.h);
 the values are on [The motion hardware](../machine/motion-hardware.md).
 
+### The XY scale
+
+The X and Y microstep mode is one number in the shared config,
+`xy_microsteps` (8, 16 or 32; unset reads as 8, the factory's), read once at
+the driver's start. Three things are derived from it and never typed:
+
+| Mode | `$100`/`$101` (steps/mm) | Machine tick (Hz) | Kernel stop ramp (Hz/s) |
+|---|---|---|---|
+| 8 | 53.333 | 28160 | 125000 |
+| 16 | 106.667 | 56320 | 250000 |
+| 32 | 213.333 | 112640 | 500000 |
+
+The tick scales with the mode so the ticks per step, and with them the
+top speed, stay the same. The stop ramp is Hz per second of tick
+frequency, so it scales with the tick in force to keep a controlled stop
+over the same distance. `$100`/`$101` are re-asserted from the mode on
+every settings dispatch, in RAM only, the way `$35` is: a `$100` typed by a
+sender is overwritten on the spot. `$110`/`$111` are held under the feed the
+tick carries (one step per tick per axis), which only bites when the bench
+lowers the tick with `GFSINK_RATE`. The driver writes the mode to the
+drivers' MODE pins at its start, at idle. A change of the setting takes a
+controller restart, which forgectrl does for an idle machine when the
+setting is saved. Cloud mode runs at the service's own 8.
+
 Under the ForgeFIRM image the driver runs as a **supervised child of
 forgectrl** and receives `/dev/glowforge` as a broker-inherited file
 descriptor (`GF_PULSE_FD`). Handovers such as the `$H` homing session then
@@ -72,9 +96,11 @@ policy are described under [forgectrl](forgectrl.md).
 
 The queue depth is the trade: deeper means more immunity to system load,
 shallower means a feed hold or a power override takes effect sooner. The
-default is 200 ms, and the machine tick defaults to 28160 Hz, the same tick
-the factory firmware uses for travel moves. The environment variables that
-set the tick and the depth are on [GRBL mode](../../usage/grbl-mode.md).
+default is 200 ms, and the machine tick is the microstep mode's: 28160 Hz at
+8, the same tick the factory firmware uses for travel moves, doubled at 16
+and quadrupled at 32 ([The XY scale](#the-xy-scale)). The environment
+variables that override the tick and set the depth are on
+[GRBL mode](../../usage/grbl-mode.md).
 
 The controller keeps only a small window of the job in the ring, a fraction
 of a second, and refills it continuously while the job plays. A write that
@@ -135,8 +161,10 @@ power onto the pulse stream's power bytes and fire bits:
 **Dose model.** Density is the only model: every pulse fires at full power,
 and the commanded level only masks FIRE ticks the core asked for, never adds
 one, so emission stays exactly where the core commanded it. The density
-base period is `laser_pulse_ticks` in machine ticks (35.5 us each at the
-default tick), and `laser_pulse_min_ticks` is the shortest pulse; below it a
+base period is `laser_pulse_ticks` in ticks of the 28160 Hz reference tick
+(35.5 us each; the driver scales the count to the tick in force, so the
+period is a time at every microstep mode), and `laser_pulse_min_ticks` is
+the shortest pulse in the same ticks; below it a
 period is skipped and its debt carried. `laser_floor_density` is the S-range
 floor, the lowest density that still marks; the driver loads it into `$35`
 at every spindle precompute, so `$35` is derived, never typed. S commands a

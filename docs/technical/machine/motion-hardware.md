@@ -13,7 +13,7 @@ the step stream itself works is on [The step engine](step-engine.md).
 
 | Property | Value |
 |---|---|
-| X/Y resolution | 0.15 mm per full step, ×8 microstepping → 53.333 µsteps/mm |
+| X/Y resolution | 0.15 mm per full step; ×8 microstepping (the factory's, the default) → 53.333 µsteps/mm, ×16 → 106.667, ×32 → 213.333 (the `xy_microsteps` setting, [Settings](../../usage/settings.md#settings-that-affect-motion)) |
 | Z resolution | about 0.34 mm per half-step (36 half-steps over the carriage's travel), driven in half-steps; the driver's default `$102` is 2.832 half-steps/mm |
 | Work area | 495 × 279 mm |
 | Z travel | 0.485 in (12.32 mm), the lens carriage's slot; the hall sensor's edge 13 half-steps above the bottom stop |
@@ -111,7 +111,13 @@ above, which are the factory machine's own measured values.
 complementary from one Y step and direction pair. The drivers expose:
 
 - Microstepping mode per axis (`x_mode`, `y_mode`): 1, 2, 4, 8, 16 or 32.
-  1 = full steps. The machine runs at ×8.
+  1 = full steps. The factory runs at ×8; ForgeFIRM's GRBL mode runs at the
+  `xy_microsteps` setting (8, 16 or 32, default 8) and derives its steps
+  per millimeter, its machine tick and the kernel stop ramp from it
+  ([the grblHAL driver](../forgefirm/grblhal-driver.md#the-xy-scale)).
+  Cloud mode runs at the service's own ×8. The mode is written at the
+  controller's start, at idle: a DRV8825 can re-index its microstep table
+  by up to one full step when MODE changes with the motor energized.
 - Current decay mode per axis (`x_decay`, `y_decay`): 0 = slow (fast stop,
   slow response), 1 = mixed (decay pin high impedance), 2 = fast (fast
   response, slow stop).
