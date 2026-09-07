@@ -248,7 +248,7 @@ forgectrl. It receives `/dev/glowforge` as an inherited file descriptor
 (`GF_PULSE_FD`). Standalone, it opens the device itself:
 
 ```sh
-GFSINK=/dev/glowforge grblHAL_glowforge -p 23 -e /data/EEPROM-glowforge.DAT
+GFSINK=/dev/glowforge grblHAL_glowforge -p 23 -e /data/forgefirm/EEPROM-glowforge.DAT
 ```
 
 | Variable | Meaning |

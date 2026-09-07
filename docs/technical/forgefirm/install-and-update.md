@@ -218,7 +218,9 @@ Reinstalling ForgeFIRM afterward is the installer again from the console.
 - the sheet salt (`sheet.salt`);
 - the TLS key and certificate;
 - the account record (`users`);
-- the panel token (`panel.token`).
+- the panel token (`panel.token`);
+- the settings store of the GRBL controller (`EEPROM-glowforge.DAT`, the
+  `$` settings).
 
 They live on `/data`, outside both slots, so every update and the factory
 return leave them in place.
