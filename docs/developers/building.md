@@ -271,7 +271,7 @@ GFSINK=/dev/glowforge grblHAL_glowforge -p 23 -e /data/forgefirm/EEPROM-glowforg
 | `GFSINK` | The pulse device. Unset = null-sink test mode. |
 | `GFSINK_RATE` | The machine tick. Default 28160 Hz, the travel-move tick of the factory firmware. Accepted range 1000 to 165000. |
 | `GFSINK_DEPTH_MS` | The queue depth of the shipper. Default 200 ms, which is the feed-hold latency. Minimum 20. Maximum: half the stream ring at the selected rate. |
-| `GFSINK_LEAD_MS` | The lead of the producer over the ship cursor. Default 10 ms. The per-run debug line reports the measured minimum margin against it. |
+| `GFSINK_LEAD_MS` | The lead of the producer over the ship cursor. Default 10 ms, range 2 to 10. The per-run debug line reports the measured minimum margin against it. The ceiling is enforced: above it a cycle that resumes while the kernel still drains keeps production ahead of the wall cursor, the re-base onto that cursor is skipped, and the overshoot is inherited by every cycle after it as dark pad the machine still has to play. |
 | `GFSINK_DUMP` | Null-sink mode only. The file that receives the pulse stream. The CI harnesses read it. |
 | `GF_PULSE_FD` | The inherited pulse-device descriptor, under the supervision of forgectrl. |
 
