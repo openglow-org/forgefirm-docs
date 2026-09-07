@@ -124,6 +124,21 @@ forgefirm-image-glowforge.rootfs.wic.gz         the release image
 forgefirm-image-dev-glowforge.rootfs.wic.gz     the dev image
 ```
 
+## The source variant
+
+A release publishes the source of the software that it installs. The
+overlay `kas/source-bundle.yml` turns on the Yocto archiver, and the build
+writes the source of each recipe to `forgefirm/build/tmp/deploy/sources/`:
+
+```console
+kas build kas/source-bundle.yml
+```
+
+The release pipeline merges this overlay into the release build, so the
+source and the image come from one build. `scripts/source-bundle.py` packs
+the archives into the release asset. [Release flow](release-flow.md), "The
+source bundle", has the whole procedure.
+
 ## The debug-kernel variant
 
 One dev image carries a kernel with the lock-correctness options

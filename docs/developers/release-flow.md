@@ -93,6 +93,7 @@ release.sh --dev                   build and pack a dev-signed .fw for the
 | `FORGEFIRM_DEV_KEY` | The private key for `--dev` mode. Required for `--dev`. |
 | `RELEASE_STAGING_DIR` | The directory for the staged release assets. Default: `<repo>/release-staging`. |
 | `FORGEFIRM_ACCEPTANCE_SKIP` | `1` bypasses the acceptance gate. The script prints a loud warning, attaches `NO-ACCEPTANCE.txt` in place of the acceptance artifact, and publishes the release as a prerelease. This is never the default. |
+| `FORGEFIRM_SOURCE_SKIP` | `1` builds the release without the source bundle. The licenses of the software in the image make source necessary, so this is never the default. |
 
 The script runs its gates, builds both images, packs and signs
 `forgefirm.fw`, stages the assets with `sha256sums.txt`, and prints the
@@ -110,6 +111,8 @@ The script runs its gates, builds both images, packs and signs
 - **The acceptance gate.** `scripts/acceptance-gate.py` computes the
   fingerprint of each catalog test again, from the manifest in the release
   rootfs. The recorded PASS in the committed artifact must agree.
+- **The source bundle.** Each recipe of the image whose license makes
+  source necessary must have its source in the bundle (see below).
 
 A problem in a gate stops the script before the signature.
 
@@ -124,9 +127,64 @@ acceptance.json
 acceptance.md
 ```
 
-`sha256sums.txt` covers every other file in the list. With the acceptance
-gate skipped, `NO-ACCEPTANCE.txt` takes the place of the two acceptance
-files and the release is a prerelease.
+The release carries one asset more, `forgefirm-source-v<version>.tar.gz`.
+It is for a person, and no machine downloads it.
+
+`sha256sums.txt` covers every other asset, the source bundle included. With
+the acceptance gate skipped, `NO-ACCEPTANCE.txt` takes the place of the two
+acceptance files and the release is a prerelease.
+
+## The source bundle
+
+A release publishes the source of the software that it installs. The
+release build merges the overlay `kas/source-bundle.yml`, which turns on
+the Yocto archiver. The build then writes the source of each recipe beside
+the image, at `build/tmp/deploy/sources/`. The overlay adds tasks only. It
+adds no file to the root filesystem and changes no component, so the image
+manifest and thus the acceptance result are the same with the overlay and
+without it ([Acceptance](acceptance.md)).
+
+The overlay archives the upstream source as upstream publishes it
+(`ARCHIVER_MODE[src] = "original"`), the patches that the recipe applies
+with the `series` file that gives their order, and the recipe with its
+includes. A recipe that gets its source from git is archived as a tar of
+the checkout at the pinned revision. `COPYLEFT_LICENSE_INCLUDE` in the
+overlay holds the license families that make source necessary, and
+`COPYLEFT_PN_INCLUDE` names the ForgeFIRM components, which are MIT and
+travel with the release too.
+
+`scripts/source-bundle.py` packs the bundle:
+
+```
+forgefirm-source-v<version>.tar.gz
+  README.md                       what the archive holds, and how to build again
+  SOURCES.txt, MANIFEST.json      each recipe of the image with its archive
+  sources/                        the source of each recipe
+  licenses/                       both license manifests, and the license texts
+  metadata/                       the kas configuration, the layer revisions,
+                                  the ForgeFIRM layers, the image manifest
+  sha256sums.txt                  the checksum of every file above
+```
+
+What the bundle must hold comes from the image, not from a list in the
+script: the two license manifests that the build writes,
+`license.manifest` (each package of the root filesystem) and
+`image_license.manifest` (the kernel, the device tree and the boot
+loader). Each recipe in them whose license is in the include list must have
+an archive. A recipe with no archive stops the release, so a package cannot
+reach a machine with its source left behind. The script names the recipe
+and its license when it stops.
+
+The bundle stays under the 2 GiB limit of a release asset of GitHub. The
+script warns at 1.5 GiB and stops at 2 GiB.
+
+To pack a bundle outside the release pipeline, run the pass and the packer
+by hand:
+
+```
+cd forgefirm
+python3 scripts/source-bundle.py <version> --build
+```
 
 The maintainer keeps the production release key offline. The installer
 embeds its public key. Thus releases are signed with that key only. The

@@ -141,6 +141,9 @@ acceptance gate**: `releases/v<version>/acceptance.json` (exported by
 forgetest on the bench) must authorize the built rootfs. The gate recomputes
 every catalog test's domain fingerprint from `/etc/forgefirm-manifest.json`
 inside the release ext4. The artifact is attached to the GitHub release. The
+release build also writes the source of every recipe of the image, and the
+pipeline attaches it as `forgefirm-source-v<version>.tar.gz`; a recipe whose
+license makes source necessary and that has no source stops the release. The
 procedure and the variables are on
 [Release flow](../../developers/release-flow.md); the gate's contract is on
 [Acceptance](../../developers/acceptance.md).

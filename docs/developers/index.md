@@ -97,6 +97,14 @@ serves the bundle at `GET /system/licenses`, and the manifest alone at
 `GET /system/licenses/manifest`. Keep that step in every image you
 redistribute.
 
+Every release publishes its source too. The release build writes the source
+of each recipe of the image, and the pipeline packs it into the release
+asset `forgefirm-source-v<version>.tar.gz`: the upstream source, the
+patches that the recipes apply, the recipes, the ForgeFIRM layers and the
+kas configuration, with both license manifests and the license texts. The
+release stops when a recipe that needs source has none
+([Release flow](release-flow.md), "The source bundle").
+
 These are the details that go past a one-word license:
 
 - **grblHAL-glowforge** is GPL-3.0-or-later. It is derived from the

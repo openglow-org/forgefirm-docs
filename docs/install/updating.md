@@ -22,6 +22,7 @@ download them by those names:
 | `sha256sums.txt` | Checksums of the assets. |
 | `forgefirm-image-glowforge.rootfs.wic.gz` | The same image as a disk image for an SD card. |
 | `acceptance.json`, `acceptance.md` | The release acceptance record that authorized the rootfs ([Acceptance](../developers/acceptance.md)). |
+| `forgefirm-source-v<semver>.tar.gz` | The source of the software in the image: the upstream source of each recipe, the patches, the recipes, and the license manifests. The machine does not download it ([Release flow](../developers/release-flow.md), "The source bundle"). |
 
 The archive fits the 200 MiB slot. The build fails past the size gate rather
 than producing an unflashable release.
