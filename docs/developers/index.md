@@ -112,9 +112,9 @@ These are the details that go past a one-word license:
   layer, and the shape of the stream and NVS code. The grblHAL core is
   copyright Terje Io and contributors. The Simulator platform code is
   copyright Jens Geisler and Adam Shelly. The Glowforge driver is copyright
-  Scott Wiederhold.
-- **kernel-module-glowforge** is GPL-2.0-or-later, copyright 2020-2026 Scott
-  Wiederhold and copyright 2015-2021 Glowforge, Inc. The SDMA script
+  514 LLC d/b/a OpenGlow.
+- **kernel-module-glowforge** is GPL-2.0-or-later, copyright 2020-2026 514
+  LLC d/b/a OpenGlow and copyright 2015-2021 Glowforge, Inc. The SDMA script
   assembler (`tools/sdma_asm.pl` and `tools/mx51_sdma_set.pm`) makes
   `src/sdma.asm.h` from `asm/sdma.asm` at build time. It is by Eli Billauer,
   copyright 2011, GPL-2.0-or-later, and its headers stay unchanged. Each
