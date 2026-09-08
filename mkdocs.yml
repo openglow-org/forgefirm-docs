@@ -91,8 +91,8 @@ extra:
   # revisions, and fails on one the site does not name. Bump them alongside the
   # recipe pins.
   sources:
-    kernel-module-glowforge: faa1034364ccfa24bfaf4776e37687a900b67b4e
-    forgectrl: b1eee4d9c08384b7c79ed61d6bb903324138fca1
+    kernel-module-glowforge: 0df52a3b6759353b461bcf0f7717e71400e1f4e5
+    forgectrl: 692e4d8ff689d6752b347ca8cc0202f9ad63a320
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/openglow-org/forgefirm
