@@ -41,11 +41,9 @@ apply where you are. The project cannot advise you on them.
 
 ForgeFIRM is free software under MIT and GPL licenses, and the text of this
 site is CC BY-SA 4.0 ([Licenses](../developers/index.md#licenses)). There is
-no paid tier, no license key, no subscription, and nothing to buy
-([What this costs](../index.md#what-this-costs)). If someone offers to sell
-you this firmware, the licenses allow it, and nobody's calling it theft.
-Just note that what you take home is their build, not this one. Get it from
-the source.
+nothing to buy, and if someone offers to sell it to you, what you take home is
+their build rather than this one: get it from the source
+([What this costs](../index.md#what-this-costs)).
 
 ## What you need
 

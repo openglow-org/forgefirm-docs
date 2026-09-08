@@ -257,24 +257,13 @@ Who reads what:
   settings, factory 2000 and 1950). A held button has no further meaning
   during a job.
 - **The active controller also reads bits 3 and 5 for its own motion
-  gate.** In GRBL mode they become the core's safety-door signal, and what
-  happens next is the `lid_policy` setting. `cancel` (default, the factory's
-  behavior): the job parks with a planned deceleration and is then canceled,
-  the armed window closes, the reason is reported, a soft reset ends the
-  sender's stream with the position kept (no alarm), and the head returns on
-  its own to where the job started, lid open or not. `hold`: the stock door
-  hold; a cycle start resumes it once closed. During the arm wait (button
-  lit) either opening cancels the job outright under both policies. While
-  the core is idle, jogging, or homing, and during the return-to-start
-  motion after a cancel, the signal is hidden from it, so a lid cycle at
-  idle (loading material) never strands the controller in Door; a job
-  started with the lid open parks (and cancels) on the first poll. Bit 4
-  gates nothing (it is a readback of the chain itself). The cloud client
-  reads the same bits itself: lid or interlock open during a print or
-  motion (or the pre-print button wait) cancels the job with a controlled
-  stop and the print parks with the lid open; a hunt and the park itself
-  ignore the lid; the button pauses and resumes a print. It reports every
-  lid event to the service.
+  gate**, and each mode decides for itself what they mean. In GRBL mode they
+  become the core's safety-door signal, under the `lid_policy` setting
+  ([the grblHAL driver](grblhal-driver.md#lid-interlock-and-button)). The
+  cloud client reads the same bits itself and reaches the same behavior by
+  its own route ([Cloud mode](cloud-mode.md#how-a-job-runs)), and reports
+  every lid event to the service. Bit 4 gates nothing in either mode; it is a
+  readback of the chain itself.
 - **No process takes `EVIOCGRAB`** on the device, the cloud client's reader
   included. Exclusivity of button *meaning* comes from mode selection, and a
   grab starves every other reader of events.
@@ -431,11 +420,13 @@ remain only as manual emergency stops.
   back; a cable lives at the end of left travel; laser latched, no axis
   masked, the run-current step settled before sampling) and verifies it
   physically happened via the head accelerometer. A dead verdict runs a
-  rail-off recovery ladder (5, 15, 30 s; the DRV8825 drivers can come out
-  of a rail power-up unserviceable and need a true power-off to recover).
-  If the ladder fails, controllers stay down and `/mode` reports
-  `motion-fault` (retry via `POST /mode`, which the panel offers). Position
-  counters advancing are never accepted as proof that the machine moved.
+  rail-off recovery ladder (5, 15, 30 s; only a true power-off of a
+  sufficient length recovers a wedged driver). If the ladder fails,
+  controllers stay down and `/mode` reports `motion-fault` (retry via
+  `POST /mode`, which the panel offers). Position counters advancing are never
+  accepted as proof that the machine moved. What the probe reads, the
+  thresholds it judges against, and why the drivers wedge are on
+  [Motion hardware](../machine/motion-hardware.md#what-the-motion-witness-reads).
 
 Switching modes is a live operation from the panel's Status tab, allowed
 only when the machine is idle. The two modes side by side are on
@@ -510,14 +501,31 @@ inherited fd; the real-time feed path is never proxied.
 The i.MX6 hardware watchdog is a boot/system watchdog, not a laser-safety
 watchdog. Nothing ties `/dev/watchdog` to controller liveness, motion
 liveness, or the armed state, and it must not be mistaken for a beam stop (a
-boot-enabled WDT that userspace never opens is petted by the kernel
-indefinitely). The fast beam-stop path on a feeder stall is the ring-drain
-chain: the ring runs dry, the SDMA script forces the FIRE and step lines low
-in the same tick, the driver leaves the running state, the charge pump
-self-terminates on its next 200 ms tick, and the HV watchdog disarms the
-chain. Cloud mode preloads whole jobs, so its ring does not drain on a
-feeder stall; that residual is covered by the cooling engine's
-hung-controller dead-man.
+boot-enabled watchdog that userspace never opens is fed by the kernel
+indefinitely; see
+[Boot and storage](../machine/boot-and-storage.md#the-emmc)). The fast
+beam-stop path on a feeder stall is the ring-drain chain
+([Pulse feeder contract](pulse-feeder-contract.md#fast-beam-stop-on-a-feeder-stall)),
+and the residual that chain leaves in cloud mode is covered by the cooling
+engine's hung-controller dead-man.
+
+## The wireless region
+
+`wifi_country` is applied with `iw reg reload` followed by `iw reg set` at
+daemon startup and on every change, and the same pass pins `wlan0 power_save
+off` (a mains-powered machine gains only latency and dropouts from power save).
+
+The reload matters: `cfg80211` is built as a module so it loads after the root
+filesystem is mounted and finds the regulatory database directly. With the
+database loaded and no user hint, it follows the country the access point
+advertises in its 802.11d information element, and a user-set region overrides
+that.
+
+**The startup pass hints a region only when one is set.** Hinting the world
+region `00` into a kernel that is already in its default world domain makes
+`cfg80211` intersect world with world and report the alias `country 98`:
+identical rules, a confusing label. `00` is hinted only to revert a live
+region change.
 
 ## Clocks
 
@@ -556,11 +564,9 @@ stay with the engine, which keeps circulation and airflow running over a hot
 tube.
 
 Diagnostics ownership: forgectrl stops the motion controller, writes the
-marker file `/run/forgefirm-diag.active`, and recovers on the next start.
-The diagnostics section of the
-[bring-up runbook](https://github.com/openglow-org/forgefirm/blob/master/docs/BRINGUP.md)
-describes it; the operator's tools are on
-[Diagnostics](../../usage/diagnostics.md).
+marker file `/run/forgefirm-diag.active`, and recovers on the next start. The
+method is on [the cooling engine](cooling-engine.md#diagnostics-verifying-and-calibrating-flow);
+the operator's tools are on [Diagnostics](../../usage/diagnostics.md).
 
 ## Verification status
 
@@ -615,5 +621,6 @@ present:
 - **Cloud mode** runs the full stack as an engine client over a multi-hour
   signed-in session, including reconnects and clean stops.
 
-The dated record of each drill is the
-[campaign log](https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
+Each of those drills was run on the bench reference with the operator
+present; the acceptance catalog carries the ones that are repeatable
+([Acceptance](../../developers/acceptance.md)).

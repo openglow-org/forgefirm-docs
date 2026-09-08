@@ -4,8 +4,8 @@ title: Cameras
 
 # Cameras
 
-The machine has two cameras: one in the lid looking down at the bed, one in the
-print head looking at the material under the lens. ForgeFIRM serves both over
+The machine has two cameras, one in the lid and one in the print head
+([The cameras](../technical/machine/cameras.md)). ForgeFIRM serves both over
 plain HTTP from the web control panel: **MJPEG** for anything that can read a
 stream of JPEGs, and an **H.264** live stream for clients that decode video
 (the panel uses it when the browser can). There is no app, no cloud relay, and
@@ -151,10 +151,10 @@ the CPU for one viewer. A full-resolution still takes about 2.4 s to produce
 (2.7 s if the camera has to be started first), because 5 megapixels of
 demosaicing and JPEG encoding happen on the machine's CPU.
 
-The stream frame is not a resampled copy of the full frame. Each 2 × 2 group of
-sensor pixels becomes exactly one output pixel, which is why the stream is
-precisely half the capture in each axis and why it is cheap enough to run
-continuously.
+The live view is exactly half the capture in each axis because each 2 × 2
+group of sensor pixels becomes one output pixel, rather than the frame being
+scaled down. That is what makes it cheap enough to run continuously
+([The video pipeline](../technical/forgefirm/video-pipeline.md#what-forgefirm-sends-and-why-it-is-less-than-the-sensor-can-do)).
 
 The image is the sensor's data, demosaiced and encoded, with fixed exposure
 and no tone curve; compared with a phone photo it looks flat, and that is

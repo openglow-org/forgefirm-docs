@@ -5,11 +5,13 @@ title: The bench
 # The bench
 
 The bench is one stock machine with the dev image, and the discipline around
-it. Each result that the project claims was obtained there, and the dated
-record of how is the
-[campaign log](https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
+it. Almost every measured value on this site was obtained there, which is why
+the machine has a name and a definition:
+[the bench reference](../technical/machine/index.md#the-bench-reference).
 This page is the runbook: the bench machine, the clean-up rule, the bench
 diagnostics page, the bench tools, and the bench actuator.
+
+How a result was obtained is recorded in the commit that carried it.
 
 !!! danger "Live fire"
 
@@ -20,8 +22,9 @@ diagnostics page, the bench tools, and the bench actuator.
 
 ## The bench machine
 
-- **The board.** The control board is the same in the Basic, the Plus, and
-  the Pro. The bench runs the dev image (`forgefirm-image-dev`) from an SD
+- **The board.** The bench reference is one Glowforge Basic built in late
+  2017; the control board is the same in the Basic, the Plus, and the Pro.
+  The bench runs the dev image (`forgefirm-image-dev`) from an SD
   card. The dev image has a BusyBox userland, python3, gdb, and strace. Log
   in over SSH as root; the dev image permits a root login without a
   password. A serial console is available on `ttymxc0`
@@ -32,9 +35,8 @@ diagnostics page, the bench tools, and the bench actuator.
   environment selects the boot device (on the bench, the SD card: `mmcdev=0`,
   `mmcroot=/dev/mmcblk1p1`). U-Boot then loads `/boot/uEnv.txt` and
   `/boot/zImage` from that rootfs partition. Thus the kernel always comes from
-  the SD card that you wrote. The full eMMC map is in
-  [BRINGUP.md](https://github.com/openglow-org/forgefirm/blob/master/docs/BRINGUP.md),
-  in the hardware facts bank, under "eMMC boot & recovery architecture".
+  the SD card that you wrote. The full eMMC map is on
+  [Boot and storage](../technical/machine/boot-and-storage.md).
 - **Hot-swap a module.** A change to the module alone can go on the board
   without a flash: copy `glowforge.ko` over
   `/lib/modules/<kver>/extras/glowforge.ko`, then `rmmod glowforge &&

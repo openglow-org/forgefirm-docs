@@ -35,10 +35,46 @@ starts, and after a timeout reset it boots the factory recovery instead of
 the selected slot, until the next power-on reset
 ([Recovery](../../install/recovery.md#the-factory-recovery-mode)).
 
+The watchdog is armed in hardware, not by any process: WDOG1's own control
+register reads `0x771f` (enabled, with the external reset output on, a 60 s
+period), the kernel's `imx2_wdt` driver adopts the running watchdog when it
+probes, and the kernel core feeds it because nothing in userspace ever opens
+`/dev/watchdog`. Its sysfs `state` therefore reads `inactive`, which says only
+that no process holds the device; the control register is the proof that it is
+armed. It is a boot and system watchdog and never a laser-safety mechanism
+([forgectrl](../forgefirm/forgectrl.md#watchdog-scope)).
+
+## Machine identity
+
+Every machine carries an unchangeable identity in the SoC's one-time
+programmable fuses, and the factory firmware, the Glowforge service and
+ForgeFIRM all use it:
+
+- **The serial number** is `HW_OCOTP_MAC0`.
+- **The hostname** is that serial rendered in **base 23**, over the alphabet
+  `BCDFGHJKMQRTVWXY2346789`, formatted `XXX-YYY`. It is the name on the
+  factory label, verified against the fuses, and ForgeFIRM's own derivation is
+  checked against the factory's over 200,000 random serials.
+- **The cloud password** is `HW_OCOTP_SRK0` through `SRK7`, the eight words
+  concatenated as 8-digit hexadecimal.
+
+They are readable at `/sys/fsl_otp/` ([Cloud mode](../forgefirm/cloud-mode.md)).
+The hostname is what the control panel's header shows, whatever cloud identity
+override is set, and none of the three can be rotated: a fuse is burned once.
+That is why ForgeFIRM's log export masks all three by default
+([Logging](../forgefirm/logging.md)) and why reading them back through the
+panel needs the physical button held as well as a login.
+
 ## U-Boot and the saved environment
 
 **U-Boot lives in boot0** at 1 KiB (IMX IVT header), not in the user area. Any
 boot0 rewrite below offset 0xC0000 risks the bootloader.
+
+**The bootloader that runs is the factory's**: U-Boot 2015.07, built
+2018-02-20, read back from the device. ForgeFIRM never replaces it. The BSP
+carries a `u-boot_2020.01` recipe and the build deploys its binary, but that
+is a source reference only: no install or boot path uses it, and none should
+([Image and BSP](../forgefirm/image-and-bsp.md)).
 
 **The saved environment** is in the user area at 0x80000, with a redundant
 copy at 0x82000 (boot0's own 0x80000 region is zeros). Slot selection is the

@@ -59,8 +59,8 @@ a sender's console with a standard jog command, for example `$J=G91X40F1200`.
   acceleration ramps; `M3` gives constant power.
 - `$30` is 1000, and S values map onto the laser drive with `S1000` = full
   power. Set your sender's S-value maximum to 1000.
-- Power changes are emitted ahead of the tick they apply to, so a power change
-  and the motion it belongs to stay together.
+- A power change lands at exactly the point along the path where it was
+  planned, whatever else the machine is doing.
 - An S value commands a fraction of the light, not a fraction of the pulses:
   the controller maps it through a measured dose curve onto the pulse density
   that delivers it. Every power level marks, low levels included.
@@ -78,39 +78,43 @@ even with the laser on and the button pressed: the Move panel never fires.
 
 ## Arming: the button press is part of every job
 
-The first laser-on of a job does not fire. Instead the controller:
+The first laser-on of a job does not fire. Instead the machine checks that it
+is fit to cut, and then waits for you:
 
-1. **Checks the coolant verdict.** If a flow fault or an over-temperature
-   condition stands, arming is refused outright
+1. **Is the cooling healthy?** If the coolant is not proven to be moving, or
+   is too warm or too cold, the machine refuses to arm and says so
    ([Cooling and fans](cooling-and-fans.md)).
-2. **Checks that a print head is present.** No head, no arming.
-3. **Forces the cut airflow profile on**, so every fire window is covered by
-   running fans and active flow verification.
-4. **Unlocks the kernel laser latch, lights the button white, and pauses the
-   job** until you press the physical button. The sender keeps getting status
-   reports, so it does not time out.
+2. **Is the print head there?** No head, no arming: the lens, the air assist
+   and the beam sensor all live on it.
+3. **The fans go to the cut profile**, so every moment the beam can fire is
+   covered by running fans and an active coolant check.
+4. **The button lights white and the job waits** for your press. Your sender
+   keeps getting status reports, so it will not time out.
 
-A press with the lid open does not arm; the hardware button latch would not
-clear on it either. A soft reset, or a lid or interlock open, cancels the job
-instead. If nobody presses within `laser_button_timeout_s` (default 300 s), the
-job ends in an alarm (alarm 3) with the latch relocked. The coolant verdict is
-re-checked after the press, so a window can never open against a fault that
-appeared during the wait.
+The mechanism behind each step is on
+[The grblHAL driver](../technical/forgefirm/grblhal-driver.md#the-armed-window).
 
-**The window is per job, not per fire.** It survives `S` changes and `M5`/`M3`
-toggles, so nothing re-prompts mid-job, and it closes, relocking the latch,
-when any of these happens:
+A press with the lid open does not arm the machine, and neither would the
+hardware latch clear on it. A soft reset, or opening the lid or the interlock,
+cancels the job instead. If nobody presses within `laser_button_timeout_s`
+(300 s by default), the job ends in alarm 3 with the laser locked again. The
+cooling is checked once more **after** your press, so the window can never
+open against a fault that appeared while the machine was waiting.
 
-- program end (`M2`, `M30`, `%`): the normal case, within the cycle;
-- the sender's connection changes (the consent belonged to that session);
-- `laser_disarm_s` (default 60 s) of spindle-off idle, counted down in Hold,
-  Door, and Tool Change as well as Idle;
-- immediately on alarm, homing, reset, or a stream fault.
+**One press covers one job, not one cut.** The window survives `S` changes
+and `M5`/`M3` toggles, so nothing asks you again in the middle of a job. It
+closes, and the laser locks again, when:
 
-The next job re-arms with a fresh button press: the same press the hardware
-button latch itself requires, which is why software and hardware cannot
-disagree about whether the machine is armed. The mechanism behind the
-window is on [The grblHAL driver](../technical/forgefirm/grblhal-driver.md).
+- the job ends (`M2`, `M30`, `%`), the normal case;
+- your sender disconnects or a different one connects, because the consent
+  you gave belonged to that session;
+- the laser has been off and idle for `laser_disarm_s` (60 s by default),
+  which keeps counting while a job sits paused;
+- anything goes wrong: an alarm, a homing cycle, a reset, or a stream fault.
+
+The next job asks for a fresh press. That is the same press the machine's own
+hardware latch needs, which is why the software and the hardware can never
+disagree about whether the machine is armed.
 
 ## Pausing, stopping, and faults
 
@@ -173,8 +177,8 @@ red to say so, and your sender should use a job-start mode that does not depend
 on machine coordinates ([LightBurn, Job start mode](lightburn.md#job-start-mode)).
 After a successful home the position is anchored and shown normally.
 
-Anything that invalidates position, an underrun or a stream fault, drops the
-anchor deliberately, so a stale origin cannot be reused.
+Anything that invalidates position drops the reference deliberately, so a
+stale origin can never be reused ([Homing](homing.md#running-unhomed)).
 
 ## Fans
 

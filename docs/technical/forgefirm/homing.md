@@ -42,7 +42,9 @@ shadows the core's homing cycle. Under `gfcloud`:
    `/data/etc/gfhome.conf`, seeded from `/etc/gfhome.conf.sample` on first
    run.
 3. While the session runs, the driver **pumps the Grbl protocol**, so the
-   sender keeps getting status reports and does not time out.
+   sender keeps getting status reports and does not time out. What the service
+   does during it is the factory's own camera homing
+   ([Factory firmware](../machine/factory-firmware.md)).
 4. On completion it **reacquires the device** and re-applies the analog
    configuration and `step_freq`, then writes the homing anchor,
    `/run/grblhal.homed`, which forgectrl uses to serve position.

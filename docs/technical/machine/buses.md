@@ -61,15 +61,44 @@ when USB is unplugged. The circuit that achieves this is in
 
 ## I²C devices
 
-The public documents name these I²C devices on the board and in the head:
-
-| Device | Where | What the documents state |
+| Device | Bus and address | What it is |
 |---|---|---|
-| Camera sensor (OV5648 or OV8856) | camera bus | Both sensors share one device-tree node, `camera@36` (address 0x36); the capture path follows whichever driver bound. See [Cameras](cameras.md). |
+| Camera sensor (OV5648 or OV8856) | camera bus, 0x36 | Both sensors share one device-tree node, `camera@36`; the capture path follows whichever driver bound. See [Cameras](cameras.md). |
 | Chassis temperature sensor | board | An LM75-class part, bound as hwmon `lm75b`. See [Sensors](sensors.md). |
-| Head MCU | print head | The head answers I²C with its id and serial. The head-attention line (gpio-keys code 7, `head`) pulses while the head MCU reboots and is **not** a head-present indicator; presence is the head driver having probed. |
-| Head accelerometer | print head | An ST LIS2HH12, bound to the mainline `st_accel` driver; its two on-chip interrupt generators are reachable over `i2c-dev`. See [Sensors](sensors.md). |
-| PIC analog/digital I/O | board | A register interface of 16-bit values (firmware id 19795) carrying the analog sensors, the button and lid LEDs, and the X/Y stepper currents. See [the kernel module](../forgefirm/kernel-module.md). |
+| Board accelerometer | i2c-3, 0x1d | An ST LIS2HH12. Static; nothing in ForgeFIRM reads it. |
+| Lid accelerometer | i2c-0, 0x1e | The same part. |
+| Head accelerometer | i2c-3, 0x1e | The same part, bound to the mainline `st_accel` driver; its two on-chip interrupt generators are reachable over `i2c-dev` while the driver stays bound. It is the machine's motion witness. See [Sensors](sensors.md#the-head-accelerometer). |
+| Head MCU | i2c-3, 0x47 | A Kinetis KL17, I²C-slave-only to the SoC. It answers with its id and serial, carries the head's flag and interrupt registers, and holds the beam detector's own processing. See [Sensors](sensors.md#the-head-mcu-and-what-the-head-irq-really-is). |
+| PIC analog/digital I/O | board, on eCSPI2, not I²C | A PIC16F1713 behind a register interface of 16-bit values (firmware id 19795) carrying the analog sensors, the button and lid LEDs, and the X/Y stepper currents. See [the kernel module](../forgefirm/kernel-module.md). |
 
-Bus numbers and the remaining addresses are not stated in the public
-documents.
+Three accelerometers of one part number sit on two buses, so **resolve an IIO
+device by its bus path, never by its index**. Probe order decides the index.
+
+**Head presence is the head answering at address 0x47**, never the
+head-attention line (gpio-keys code 7, `head`), which pulses while the head
+MCU reboots and floats to the SoC's pull-up with no head at all
+([Sensors](sensors.md#the-head-mcu-and-what-the-head-irq-really-is)).
+
+## The Wi-Fi bus
+
+The WL1805 rides **uSDHC1** as `mmc0`: 4-bit, SD high speed at 49.5 MHz, with
+`no-1-8-v` (the part is 3.3 V only here). Its interrupt is GPIO6_04 and its
+enable GPIO5_26.
+
+The pad configuration is the factory's, and it matters. ForgeFIRM's device
+tree carries the factory-exact values:
+
+| Bus | Data and command pads | Clock pad |
+|---|---|---|
+| uSDHC1 (Wi-Fi) | `0x17069` | `0x10069` |
+| uSDHC2 (SD card) and uSDHC3 (eMMC) | `0x17059` (SD2_DAT3 `0x13059`) | `0x10059` |
+
+The Wi-Fi bus runs SPEED_MED with a 48 Ω drive strength, fast slew and
+hysteresis, and a 47 kΩ pull-up on the command and data lines only, not on the
+clock. The other two buses run 80 Ω.
+
+Softer edges than these produced an occasional SDIO CRC error at the same
+50 MHz clock, which surfaces as `sdio write failed (-84)` in the kernel log
+and costs about a second of Wi-Fi while the wlcore firmware recovers. Nothing
+safety-relevant crosses Wi-Fi, so the cost of one is a brief sender stall, but
+with the factory pad values it does not recur.

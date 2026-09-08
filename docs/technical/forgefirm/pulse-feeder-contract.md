@@ -18,25 +18,12 @@ negotiable at run time.
 
 ## The ring, and two ways to fill it
 
-Pulse bytes go into a ring buffer in reserved memory, 32 MiB by default, the
-same size the factory firmware uses. There are two ways to use it, and the
-mode you run decides which:
-
-- **Live streaming (GRBL mode).** The controller keeps only a small window of
-  the job in the ring (a fraction of a second) and refills it continuously
-  while the job plays. A write that would overflow is refused, and the
-  feeder backs off; that is normal flow control, not an error. If the feeder
-  falls behind far enough to empty the ring, the machine enters the
-  **underrun** state: motion stops instantly, and position is no longer
-  trusted.
-- **Preloading (cloud mode).** The job is written into the ring before it
-  starts, as much of it as fits: roughly 1 MiB per 100 seconds at the
-  cloud's 10 kHz tick, so about 56 minutes at 32 MiB. A job longer than the
-  ring runs anyway; the client tops the ring up as it drains. The ring size
-  caps how much of a job is buffered at once, not how long a job may be.
-
+The ring itself, and the two ways a controller uses it (GRBL mode's live
+stream and cloud mode's preload), are on
+[Step engine](../machine/step-engine.md#the-ring-and-two-ways-to-fill-it).
 The GRBL-side feeder is on [grblHAL driver](grblhal-driver.md); the cloud
-preloader is on [Cloud mode](cloud-mode.md).
+preloader is on [Cloud mode](cloud-mode.md). What follows is what a feeder
+must obey either way.
 
 ## Ring size and the reserved pool
 
@@ -102,13 +89,11 @@ duty to about 100 % (see [Power bytes](#power-bytes)).
 Write, ASCII, 1
 
 Writing "1" performs a controlled stop of a running program: the step
-frequency ramps down to the minimum at `ramp_rate`, motion comes to a
-smooth stop, and the device switches to the "idle" state. Because the
-deceleration is controlled, no steps are lost, so the reported position
-stays accurate. Once stopped, the laser-enable line is released (laser off)
-and the step lines are driven low; the stepper motors remain powered. For
-an immediate stop with no deceleration (at the cost of possibly losing
-steps), see `halt`.
+frequency ramps down to the minimum at `ramp_rate` and the device switches to
+the "idle" state, with no steps lost, so the reported position stays accurate
+([Step engine](../machine/step-engine.md#stopping-and-resuming-at-the-hardware-level)).
+For an immediate stop with no deceleration, at the cost of possibly losing
+steps, see `halt`.
 
 In the "underrun" state, writing "1" acknowledges the underrun and returns
 the device to "idle" (position should be re-homed before it is trusted).
@@ -299,11 +284,10 @@ clock. On `underrun`, raise a controller alarm, re-home, acknowledge via
 
 ## Progress counters under a live feed
 
-The `position` attribute carries two byte counters: bytes processed (a
-32-bit SDMA counter that wraps modulo 4 GiB) and program size (a 64-bit
-host tally that saturates at 4 GiB). Under a long live stream they diverge
-past 4 GiB. A controller that compares them for progress must track the
-wrap itself, or use its own count of bytes written. The layout is on
+The `position` attribute's two byte counters diverge past 4 GiB under a long
+live stream, because one wraps and the other saturates. A feeder that compares
+them for progress must track the wrap itself, or use its own count of bytes
+written. The layout and the reason are on
 [Kernel module](kernel-module.md#position).
 
 ## Fast beam stop on a feeder stall

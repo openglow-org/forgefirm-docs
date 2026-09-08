@@ -58,14 +58,38 @@ the period between tach pulses. The purge-air fan has no tachometer and
 reports its current instead (`head/purge_air_current`). The period units and
 RPM formulas are on [Sensors](sensors.md).
 
+### What the fans actually reach
+
+Measured on the bench reference
+([The bench reference](index.md#the-bench-reference)) at the cut profile,
+sampled once a second for two minutes from idle:
+
+| Fan | Steady | Spread | Time to 90 % | At idle |
+|---|---|---|---|---|
+| Exhaust | 11640 rpm | 11444 to 11947 | 5 s | 0 rpm (off) |
+| Intake 1 | 4157 rpm | under 100 rpm | 7 s | about 745 rpm |
+| Intake 2 | 4158 rpm | under 100 rpm | 7 s | about 745 rpm |
+| Air assist | 11050 rpm | 30 rpm | 1 s | about 1900 rpm (duty 204) |
+| Purge air | about 625 counts of current | | | about 625 (always on) |
+
+The purge fan reads about 1 with no current at all, which is what a dead one
+looks like.
+
+These are the numbers ForgeFIRM's airflow floors ship at 55 percent of, and
+the spin-up times are why the gates have a grace window
+([the cooling engine](../forgefirm/cooling-engine.md#airflow-gates-a-fan-that-is-not-moving-the-air)).
+They are one machine's: an exhaust duct with an inline booster fan changes the
+back pressure and can move the exhaust reading by a few percent either way,
+and the commissioning airflow check measures your machine's own
+([Commissioning](../../usage/commissioning.md#the-checks)).
+
 ## What the kernel does on its own
 
-On a dead man's switch trip (and on module removal) the kernel de-energizes
-the heat sources, the loop heater and the TEC, and touches nothing else. The
-pump, the exhaust and intake fans, and the head airflow belong to the cooling
-engine and stay as they are: airflow and coolant circulation after an aborted
-cut are wanted, and a pump stop/start cycle can airlock the loop. See
-[the kernel module](../forgefirm/kernel-module.md).
+On a dead man's switch trip, and on module removal, the kernel de-energizes
+the **heat sources only**, the loop heater and the TEC, and touches nothing
+else. The pump, the exhaust and intake fans and the head airflow belong to the
+cooling engine and stay as they are, deliberately: see
+[the kernel module](../forgefirm/kernel-module.md#fail-safe-behavior) for why.
 
 The attribute reference for every control above is on
 [the kernel module](../forgefirm/kernel-module.md).

@@ -91,12 +91,8 @@ The factory uses a 10 kHz machine tick for prints and hunts and 28160 Hz for
 travel moves. A print header carries its own step frequency (`STfr`), the
 acceleration ramp, and the fan duties for the job.
 
-`gfutilities` carries helpers for the format: `load_motion()` downloads a
-pulse file, parses the header (buffering across chunks so headers larger than
-one read are handled), writes the body, and returns header data plus computed
-motion statistics; `decode_all_steps()` decodes a pulse byte stream into
-per-axis step counts and converts them to millimeters and inches;
-`generate_linear_puls()` produces a simple trapezoidal-profile linear move.
+ForgeFIRM's helpers for reading and generating the format are in
+`gfutilities` ([Cloud mode](../forgefirm/cloud-mode.md#the-gfutilities-library)).
 
 ## The pulse header
 
@@ -148,10 +144,88 @@ count is the one that should be zero.
 Thermal policy is the cooling engine's, on purpose: it runs its own coolant
 ceiling and critical line, flow verification, airflow gates, emission witness
 and silence timeout, and a remote service can tighten those limits for a job
-and never loosen them. The factory's own policy, decoded from its firmware, is
-in the hardware facts bank of
-[BRINGUP.md](https://github.com/openglow-org/forgefirm/blob/master/docs/BRINGUP.md)
-("The factory's envelope").
+and never loosen them. The factory's own policy, decoded from its firmware and
+from the captured headers, is below.
+
+### The factory's own envelope
+
+What the service actually fills in, across 23 captured headers and this
+board's own factory logs:
+
+- **Fans.** A cut job carries the real duties: air assist 1023, exhaust 65535,
+  intake 43278, which are exactly ForgeFIRM's run profile. A hunt or a motion
+  file carries air assist 204 with the extraction fans off.
+- **Tachometers.** Every tach window is zero in every capture except `AArx`
+  64500 on cuts. The factory's intake and exhaust tach monitors treat zero as
+  *not configured*, so a stalled extraction fan is not caught there at all: it
+  is caught by the temperature it causes. When a fan alert does fire during a
+  cut, the factory pauses the print on the same transition a user pause takes.
+- **Temperature, in two tiers.** A plain alert pauses; a `*_temp_critical`
+  fails the machine. The units are per sensor: the coolant family is carried
+  twice, once in raw counts with the thermistor's hot end as "min", and once
+  in millidegrees. A stock machine's live coolant window is 10 to 30 C at idle
+  and 5 to 35 C for warm-up and run, and `CMrx` 33000 on a cut is exactly the
+  33 C ceiling the machine ships with.
+- **Coolant flow: the factory does not verify it.** The calorimetric flow
+  controller in its firmware is never armed, and its heater is written only at
+  phase changes. Nothing in the factory machine can tell a circulating loop
+  from a stagnant one.
+
+ForgeFIRM's answer to each of those is on
+[the cooling engine](../forgefirm/cooling-engine.md): every gate is a plain
+setting with an off end, a header value can only ever tighten a local one,
+every fan is held to a measured floor with a fault rather than a pause for the
+session, there is a coolant critical line above the ceiling's pause, the board
+temperatures are watched per job, and coolant flow is verified by
+interrogation. The rest of the envelope is declared tag by tag in the table
+above.
+
+## How the factory sets power
+
+The Glowforge UI's power setting never reaches the machine. Three cloud cuts
+of one 1 inch square, same location, same material, same speed, changing only
+the UI power (Precision Power 1, Precision Power 100, then Full Power), with
+the pulse file captured from each, settle it:
+
+- **The three headers are identical.** No key differs. The power model lives
+  entirely in the service, which bakes it into the FIRE bits.
+- **The motion is identical too**: 5420 steps, 101.62 mm, 10.81 s at
+  9.44 mm/s in all three.
+- **Analog duty is not a power control.** All three runs carry the power byte
+  exactly three times, always 127 (full duty): once as the cut begins, then a
+  refresh about every 27,000 ticks (about 2.7 s).
+- **Dose is FIRE-bit density on a fixed 7-tick period**, 700 µs at the print
+  tick of 10 kHz, about 1.43 kHz, with the on-count dithered between adjacent
+  integers by an error accumulator:
+
+| UI setting | On-runs seen | Mean of 7 | Density |
+|---|---|---|---|
+| Precision Power 1 | 1 (359 times), 2 (212 times) | 1.371 | 0.1953 |
+| Precision Power 100 | 5 (236 times), 6 (334 times) | 5.576 | 0.7952 |
+| Full Power | continuous | 7 | 0.9965 |
+
+The period was exactly 7 in all 570 measured cycles of both dithered runs, and
+the mix of adjacent on-counts matches the fractional part exactly: Precision
+Power 1 wants 1.371 on-ticks, and 2-runs are 212 of 571, or 0.371. That is an
+accumulator carrying a remainder, not a repeating pattern.
+
+On the UI scale, Precision Power 1 to 100 is linear in density (about 0.006
+per unit, intercept about 0.189). Full Power sits off that line, where about
+134 on the same scale would land, which fits a setting the UI presents as
+outside the normal range. So the factory's "1 percent" is the bottom of the
+band that does useful work, not 1 percent of the physical range, which is why
+no user of a factory machine ever meets the tube's dead band
+([The laser](laser.md#what-the-tube-does)).
+
+**Velocity compensation is real but partial.** Density falls as the head slows
+into a corner, by the same relative factor at every power setting (corner over
+cruise 0.38, 0.38, 0.41). Measured per step interval, though, fire ticks per
+step *rise* from 3.89 at 9.44 mm/s to 7.00 at 1.22 mm/s, so dose per unit
+length still climbs about 1.8 times at a corner, against the roughly 7.7 times
+it would climb with no compensation at all. Only about 24 of the 5420 step
+intervals are below cruise speed, so the direction and the rough magnitude are
+solid and the exact law is not. ForgeFIRM's own corner rolloff is a setting
+([the grblHAL driver](../forgefirm/grblhal-driver.md)).
 
 The service pushes very little outside the header. Across every captured
 session, counting every action type, the service has pushed seven keys through

@@ -47,6 +47,42 @@ Early machines have the FT230X USB-serial bridge (U37) and its micro-USB
 connector (J13) populated on the control board; later boards carry only the
 footprints ([Buses and the serial console](buses.md)).
 
+## The bench reference
+
+**The bench reference is one machine: a Glowforge Basic built in late 2017.**
+Every measured value on this site was taken on it, unless the page says
+otherwise. Values that come from somewhere else say so: a figure decoded from
+the factory firmware, a number read off a captured pulse file, a manufacturer's
+datasheet, or a drawing.
+
+Read every measurement as *what this one machine does*, not as a
+specification. Three things make another machine read differently:
+
+- **Manufacturing variance.** Two units off the same line differ. A fan's
+  steady speed, a thermistor's exact curve, the step at which a lens hall
+  sensor trips, the duty at which a tube strikes: each is a part with a
+  tolerance, and each has been seen to vary.
+- **Changes to the product over time.** Glowforge revised the machine across
+  its production run. The control board is common to every model, but the
+  parts around it are not all the same as the bench reference's.
+- **Model differences.** A Pro has a remote-interlock connector brought out
+  and is specified with a thermoelectric cooler; a Basic and a Plus have
+  neither fitted (the table above). An "HD" machine carries a different
+  camera sensor.
+
+This is why the numbers that matter are **settings, not constants**. Every
+value a machine can measure for itself is a setting with a wide legal range,
+and the bench reference's measurement is only its shipped default: the fan
+floors, the coolant flow threshold, the tube's heat coefficients, the
+air-assist offset on the coolant readings, the laser floor and dose curve, and
+the head's lens reference height. The first run of the control panel measures
+them on your machine and writes your values
+([Commissioning](../../usage/commissioning.md)).
+
+Where a number is a genuine constant, it is one because the mechanism makes it
+so, and the page says which: the lens screw's pitch, the step engine's byte
+grid, the pulse header's tag table.
+
 ## Pages in this section
 
 | Page | Contents |

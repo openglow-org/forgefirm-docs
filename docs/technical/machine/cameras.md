@@ -43,18 +43,23 @@ enforced, is on [Cameras](../../usage/cameras.md).
 
 ## What the sensors can do
 
-The sensors are more capable on paper than the video ForgeFIRM sends. Each
-difference is deliberate; the reasons that come from the hardware are below,
-and the rest are on [the video pipeline](../forgefirm/video-pipeline.md).
+This section is what the parts can do. What ForgeFIRM asks of them, and why
+it asks for less, is on
+[the video pipeline](../forgefirm/video-pipeline.md#what-forgefirm-sends-and-why-it-is-less-than-the-sensor-can-do).
 
-| | The sensor can | ForgeFIRM sends | Why |
-|---|---|---|---|
-| Live resolution | full frame | half in each axis | CPU and bandwidth (video pipeline) |
-| Frame rate (5 MP) | 30 fps in reduced modes | 15 fps | the full-field mode runs at 15 fps (below) |
-| Resolution (8 MP) | 3280 × 2464 | 3264 × 2448 | the widest frame the board's camera receiver can take (below) |
-| Bit depth | 10 bits per pixel | 8 bits | JPEG is 8-bit, and 8-bit is what makes the 8 MP frame fit (below) |
-| Exposure and color | auto exposure and auto white balance | fixed values | a bed image has to look the same frame to frame (below) |
-| Mirroring | a mirror register | mirrored in software instead | the register breaks capture on this board (below) |
+| | The sensor can |
+|---|---|
+| Live resolution | its full frame |
+| Frame rate (5 MP) | 30 fps in its reduced modes, 15 fps at full field |
+| Resolution (8 MP) | 3280 × 2464 |
+| Bit depth | 10 bits per pixel |
+| Exposure and color | auto exposure and auto white balance |
+| Mirroring | a mirror register |
+
+Three of those the board takes away rather than ForgeFIRM: the receiver
+cannot take the 8 MP sensor's widest frame at 10 bits, the mirror register
+breaks capture, and only one camera can be capturing at a time. Those are
+below.
 
 ### Resolution and frame rate on a 5 MP machine
 
@@ -70,16 +75,11 @@ smaller":
 | 1280 × 720 | 30 fps | a crop, every other pixel |
 | 640 × 480 | 30 fps | the whole sensor, every fourth pixel |
 
-ForgeFIRM runs the **2592 × 1944** mode. The cropped modes are unusable for a
-bed camera: they would show the middle of the bed and cut off the corners. That
-leaves the full-frame mode at 15 fps or the skipped 1280 × 960 mode at 30 fps.
-
-The camera runs **one mode at a time**, and the live stream and the snapshots
-come from the same frames: that is what lets a snapshot be delivered while a
-stream is running, and it is why the picture does not stutter or re-expose when
-you take one. Choosing 1280 × 960 would double the frame rate and permanently
-give up full-resolution stills, and full resolution is what camera-referenced
-homing and cloud mode need. Full stills win; 15 fps is the price.
+The cropped modes are unusable for a bed camera: they would show the middle of
+the bed and cut off the corners. That leaves a real choice of two, the
+full-frame mode at 15 fps or the skipped 1280 × 960 mode at 30 fps, and
+ForgeFIRM takes the first
+([the video pipeline](../forgefirm/video-pipeline.md#what-forgefirm-sends-and-why-it-is-less-than-the-sensor-can-do)).
 
 ### 8 MP ("HD") machines: a few rows short of the full array
 
@@ -100,45 +100,18 @@ resolution, and it costs nothing, because the delivered JPEG was going to be
 The result is about 15 frames per second off the sensor, and roughly the same
 bytes per second across the bus as a 5 MP machine at its own full frame.
 
-### Ten bits in, eight bits out
-
-Both sensors can emit 10 bits per pixel. ForgeFIRM asks both for 8 instead, and
-the delivered image is 8 bits per channel because that is what JPEG is.
-
-Two bits would buy nothing without a tone curve to spend them on, and there is
-no tone curve (below), while asking for 8 halves the data crossing the bus,
-which is what keeps the stream cheap on a 5 MP machine and what makes full
-resolution reachable at all on an 8 MP one.
-
-### Exposure, gain and color are fixed
-
-There is no auto-exposure and no auto white balance. Exposure, gain and the
-color balance are set to fixed values when the camera starts, matching the
-factory firmware's values, and they are not adjustable from the panel.
-
-That is deliberate. A bed camera is a measuring instrument: camera-referenced
-homing, LightBurn's overlay, and cloud mode's image analysis all compare images
-to known geometry, and an image whose brightness and color shift between
-frames, as the head moves through the frame or as the laser flashes, is worse
-than a consistently imperfect one.
-
-ForgeFIRM also applies **no gamma, tone curve, sharpening or noise reduction**.
-The JPEG is the sensor's data, demosaiced and encoded. Compared with a phone
-photo the result looks flat. That is expected; it is not a fault, and it does
-not affect how well the image works for those uses.
-
-One consequence on 8 MP machines: that sensor's driver publishes no color
-balance controls at all, so those images are less color-correct than a 5 MP
-machine's. The exposure and gain values for the OV8856 are untested on real
-hardware.
-
 ### The mirror register breaks capture
 
-The image is mirrored horizontally to match the orientation the factory
-software produced. The sensors have a mirror register that would do this for
-free, but setting it breaks the board's capture path: frames stop completing
-altogether. ForgeFIRM applies the flip in software instead (see
-[the video pipeline](../forgefirm/video-pipeline.md)).
+Both sensors carry a mirror register that would flip the image horizontally
+for free. **Setting it breaks the board's capture path**: frames stop
+completing altogether. The flip is done in software instead, while the image
+is being demosaiced, at a negligible cost and with an identical result.
+
+### One consequence for 8 MP color
+
+The OV8856's driver publishes no red or blue balance controls at all, so an
+8 MP machine's images are less color-correct than a 5 MP machine's. Its
+exposure and gain values are untested on real hardware.
 
 ## Status of 8 MP ("HD") machines
 

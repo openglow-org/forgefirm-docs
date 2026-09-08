@@ -52,7 +52,7 @@ the built-in values, shown as placeholders.
 | `cool_fan_grace_s` | 15 s | 0 to 120 s | 5 to 30 s | Spin-up window after the run profile is written, during which no floor counts. |
 
 The shipped fan floors are 55 percent of the steady speed each fan reaches at
-the cut profile on one reference machine (exhaust 11640, intakes 4160, air
+the cut profile on the bench reference (exhaust 11640, intakes 4160, air
 assist 11050 rpm); the recommended bands are 50 to 60 percent. A machine whose
 fans read differently sets its own floors.
 
@@ -102,7 +102,7 @@ The gates are settings, and the far end of a gate setting's range is the off
 switch: a coolant ceiling of 60 °C never trips, a check window of 0 s runs no
 flow verification at all, and a fan floor of 0 never trips. There is no other
 switch, and no list of names to get wrong. The ranges are wide on purpose: the
-shipped defaults and the recommended bands come from one reference machine, and
+shipped defaults and the recommended bands come from the bench reference, and
 a machine whose loop or sensors read differently changes the number rather than
 waiting for new firmware.
 

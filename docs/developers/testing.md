@@ -7,7 +7,8 @@ title: Test
 A feature or fix is not complete until it is proven. The order of preference for proof:
 
 1. A host test that runs in CI.
-2. A bench drill, recorded in the campaign log.
+2. A bench drill on [the bench reference](../technical/machine/index.md#the-bench-reference),
+   recorded in the commit message that carries the change.
 3. Documented reasoning.
 
 A change that can put energy where it was not commanded gets a regression

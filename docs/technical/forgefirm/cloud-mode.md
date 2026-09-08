@@ -72,13 +72,10 @@ directory.
 - Provides helpers for working with the **pulse byte-stream** format
   (decoding motion statistics, generating simple linear moves).
 
-Two channels are used, mirroring the real device:
-
-1. **HTTPS (`requests`)**: sign-in, firmware probe, image upload, and motion
-   (pulse) file download.
-2. **WebSocket (`websocket-client`)**: a persistent, auto-reconnecting
-   control channel (subprotocol `glowforge`) carrying JSON *action* messages
-   from the service and *event* messages from the machine.
+It works over the protocol's two channels, HTTPS and the WebSocket, exactly
+as the factory machine does
+([The cloud protocol](../machine/cloud-protocol.md#two-channels)); it uses
+`requests` for the first and `websocket-client` for the second.
 
 <div class="diagram" style="--diagram-min: 0" markdown>
 
@@ -165,14 +162,11 @@ normalized and made available to every image handler. Policy per key:
   example the `NRic` network-retry family); ForgeFIRM reports its own values
   and the service tolerates that.
 
-The service pushes very little, and it is worth knowing exactly how little
-before going looking for a setting that is not in a pulse header. Across
-every captured session, counting every action type and not just the opening
-one, the service has pushed seven keys: `IMct`, `NRic`, `HCil`, `HCae`,
-`HCex`, `HCag`, and `HCga`. The opening `settings` action on its own carries
-one, `NRic`. Nothing thermal, nothing about fans, nothing that bounds the
-machine arrives this way. The operating envelope reaches the machine only in
-the pulse header, per job.
+The service pushes very little outside the pulse header, and it is worth
+knowing that before going looking for a setting that is not in one:
+**the operating envelope reaches the machine only in the header, per job**
+([The pulse header](../machine/cloud-protocol.md#actions) lists the seven keys
+that ever arrive any other way, none of them thermal).
 
 The other half of that: for the header fields the service does not override
 with its own policy, what comes back is what this machine last reported. The
@@ -368,20 +362,16 @@ for a job and never loosen them ([The cooling engine](cooling-engine.md)).
 
 ### The warm-up and the rest
 
-The factory holds twice around a print, and so does ForgeFIRM: a warm-up
-between configuring the run and starting it, and a rest after the park
-before the machine goes idle. A motion or a hunt gets neither. Both are
-equipment protection: the warm-up gets air and coolant moving before the
-first fire, and the rest purges the enclosure and the tube after the last
-one. The service assumes both have happened.
+ForgeFIRM holds twice around a print, as the factory does, and for the same
+reason: the two periods, what they are for, what the factory was measured
+doing, and why the pulse header's lifecycle keys are not their source are on
+[The factory firmware](../machine/factory-firmware.md#a-prints-warm-up-and-its-rest).
 
 `MOTION.WARM_UP_DELAY` and `MOTION.COOL_DOWN_DELAY` carry the seconds and
-default to the factory's measured periods
-([The factory firmware](../machine/factory-firmware.md)). 0 skips either,
-deliberately, and a skipped period says so in the log rather than passing in
-silence: a config that carries explicit zeros keeps them until someone
-changes them. The pulse header's lifecycle keys look like the source of these
-periods and are not; the configured periods are the model.
+default to the factory's measured periods. 0 skips either, deliberately, and a
+skipped period says so in the log rather than passing in silence: a
+configuration that carries explicit zeros keeps them until someone changes
+them.
 
 ## Firmware-update policy
 

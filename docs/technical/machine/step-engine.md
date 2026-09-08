@@ -76,6 +76,38 @@ Two consequences worth knowing:
   ticks at or below 100 kHz; 20 to 50 kHz covers realistic kinematics with a
   large margin.
 
+### Where the engine sits
+
+The playback script is relocated to **SDMA channel 26**, at halfword 7680 in
+the engine's script RAM, and the driver checks its integrity before every run.
+Two lines in the boot log are the engine reporting for duty:
+
+```
+EPIT clock 66000000 Hz
+SDMA channel 26 reserved for pulse playback (script at halfword 7680)
+```
+
+The engine's own position counters live in that channel's context: scratch
+words 0, 1 and 2 hold the X, Y and Z step counts and word 3 the byte count.
+They agree with grblHAL's own counters exactly.
+
+**The engine's clocks are held by whoever holds a channel.** The i.MX6 SDMA
+driver enables the block's `ipg` and `ahb` clocks only for a channel holder
+and turns them off again at the end of its probe, so something has to hold a
+channel for the engine to be clocked at all. On this board nothing else does:
+the only other candidate, the PIC's SPI controller, runs in programmed I/O by
+design. `glowforge.ko` therefore claims its channel through the dmaengine API
+and holds the clocks for as long as it is loaded.
+
+This is worth knowing because **a gated SDMA block fails silently**. With the
+clocks off, every control transfer completes at once and moves nothing: the
+ring reads back the driver's own bounce page instead of memory, so the script
+appears to load and verify, the position counters read nonsense, a run request
+finds the ring apparently empty and returns "no data", and the free-space
+readback exceeds the ring's own size. Nothing errors. ForgeFIRM's image health
+check therefore asserts the clock-enable count directly rather than inferring
+it from behavior.
+
 ### The machine tick
 
 The step frequency (`step_freq`) ranges from 1000 to 200000 Hz, default 10000,
@@ -152,7 +184,7 @@ are driven low; the stepper motors stay powered.
 Whenever a stream ends, normally or by starvation, the playback script drives
 the fire and step lines low as a hardware backstop, before it signals the host.
 The stream must not rely on it: it is the underrun safety net, not the
-mechanism.
+mechanism ([Pulse feeder contract](../forgefirm/pulse-feeder-contract.md#termination)).
 
 ## See also
 

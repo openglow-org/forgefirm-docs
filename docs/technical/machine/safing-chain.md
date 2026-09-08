@@ -188,9 +188,9 @@ hardware would not allow.
 ## What is proven, and how
 
 The proof comes from bench drills with a probe on the PSU-connector LASER_ON
-pin and the kernel readbacks. The
-[campaign log](https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md)
-holds the drill records.
+pin and the kernel readbacks. The repeatable ones are in the acceptance
+catalog, which runs them at every release
+([Acceptance](../../developers/acceptance.md)).
 
 - Latch **locked**: 40,000 streamed FIRE bits → PSU pin flat, `laser_enable`
   0. The lock severs the FIRE drive entirely.

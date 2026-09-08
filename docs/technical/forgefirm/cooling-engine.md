@@ -156,11 +156,13 @@ a job).
 
 - **The floors** are settings: `cool_tach_exhaust_min_rpm`,
   `cool_tach_intake_min_rpm` (either intake), `cool_tach_air_assist_min_rpm`,
-  and `cool_purge_min_current`, each 55 percent of the steady speed the fan
-  reaches at the cut profile on the reference machine (exhaust 11640,
-  intakes 4160, air assist 11050 rpm; the recommended bands are 50 to
-  60 percent). A cloud job's header can raise a tach floor for that job,
-  never lower it.
+  and `cool_purge_min_current`. Each ships at 55 percent of the steady speed
+  that fan reaches at the cut profile on the bench reference (the measured
+  speeds and spin-up times are on
+  [Coolant and airflow](../machine/coolant-and-airflow.md#what-the-fans-actually-reach)),
+  with a recommended band of 50 to 60 percent. The commissioning airflow check
+  measures a machine's own and writes them. A cloud job's header can raise a
+  tach floor for that job, never lower it.
 - **A fan is judged at the operating point where its floor is measured.**
   While the laser is armed every fan is judged, and a job's own fan profile
   (a cloud header's run duties, via `POST /cool/state`) may raise a fan
@@ -232,11 +234,27 @@ operating point is measured rather than assumed:
 | Fault threshold | 14.4 °C rise | Midway between the observed flowing band and the observed stagnant band. |
 | Re-check interval | 150 s | A pump that stops mid-job is invisible otherwise. |
 
-The derivation of the threshold is in the bench tools README,
-[How the coolant-flow fire-gate threshold was derived](https://github.com/openglow-org/forgefirm/blob/master/scripts/bench/README.md#how-the-coolant-flow-fire-gate-threshold-was-derived).
+The derivation of the operating point, from a 60-run design matrix, is on
+[The bench](../../developers/bench.md#how-the-coolant-flow-fire-gate-threshold-was-derived).
 
 Each check costs the loop under a degree of heating, and with cut-profile
 fans running the loop still nets cooler over a long job.
+
+**The record behind the operating point**, all on the bench reference: 25 of
+25 correct classifications at 40 percent duty, plus all three settle cases.
+The bands hold across the loop temperatures a real machine sees, with the
+margin widening as the loop warms:
+
+| Baseline | Flowing, worst | Stagnant, worst | Gap |
+|---|---|---|---|
+| 19 to 23 C | 12.75 C | 16.04 C | 3.3 C |
+| 24 to 25 C | 12.15 C | 18.07 C | 5.9 C |
+| 26 to 27 C | 11.89 C | 18.00 C | 6.1 C |
+
+A warmer loop sheds the heater's heat no worse with the pump on and holds it
+better with the pump off, so the threshold needs no warm-end value through
+27 C. Above that only a running tube warms this loop, and the check takes the
+tube's share off (below).
 
 ### Checks start from a settled loop
 
@@ -255,7 +273,15 @@ real drift would sit below the noise floor and never open the gate.
 ### The tube's share of the rise
 
 Under laser load the tube itself heats the coolant, and that heat would read
-as a stagnant loop. Two tunables ride with the flow gate and are not gates:
+as a stagnant loop. It is the right size to matter: on the bench reference a
+**fully lit 50 s check window adds about 1.5 C** to the rise, against a margin
+of about 1.6 C, and about 0.46 C at 45 percent density. The heat arrives 10 to
+20 seconds after the first emission, as a smooth ramp on both sensors
+together, never as a step at fire start. Left uncorrected, a check that
+overlaps a cut reads about 14 C where the same loop reads 11.7 to 12.1 C dark,
+which is a hair from a false suspicion.
+
+Two tunables ride with the flow gate and are not gates:
 `cool_laser_heat_cw` and `cool_laser_heat_density`, the tube's share of a
 heater rise in °C per raw-second of `pic/hv_current` under each power model
 (defaults 3.06e-5 and 2.36e-5, legal 0 to 2e-4; the commissioning sheet's
@@ -274,12 +300,12 @@ share taken off and the raw rise.
 ### The air-assist offset on the coolant readings
 
 A third tunable rides with the coolant readings themselves:
-`cool_aa_offset_counts` (ADC counts, default 0, legal 0 to 60). The
-air-assist fan's return current shares a ground with the two coolant
-thermistors' reference, so both read low by a fixed number of counts while
-the fan runs: about 20 counts, 1.2 °C near 22 °C, at the run duty on the
-reference machine; nothing below the fan's start duty 256, in proportion to
-the fan's current between. The engine commands that fan, takes the setting's
+`cool_aa_offset_counts` (ADC counts, default 0, legal 0 to 60). It corrects
+the shift the air-assist fan's return current puts on both coolant sensors,
+about 20 counts or 1.2 °C at the run duty on the bench reference; the
+mechanism and its measurement are on
+[Sensors](../machine/sensors.md#three-things-that-move-a-coolant-reading-and-are-not-temperature).
+The engine commands that fan, takes the setting's
 share off both raw readings before the conversion at every tick (more counts
 read colder, so the lift reads as a drop), and `/status` applies the same
 correction, so the over-temperature gates and the panel read the coolant as
@@ -381,6 +407,19 @@ Two gates sit below the operating window:
   in `/cool/status`), then runs with the flow check requested. At 0 the gate
   is off.
 
+  **The release judges a one-minute rolling minimum of the upstream reading,
+  not the instant one.** With the pump running, a slug of the heater's output
+  reaches the upstream sensor within seconds and lifts the instant reading by
+  a degree, while the bulk warms about half a degree a minute; releasing on
+  the instant reading let a hold end in eleven seconds with the loop still
+  cold. Between slugs the rolling minimum falls back to the bulk, which is
+  the number that matters.
+
+  The hold has no time limit by design. The heater plateaus 8 to 9 C over
+  ambient, so a loop that stops warming short of the gate is named once and
+  keeps holding: a shop more than about 8 C below the gate needs the gate
+  lowered or the room warmed.
+
 ### The TEC
 
 `thermal/tec_on` is a bare output with no readback, so presence cannot be
@@ -422,27 +461,16 @@ cut-profile chassis fans, the condition under which the numbers are
 characterized. Any pump-off window aborts immediately if the downstream sensor
 passes 48 °C.
 
-**Flow verify** (about 3 minutes): one check with the pump running and one
-with it commanded off.
+**Flow verify** runs one check with the pump running and one with it
+commanded off, and passes when the threshold separates the two readings.
+**Flow calibrate** runs three trials of each case, alternating, with settle
+gates between them, and recommends a threshold midway between the highest
+flowing reading and the lowest stagnant one; it refuses to recommend anything
+when the gap between the bands is under 3 °C, because a threshold in a narrow
+gap is a threshold that will misclassify.
 
-- **PASS** = the threshold separates the two readings.
-- Margins under 1.5 °C add a warning to re-calibrate.
-- A failure means the threshold no longer suits the loop, or the loop has a
-  real problem.
-
-**Flow calibrate** (15 to 25 minutes): three trials of each case,
-alternating, with settle gates between them. It reports both bands and
-recommends a threshold midway between the highest flowing reading and the
-lowest stagnant one, with an **Apply** button that writes it to
-`cool_flow_rise`.
-
-- If the gap between the bands is under 3 °C it refuses to recommend
-  anything and asks for a higher heater duty and a rerun.
-
-**When to calibrate:** after replacing coolant, after changing or servicing
-the pump, if flow verify warns about thin margins, or on suspicions that
-trace to nothing real. The shipped default suits the factory loop; a rebuilt
-one may differ.
+The operator's procedure, what each result means and when to run either is on
+[Diagnostics](../../usage/diagnostics.md).
 
 ## The fire watch
 
@@ -460,10 +488,11 @@ its 1 Hz tick.
   warning means the supply's supervisor reported a fault.
 - **Lid IR fire watch.** The four `pic/lid_ir_*` channels are polled every
   tick; each job logs its baseline and peaks (the characterization dataset).
-  The sensors are first of all a photometer for the lid lamp: a full-power
-  cut raises them only a few counts above the level the lamp sets, a candle
-  on the bed raises them about the same amount, and a change to the lamp (a
-  camera snapshot) moves them by tens of counts. Through the run, smoke, and
+  The channels are first of all a photometer for the lid lamp, and a cut and
+  a candle move them by the same few counts, which is what shapes this watch:
+  the measurements are on
+  [Sensors](../machine/sensors.md#lid-ir-sensors-piclid_ir_1-to-piclid_ir_4).
+  Through the run, smoke, and
   thermal phases the four readings sorted ascending (the quartiles, the
   factory's statistic) are judged against two tiers per quartile, the
   factory's own shape. A first or second quartile over its alert threshold
@@ -486,13 +515,14 @@ its 1 Hz tick.
   hold, fire blocked; released after five quiet polls). IG2 takes the shared
   abort threshold (the fail tier: motion stopped, latch locked, verdict
   `CRASH` with `hold` for the rest of the run session). Thresholds are IG
-  register units at the ±4 g run full scale (LSB = full scale/256, about
-  15.6 mg, so 1 g is about 64); the defaults are the factory's own header
-  values (about 2 g), far above normal commanded motion (under 0.2 g). Z is
-  never armed: gravity rides it, and the factory ships Z zero too. The watch
-  arms only inside the laser's armed window. The liveness probe and cloud
-  homing read the accelerometer through `st_accel` in unarmed sessions, and
-  the armed watch owns the part's ODR and full scale (`st_accel` leaves it
+  register units at the ±4 g run full scale, so 1 g is about 64; the defaults
+  are the factory's own header values, about 2 g, far above normal commanded
+  motion. Z is never armed: gravity rides it, and the factory ships Z zero
+  too. The registers, the threshold scale and the factory's own values are on
+  [Sensors](../machine/sensors.md#the-head-accelerometer).
+  The watch arms only inside the laser's armed window. The liveness probe and
+  cloud homing read the accelerometer through `st_accel` in unarmed sessions,
+  and the armed watch owns the part's ODR and full scale (`st_accel` leaves it
   powered down between one-shots; the watch sets 800 Hz and ±4 g, re-asserts
   them every poll, and restores what it found on disarm). A head that stops
   answering stands the watch down for the session, said once.
@@ -705,6 +735,6 @@ plus rename) at ~1 Hz and on every verdict change:
   with a thermometer while the machine runs), so its reading stays a raw
   count and any ceiling for it would be set in raw counts too.
 - **Fan floors measured on more than one machine.** The shipped floors are
-  a fraction of one reference machine's run-duty speeds; a machine whose
+  a fraction of the bench reference's run-duty speeds; a machine whose
   fans read differently sets its own, and a floor of zero turns that gate
   off while it does.

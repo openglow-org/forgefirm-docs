@@ -70,7 +70,7 @@ shipped default suits the factory loop; a rebuilt one may differ.
 coolant readings. The fan's return current shares a ground with the
 thermistors' reference, so both coolant sensors read low by a fixed number of
 counts while the fan runs (about 20 counts, or 1.2 °C near 22 °C, at the run
-duty on one reference machine). The tool steps the fan from idle to run and
+duty on the bench reference). The tool steps the fan from idle to run and
 back three times, with the tube dark and the heater off, averages the step on
 both sensors at every edge, and recommends the value for
 `cool_aa_offset_counts`; **Apply** writes it. Zero, the default, is the factory

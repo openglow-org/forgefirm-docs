@@ -26,6 +26,25 @@ site and reloads the page. Docker or Podman, either runs it.
 `zensical build` writes the site to `site/`. The build is strict: a broken
 link fails it.
 
+## Checks
+
+Every pull request runs the strict build and two lints, and a red check blocks
+the merge:
+
+```sh
+python scripts/check-style.py        # American English, no em dashes, no bench identity
+python scripts/check-interfaces.py   # every firmware interface is named on the site
+```
+
+[This site](https://docs.forgefirm.org/developers/docs/) describes both, and
+where each subject goes.
+
+## Contributing
+
+[AGENTS.md](AGENTS.md) carries the rules for this repository and for the
+project: safety ordering, proof before done, the push order, and the writing
+rules. They apply to human contributors too.
+
 ## Look
 
 The site wears the same colors as the ForgeFIRM control panel: navy header

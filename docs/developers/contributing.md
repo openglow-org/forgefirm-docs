@@ -32,8 +32,8 @@ A feature or fix is not complete until it is proven. The order of preference:
 1. A host test that runs in CI ([Test](testing.md)). The null-sink
    controller build lets the laser-stream and armed-window harnesses run
    without hardware.
-2. A bench drill, recorded in the
-   [campaign log](https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
+2. A bench drill on [the bench reference](../technical/machine/index.md#the-bench-reference),
+   recorded in the commit message that carries the change.
 3. Documented reasoning.
 
 Also:
@@ -55,17 +55,20 @@ Also:
   repository README says what the repository is, how to build and test it,
   and where the documentation is. Nothing else.
 - **Present tense, present state.** The site describes the machine and the
-  firmware as they are. There is no history narrative. Dated records go to
-  the campaign log, which is append-only and never revised. The status of
-  the project is in `BRINGUP.md` until the first production release. Open
+  firmware as they are. There is no history narrative and no status document:
+  what was done, how it was proven, and what it replaced belong in the commit
+  message that carried it, where the change and its record stay together. Open
   items (bugs, feature requests, enhancements) are tracked as GitHub issues
   once the repositories accept them; this site has no roadmap page.
-- **The currency rule.** A change carries a documentation commit when it adds, removes,
-  or renames an interface, or when it corrects a measured fact. The
-  interfaces: a sysfs attribute, an HTTP route, a settings key, a G-code or
-  `$` setting.
-- **Cite the measurement.** A measured fact says how it was obtained, with a
-  link to the campaign log.
+- **The currency rule.** A change carries a documentation commit when it adds,
+  removes, or renames an interface, or when it corrects a measured fact. The
+  interfaces are a sysfs attribute, an HTTP route, a settings key, and a
+  G-code or `$` setting. The lint that catches drift is on
+  [This site](docs.md#checks).
+- **Cite the measurement.** A measured fact says how it was obtained, and on
+  what: unless the page says otherwise, a measurement on this site was taken
+  on [the bench reference](../technical/machine/index.md#the-bench-reference),
+  and it is written so a reader can tell a measurement from a specification.
 - **Public hygiene.** No paths from anyone's workstation. No identity of the
   bench machine. American English. No em dashes.
 - **Simplified Technical English.** All text follows ASD-STE100. That means short

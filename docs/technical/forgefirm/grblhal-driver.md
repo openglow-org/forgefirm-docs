@@ -102,13 +102,12 @@ and quadrupled at 32 ([The XY scale](#the-xy-scale)). The environment
 variables that override the tick and set the depth are on
 [GRBL mode](../../usage/grbl-mode.md).
 
-The controller keeps only a small window of the job in the ring, a fraction
-of a second, and refills it continuously while the job plays. A write that
-would overflow is refused and the shipper backs off; that is normal flow
-control, not an error. If the feed falls behind far enough to empty the
-ring, the kernel enters the **underrun** state: motion stops instantly, and
-position is no longer trusted. The ring semantics are
-[The pulse-feeder contract](pulse-feeder-contract.md).
+The controller live-streams: it keeps a fraction of a second of the job in
+the ring and refills it continuously, so a write that would overflow is
+refused and the shipper backs off. That is normal flow control, not an error.
+A feed that falls far enough behind to empty the ring is an **underrun**, and
+that is a fault ([Step engine](../machine/step-engine.md#the-ring-and-two-ways-to-fill-it),
+[Pulse feeder contract](pulse-feeder-contract.md)).
 
 ## Real-time design
 
@@ -129,6 +128,40 @@ meet:
   ([Logging](logging.md)).
 - A feed that does fall behind is detected as an underrun and treated as a
   fault, never as silent damage (see "Faults" below).
+
+### The protocol loop paces on the file descriptors
+
+`serial_wait()` drains the transmit side and then waits on the listening and
+client descriptors with a timeout that depends on the state: 10 ms at idle and
+in alarm (1 ms while a delay callback is pending), 200 µs during motion, and
+the coarse idle poll in the parked states, a completed feed hold, a door ajar
+or closed, and sleep. The motion sub-phases that are still moving, a hold's
+deceleration and a park retract or resume, keep the tight pace.
+
+Traffic therefore wakes the loop at once while an idle machine ticks cheaply.
+Measured on the bench reference: **2.7 percent of the core at idle, 34 to 35
+percent during an active move, and 2.7 to 3.0 percent parked.** Client receive
+is armed only while the ring has a full read's worth of room, so a sender that
+ignores flow control is paced rather than spun on.
+
+### Idle is produced, not played
+
+**The controller reports Idle when the stream is produced; the kernel is still
+playing it, one queue depth behind.** The machine keeps moving for about one
+depth after the status says Idle.
+
+The tail is flat, not cumulative: chaining jogs does not grow it. Measured
+against `cnc/state` across four chained 50 mm jogs, it read 171, 175, 177 and
+176 ms. A `cnc/stop` issued at Idle discards whatever is still queued, and the
+position counters stay true to what was actually played, so nothing is lost
+except the rest of the move.
+
+Anything that must keep position waits for `cnc/state` to read idle before it
+stops the controller. forgectrl's own idle test reads that attribute, and the
+mode switch, the cooling gate and the daemon shutdown all gate on it.
+`POST /controller/stop` deliberately does not, because it is also the
+emergency lever: it safes the machine with `cnc/stop` and the latch before the
+signal instead ([forgectrl](forgectrl.md#mode-supervision)).
 
 ## Laser control
 
@@ -179,6 +212,28 @@ only as the host harness's conservatism reference. The settings and their
 defaults are on [Settings](../../usage/settings.md); the panel's recorder
 that measures a machine's own curve is described under
 [forgectrl](forgectrl.md).
+
+**Why the model has the shape it has.** The base period ships at 20 reference
+ticks, 710 µs, which is the factory's own roughly 1.43 kHz. The minimum pulse
+ships at 3 ticks, 106 µs, because that is what the tube will re-strike: the
+gap between pulses, not the pulse, is what decides at the low end, and a
+longer minimum makes the gap longer in proportion
+([The laser](../machine/laser.md#the-low-end-is-bounded-by-the-gap-between-pulses-not-by-the-pulse)).
+
+Skipping a period carries its whole debt forward, so the average density is
+untouched and only the texture changes. At level 2 the stream goes from 444
+one-tick bursts to 147 three-tick bursts: the same density to four decimal
+places, delivered as fewer, longer pulses the supply can actually strike.
+Every level already above the minimum is bit-identical either way.
+
+Structurally the model is a mask on the core's fire state and never a source
+of one, which is what keeps it out of the safety argument: the armed window,
+the latch, the coolant gates and the hardware chain are all upstream and
+untouched. Emission stays exactly where the core commanded it.
+
+Rasters hold their tonality down to about 14 pulse slots per pixel, which is
+508 DPI at 6000 mm/min: the dither accumulator's averaging across pixels
+recovers the levels, with no visible dither pattern.
 
 **The laser latch.** The driver keeps the kernel's laser latch locked except
 inside an operator-armed job window, and the kernel relocks it whenever the
@@ -318,15 +373,34 @@ The operator's table of what each stop does is on
 - **Feed hold** is a controlled ramp to a stop with the position kept. The
   deceleration runs lit (velocity-scaled under `M4`), the stationary stretch
   is dark, and the disarm grace keeps counting.
-- **Cycle start** resumes from the hold, lit from the first step, so a pause
-  is a sharp corner in time and the corner rolloff governs its mark. The
-  driver does not request a backtrack from the kernel (the ring keeps a
-  retained gap that would allow one; see
-  [Pulse feeder contract](pulse-feeder-contract.md)): the kernel's own stop
-  plays the shipped bytes time-stretched with the beam on, which would
-  over-dose more than the planned deceleration does. A resume against a
-  window the grace has closed re-arms first: the button lights, and the
-  press resumes the job.
+
+    The deceleration is lit in both spindle modes, and it has to be: the
+    core's own laser-off-during-hold acts only once the hold has *completed*,
+    so the beam goes off at the end of the ramp, never at its start. Measured
+    on the stream at the 28160 Hz tick, a 100 mm/s cut at `S500`: under `M4`
+    the density follows velocity down to the floor (2.9 fire ticks per step at
+    cruise, 5.4 in the last 25 ms at 13 mm/s), and under `M3` the fire rate
+    stays constant through the ramp, so fire per step rises from 2.9 to 22.
+    That is the `M3` corner dose, and it is why `M4` is the mode to pause in.
+    Between the last step and the first step the stream is dark.
+
+- **Cycle start** resumes from the hold, **lit from its first step** in both
+  modes (measured: the first fire lands 9 ticks after the first step under
+  `M4`, with the deceleration's profile in reverse). So a pause is a sharp
+  corner in time, and the corner rolloff governs its mark.
+
+    There is no resume dwell, and none is warranted: the safing chain is back
+    within about 3 ms of the resume while motion only restarts about 219 ms
+    later, so the chain re-arms roughly 216 ms *before* the first step
+    ([the kernel module](kernel-module.md#safety-functions)).
+
+    The driver does not request a backtrack from the kernel (the ring keeps a
+    retained gap that would allow one; see
+    [Pulse feeder contract](pulse-feeder-contract.md)): the kernel's own stop
+    plays the shipped bytes time-stretched with the beam on, which would
+    over-dose more than the planned deceleration does. A resume against a
+    window the grace has closed re-arms first: the button lights, and the
+    press resumes the job.
 - **A sender change while a job runs** holds the job and closes the window.
   The next sender finds the cut in Hold where it stopped and resumes it
   through the same re-arm, or resets it.
@@ -424,7 +498,7 @@ focus card found its stops (`lens_stop_below_steps`, `lens_stop_above_steps`),
 or, until it has or when the stops could not be found, to the fallback
 window of ten half-steps below the edge to twelve above; the lens is never
 driven onto a stop on a user's machine. The defaults are the bench
-reference machine's, placeholders until the card has run. The homing
+bench reference's, placeholders until the card has run. The homing
 session answers the service's lens hunt as done without moving the lens;
 the lens reference is the session's own, after the service goes quiet.
 The lens is in the pulse path like X and Y: a job's or a jog's Z moves it,

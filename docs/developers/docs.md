@@ -23,31 +23,25 @@ Pages publishes it at `docs.forgefirm.org`.
 | Technical: ForgeFIRM | How ForgeFIRM works with that machine: the kernel module, the pulse-feeder contract, the grblHAL driver, forgectrl, the cooling engine, the video pipeline, cloud mode, homing, install and update, logging, the image and BSP, release acceptance. |
 | Developers | This section. |
 
-The site is assembled section by section. Until a section lands, its
-documentation stays with the code, and the pages here link to it on GitHub.
-Those links are rewritten to site links when the pages land. One document
-stays in the code on purpose: the campaign log, `forgefirm/docs/CAMPAIGN-LOG.md`.
-It is dated and append-only, and the site describes the present. The
-Developers section links to it.
+Every fact is here. No document outside this site holds project
+documentation: the status document and the dated bench record that once did
+are retired, and what they carried is on these pages. The record of how a
+result was obtained lives in the commit that carried it
+([Contribute](contributing.md)).
 
 ## The rules
 
-1. **One home.** A fact lives on the site, or it does not exist.
-2. **Contracts move too.** The kernel feeder contract, the machine-services
-   contract, the cloud-mode document, and the acceptance contract are site
-   pages. The interface lint catches drift.
-3. **The currency rule.** A change carries a documentation commit when it adds,
-   removes, or renames an interface, or when it corrects a measured fact.
-   The interfaces: a sysfs attribute, an HTTP route, a settings key, a
-   G-code or `$` setting.
-4. **A moved document is deleted.** No stub and no redirect stays at the old
+The house rules for what goes on a page and how it is written are on
+[Contribute](contributing.md), under "Documentation". Two more are about the
+site's own shape:
+
+1. **Contracts are pages, not files in a repository.** The kernel feeder
+   contract, the machine-services contract, the cloud-mode document and the
+   acceptance contract are site pages. The interface lint catches drift
+   between a page and the code it describes.
+2. **A moved document is deleted.** No stub and no redirect stays at the old
    path. The only forward reference is the link from each repository README
    to the site.
-5. **Present tense only.** The site describes the machine and the firmware
-   as they are. Dated records go to the campaign log.
-6. **Public hygiene and Simplified Technical English.** No identity of the
-   bench machine, no workstation paths, no history narrative, American
-   English, no em dashes, ASD-STE100 ([Contribute](contributing.md)).
 ## Preview the site
 
 ```sh
@@ -79,14 +73,46 @@ the merge.
   identity too: private IP addresses, root logins that name a host. A line can carry the marker
   `<!-- style: ignore -->` to be skipped, for the rare quotation that must
   stay as written.
-- `scripts/check-interfaces.py`: each sysfs attribute, HTTP route, and
-  settings key in the firmware has a page anchor here. It is a placeholder
-  until the Technical section lands. Then it checks out the kernel module
-  and forgectrl at the revisions that `mkdocs.yml` declares. It extracts the
-  names, and it fails on a name without an anchor.
+- `scripts/check-interfaces.py`: every interface the firmware exposes is
+  named on this site. It reads the source revisions declared in `mkdocs.yml`
+  under `extra.sources`, extracts the interfaces at those revisions, and
+  fails on one the site does not name.
 
 Run them with `python scripts/check-style.py` and
 `python scripts/check-interfaces.py`.
+
+### The interface lint
+
+Moving the contracts onto this site created exactly one risk: a page can
+drift from the code it describes. This lint is the answer to it, and it has
+the same shape as the acceptance system's coverage lint: a currency rule
+with a check behind it.
+
+It extracts three kinds of interface:
+
+| Interface | Where it is declared |
+|---|---|
+| sysfs attributes of `glowforge.ko` | `src/uapi/glowforge.h`, the module's UAPI header |
+| the HTTP routes of forgectrl | the route table in `src/main.c` |
+| the machine settings keys | the validated-key table in `src/main.c` |
+
+A name counts as documented when the site names it. An attribute may be
+written bare or with its group (`pic/lid_ir_1`). A route must match whole, so
+a mention of `/cool/status` does not document `/status`. A route parameter
+written `:id` in the code matches `<id>` in prose.
+
+**The sources.** The lint reads a sibling checkout when one exists, at the
+revision `mkdocs.yml` declares, so it runs offline for a developer. Without
+one, or when that revision is not in the local object store, it clones the
+repository. `--worktree` reads the sibling checkout as it stands, which is
+what to use while an interface change and its documentation are both still
+uncommitted.
+
+**Bump the declared revisions alongside the recipe pins.** A revision that
+lags means the lint is checking an interface set the machine no longer has.
+
+If the lint reports that it extracted no interfaces of some kind, the
+declaration it reads has moved. Fix the extractor, never the expectation.
 
 ## Conventions
 

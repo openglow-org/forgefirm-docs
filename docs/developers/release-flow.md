@@ -50,6 +50,13 @@ Two couplings cross the repositories:
   forgectrl first. Push it and pin it. Only then does the `forgefirm` CI
   check pass.
 
+**This site joins the push order.** A change that adds, removes or renames an
+interface, or corrects a measured fact, carries a documentation commit (the
+currency rule, on [Contribute](contributing.md)). Push `forgefirm-docs` with
+the change it documents, not later: the interface lint checks the site against
+the revisions it declares, and the release pipeline tags the site with the
+release.
+
 `meta-openglow` is on its `scarthgap` branch (the Yocto layer convention).
 Development occurs on the local sibling checkout, and `scarthgap` is pushed
 as work lands. `kas lock` locks the upstream layers (poky, meta-openembedded,
@@ -72,7 +79,22 @@ it only when you decide to.
 5. Commit the acceptance artifact that the bench exported for this image, as
    `releases/v<version>/acceptance.json` and `acceptance.md`. There is one
    directory for each release.
-6. Run the pipeline.
+6. Make sure this site is current for the release and pushed (the currency
+   rule, on [Contribute](contributing.md)). The pipeline tags it, and it
+   refuses a documentation checkout with uncommitted changes.
+7. Run the pipeline.
+
+### The documentation tag
+
+Firmware on a machine needs the documentation that agrees with it, so
+`forgefirm-docs` carries **the same tag as the release**. The pipeline makes
+that tag itself, from the checkout `FORGEFIRM_DOCS_DIR` names (by default the
+sibling one), and prints the command that pushes it.
+
+The tag is made during the staging step and pushed **with** the release, never
+before it: a documentation tag for a release that never shipped is worse than
+no tag. `FORGEFIRM_DOCS_SKIP=1` releases without one, loudly, and is never the
+default.
 
 ## The pipeline: `scripts/release.sh`
 
@@ -94,6 +116,8 @@ release.sh --dev                   build and pack a dev-signed .fw for the
 | `RELEASE_STAGING_DIR` | The directory for the staged release assets. Default: `<repo>/release-staging`. |
 | `FORGEFIRM_ACCEPTANCE_SKIP` | `1` bypasses the acceptance gate. The script prints a loud warning, attaches `NO-ACCEPTANCE.txt` in place of the acceptance artifact, and publishes the release as a prerelease. This is never the default. |
 | `FORGEFIRM_SOURCE_SKIP` | `1` builds the release without the source bundle. The licenses of the software in the image make source necessary, so this is never the default. |
+| `FORGEFIRM_DOCS_DIR` | The `forgefirm-docs` checkout to tag with this release. Default: the sibling checkout. |
+| `FORGEFIRM_DOCS_SKIP` | `1` releases without tagging the documentation. Never the default. |
 
 The script runs its gates, builds both images, packs and signs
 `forgefirm.fw`, stages the assets with `sha256sums.txt`, and prints the
@@ -113,6 +137,8 @@ The script runs its gates, builds both images, packs and signs
   rootfs. The recorded PASS in the committed artifact must agree.
 - **The source bundle.** Each recipe of the image whose license makes
   source necessary must have its source in the bundle (see below).
+- **The documentation.** A `forgefirm-docs` checkout must exist and be
+  clean. The pipeline tags it with the release version.
 
 A problem in a gate stops the script before the signature.
 

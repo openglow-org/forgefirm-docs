@@ -96,18 +96,27 @@ print(password)
 
 ## Configuration
 
-Cloud mode reads two files:
+Everything you would normally change is on the panel's **GF Cloud** tab, and
+you can leave all of it alone:
 
-| Where | Keys |
-|---|---|
-| `/data/etc/gfhome.conf` (seeded from `/etc/gfhome.conf.sample`) | `SERVICE.*` (server and status URLs, and `USER_AGENT`: the User-Agent the service sees, default `ForgeFIRM/<version>` with the version from `/etc/forgefirm-version`), `FACTORY_FIRMWARE.CHECK` / `STATUS_FILE`, `FORGECTRL.URL`, `LOGGING.SAVE_PULS` / `SAVE_SENT_IMAGES` (both default off) and `LOGGING.CAPTURE_DIR` (default `/data/forgefirm/captures/<app>`), `MOTION.*`, `THERMAL.*`. |
-| `/data/forgefirm.conf` (managed from the control panel) | `controller_mode`, `homing_mode`, the identity overrides `gf_serial` / `gf_password`, the pause pair `cloud_pause_backtrack_ticks` / `cloud_resume_lead_ticks`, the cooling-hold bound `cloud_hold_max_s`, the download guards `pulse_warn_threshold_bytes` / `pulse_reject_threshold_bytes`, and the log levels `log_gfcloud_*` and `log_gfhome_*`. [Settings](settings.md) has each key. |
+- **Machine identity**: blank means the machine's own, which is what you want
+  unless this machine is standing in for another one (above).
+- **The homing-session timeout**: how long a camera homing cycle may take
+  before the machine gives up on it.
+- **Print pause**: how far the machine rewinds when you pause a print and how
+  far it leads back in when you resume, so the resumed cut overlaps what it
+  already burned instead of starting cold. The factory's own values, and there
+  is rarely a reason to change them.
+- **Job size**: two limits on how big a job the machine will accept. A cloud
+  print arrives as one compressed file that the machine holds in memory while
+  it plays, so these bound *memory*, not how long a job may be. It warns above
+  32 MiB and refuses above 128 MiB, and nothing anyone has printed comes near
+  either.
 
-The GF Cloud tab's **Print pause** card holds the pause pair, and its **Job
-size** card holds the download guards: a cloud print arrives as one compressed
-file, held in memory and fed to the machine as it plays, so the guards bound
-memory rather than how long a job may be (defaults: warn at 32 MiB, refuse
-past 128 MiB; 0 lifts either).
+[Settings](settings.md) lists every key. The client's own configuration file
+and the rest of its options are on
+[Cloud mode internals](../technical/forgefirm/cloud-mode.md#configuration);
+you do not normally touch it.
 
 ## Connecting
 
@@ -162,13 +171,14 @@ rule in full.
 
 ## Pause, cancel, and park
 
-- **The button pauses and resumes a print**, and here it does so exactly as
-  the factory does: a press stops motion under control and then backs the
-  stream up 2000 ticks with the laser off; the next press runs forward and
-  re-enables the laser after a 1950-tick lead, so the resumed cut overlaps the
-  material already burned instead of starting cold. Both counts are settings
-  (`cloud_pause_backtrack_ticks`, `cloud_resume_lead_ticks`). Motions and
-  hunts do not pause.
+- **The button pauses and resumes a print**, exactly as the factory does. A
+  press stops the head under control and rewinds a little way with the laser
+  off; the next press runs forward and lights the beam slightly *before* the
+  point it stopped at, so the resumed cut overlaps what it already burned
+  instead of starting cold and leaving a mark. Both distances are settings on
+  the GF Cloud tab, at the factory's own values
+  ([Factory firmware](../technical/machine/factory-firmware.md#pause-cancel-and-park-in-the-factory)).
+  Motions and hunts do not pause.
 - **The cooling engine can pause a print too.** A hold from it (a warm-up
   on a cold machine, coolant over the ceiling, a suspected flow fault) pauses
   the print the same way, laser off, and the print resumes by itself when the
@@ -194,9 +204,8 @@ takes another, and computes where it is. The lens hunt references Z against the
 hall sensor. Hunt motion is not lid-gated, but the head capture inside a hunt
 is, so the lid must be closed for a hunt to complete.
 
-Connecting zeroes the machine's counters at the head's current position, so
-GRBL-mode coordinates do not survive a switch to cloud mode and back. Re-home
-after switching ([Homing](homing.md)).
+Connecting also resets where the machine thinks it is, so **re-home after you
+switch back to GRBL mode** ([Homing](homing.md#homing-in-cloud-mode)).
 
 ## Fans and cooling
 

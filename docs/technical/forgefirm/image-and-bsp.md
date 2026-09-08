@@ -237,16 +237,26 @@ truth for the board; the hardware pages under
 
 ### The reserved motion-memory pool
 
-Memory reserved for DMA is a dedicated pool for the cnc SDMA pulse ring plus
-the default CMA for camera, IPU, and VPU capture buffers: 96 MiB total on
-the 512 MB SOM, leaving about 454 MiB to Linux.
+The board has 511 MiB of usable DRAM, `0x10000000` to `0x2fefffff`. Memory
+reserved for DMA is a dedicated pool for the cnc SDMA pulse ring plus the
+default CMA for camera, IPU, and VPU capture buffers: **96 MiB in all**,
+leaving about 454 MiB to Linux. `MemTotal` reads about 464 MiB on the
+board-only kernel, and a machine idling in GRBL mode with the daemon and the
+controller up uses about 100 MiB of it.
+
+One more region sits above the memory node: the **1 MiB at `0x2ff00000`** that
+the factory bootloader already holds back. ForgeFIRM uses it for
+pstore/ramoops, so a panic leaves its reason where the next boot can read it:
+32 KiB dump records, a 256 KiB console record, 16-byte ECC, mounted at
+`/sys/fs/pstore` from `fstab` and staged into the log export
+([Logging](logging.md)).
 
 A **size-aligned no-map reserved pool** in the device tree backs the pulse
 ring: `cnc_reserved: cnc-pulsebuf`, `compatible = "shared-dma-pool"`,
 `no-map`, size 32 MiB (`0x02000000`, the factory ring size), alignment
-32 MiB (a size-aligned base). The `glowforge,cnc` node references it via
-`memory-region`, and `cnc.c` attaches it with
-`of_reserved_mem_device_init()`. Pulling the ring from the shared CMA fails
+32 MiB (a size-aligned base, so it lands at `0x2c000000`). The
+`glowforge,cnc` node references it via `memory-region`, and `cnc.c` attaches
+it with `of_reserved_mem_device_init()`. Pulling the ring from the shared CMA fails
 once boot has fragmented it (`cma_alloc -EBUSY`), because the out-of-tree
 module probes late; a non-reusable shared-dma-pool (which must be no-map) is
 never touched by movable allocations and, size-aligned, satisfies
@@ -269,14 +279,23 @@ about 32 MiB, and 64 MiB leaves room for that plus the VPU JPEG contexts.
 
 `CONFIG_PREEMPT=y` with a deep ring and a `SCHED_FIFO` feeder is the
 real-time design. PREEMPT_RT is not selectable on arm32 6.12 (no
-`ARCH_SUPPORTS_RT`), and the buffer arithmetic makes it unnecessary: the
-feeder keeps a bounded queue (50 to 200 ms) ahead of real time in a ring
-that holds many minutes, so the worst a loaded system can do is fail to
-supply bytes fast enough, and that case is detected and treated as a fault
+`ARCH_SUPPORTS_RT`), and the buffer arithmetic makes it unnecessary.
+
+**The argument is about queue depth, not ring size.** The ring drains at one
+byte per timer tick, which is at most 200 KB/s even at the engine's 200 kHz
+ceiling. The live feeder's bounded queue of 50 to 200 ms is therefore only a
+few kilobytes in flight, and it rides out worst-case scheduling latency with
+orders of magnitude to spare. Measured under a full processor and I/O load:
+100 kHz for 120 seconds, a 150 ms queue, a worst write latency of 0.2 ms, and
+zero underruns. The worst a loaded system can do is fail to supply bytes in
+time, and that case is detected and treated as a fault, never as silent damage
 ([Pulse feeder contract](pulse-feeder-contract.md#pacing-and-backpressure)).
-The ring-depth arithmetic is in the hardware facts bank of the
-[bring-up runbook](https://github.com/openglow-org/forgefirm/blob/master/docs/BRINGUP.md)
-("SDMA pulse engine").
+
+The ring's own size is a capacity for cloud mode's preload, not a latency
+figure: 32 MiB is about 168 seconds of stream at the 200 kHz ceiling and about
+56 minutes at the 10 kHz print tick.
+
+Revisit RT only if the underrun bench ever contradicts this arithmetic.
 
 ## Cameras
 

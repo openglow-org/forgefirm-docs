@@ -86,7 +86,7 @@ warning: look at the loop before the next job.
 | Settings cannot be saved (409); the controls are disabled with a banner | The machine is not idle, or a diagnostic is running | Finish or stop the job, or wait for the diagnostic to end. |
 | The mode switch is refused | The switch is idle-gated: no job, no diagnostic | Wait for idle. |
 | A standing banner says a gate is off | A cooling gate setting sits at the off end of its range | Intended if you set it. Otherwise set the value back ([Cooling and fans](cooling-and-fans.md)). |
-| A field is flagged outside its recommended band | The value is legal but outside the band measured on one reference machine | Fine if your machine's loop or fans read that way. |
+| A field is flagged outside its recommended band | The value is legal but outside the band measured on the bench reference | Fine if your machine's loop or fans read that way. |
 | A compatibility warning in cloud mode | The Glowforge service has moved past the firmware version cloud mode is tested against | Cloud mode may still work; watch for changed behavior. Update ForgeFIRM when a newer release exists. |
 
 ## Cloud mode
@@ -116,6 +116,4 @@ camera switch timeout, a 503 on a snapshot, and an unknown sensor.
 
 Export a **sanitized log bundle** from the Logs tab and attach it to your
 report ([Logging](logging.md)); skim it first. The community forum is at
-[community.openglow.org](https://community.openglow.org). The project's status
-document, [BRINGUP.md](https://github.com/openglow-org/forgefirm/blob/master/docs/BRINGUP.md),
-lists the open work.
+[community.openglow.org](https://community.openglow.org).

@@ -274,9 +274,22 @@ GFSINK=/dev/glowforge grblHAL_glowforge -p 23 -e /data/forgefirm/EEPROM-glowforg
 | `GFSINK_LEAD_MS` | The lead of the producer over the ship cursor. Default 10 ms, range 2 to 10. The per-run debug line reports the measured minimum margin against it. The ceiling is enforced: above it a cycle that resumes while the kernel still drains keeps production ahead of the wall cursor, the re-base onto that cursor is skipped, and the overshoot is inherited by every cycle after it as dark pad the machine still has to play. |
 | `GFSINK_DUMP` | Null-sink mode only. The file that receives the pulse stream. The CI harnesses read it. |
 | `GF_PULSE_FD` | The inherited pulse-device descriptor, under the supervision of forgectrl. |
+| `FORGECTRL_PORT` | The port the cooling client reports to. |
 
 The driver reports a value that is out of range and uses the default. The
 `FFLOG_*` variables are the same as for forgectrl (below).
+
+**Test hooks.** These exist so the host harnesses can drive edges that need
+hardware on a machine. They are for the null-sink build, and nothing on a
+machine sets them.
+
+| Variable or key | Purpose |
+|---|---|
+| `GF_SWITCH_FILE` | A file-backed `EV_SW` word, so a harness can drive the lid, interlock and button edges. |
+| `GF_VERDICT_FILE` | A cooling verdict file the harness writes, in place of the engine's. |
+| `GF_STATE_DIR` | Where the controller publishes `grbl.state` and `grbl.settings`. |
+| `gfcloud_home_cmd` | The homing runner to spawn for `$H`. Honored only without `GFSINK`. |
+| `laser_power_model`, `laser_floor_analog` | Select the retired analog rendering and its duty floor, which exist only as the harness's conservatism reference ([the grblHAL driver](../technical/forgefirm/grblhal-driver.md#laser-control)). |
 
 ### forgectrl
 
@@ -311,6 +324,12 @@ the bench tools see `GF_HOST` and `GF_TOKEN` too.
 | `FORGECTRL_NO_NEON` | unset | Force the scalar demosaic |
 | `FORGECTRL_NO_CACHED_BUFS` | unset | Force uncached capture buffers and a bounce copy |
 | `FORGECTRL_NEON_CHECK` | unset | A one-shot NEON/scalar equivalence check (logged) |
+| `FORGECTRL_NO_GPU` | unset | Force the processor demosaic (no GPU) |
+| `FORGECTRL_GPU_CHECK` | unset | A one-shot GPU/processor demosaic equivalence check (logged), with a tighter stats cadence and the render-versus-copy split |
+| `FORGECTRL_GPU_PASSES` | unset | Limit the GPU render passes per frame, for tuning |
+| `FORGECTRL_NO_H264` | unset | Serve no H.264 stream; `/cam/h264` answers 503 and MJPEG remains |
+| `FORGECTRL_H264_KBPS`, `FORGECTRL_H264_GOP` | engine defaults | The H.264 bit rate and GOP length |
+| `FORGECTRL_NO_HW_SKIP` | unset | Encode every frame; no CSI hardware frame skipping |
 | `FFLOG_LEVEL` | from the settings | Override the emit level (`off` to `debug`) |
 | `FFLOG_STDERR` | unset | Echo the log lines to stderr, also when stderr is not a terminal (for harnesses) |
 | `FFLOG_CONF`, `FFLOG_SOCK` | `/data/forgefirm.conf`, `/dev/log` | The settings file and the syslog socket (for host tests) |

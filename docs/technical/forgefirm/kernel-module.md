@@ -85,9 +85,11 @@ emission the hardware would not allow.
   expires). A pause shorter than about half a second never drops HV at all.
   On the resume the pump primes with the run and HV_ENABLE is back within
   about 3 ms, while motion restarts at about 219 ms: the chain re-arms about
-  216 ms **before** the first step, so a resumed cut never waits on it. The
-  drill records are in the
-  [campaign log](https://github.com/openglow-org/forgefirm/blob/master/docs/CAMPAIGN-LOG.md).
+  216 ms **before** the first step, so a resumed cut never waits on it, and no
+  dark dwell is warranted
+  ([the grblHAL driver](grblhal-driver.md#faults)). The measurements are
+  from the SoC pads, sampled at about 2 kHz across an operator-driven pause
+  and resume.
 - **FIRE backstop.** At end-of-data and on underrun the SDMA script drops FIRE
   and the step lines within one tick, then publishes end-of-data in a mailbox
   word the driver reads without a channel-0 transfer, so an end-of-data that
@@ -561,12 +563,12 @@ Output from the lens position sensor.
 0: Not at home position
 1: At home position
 
-Home reads 1 from an edge low in the lens's travel up to the top stop (on the
-reference head the edge is 13 half-steps above the bottom stop, of 36 stop to
-stop). The edge's height varies from unit to unit. The Glowforge service's
-"hunt" program steps the lens 4 full steps down from the edge; that point is
-its zero, and its prints count full steps up from there. The lens and its travel
-are on [The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel).
+Home reads 1 from an edge partway up the lens's travel to the top stop. Where
+that edge sits differs from head to head, and it is the one per-head number
+for Z. The Glowforge service's "hunt" program steps the lens 4 full steps down
+from the edge; that point is its zero, and its prints count full steps up from
+there. The lens, its travel, and how the edge is referenced are on
+[The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel).
 
 ### measure_laser
 
@@ -699,7 +701,7 @@ Read, ASCII, 19795
 
 Firmware ID of the PIC analog/digital I/O.
 
-### lid_ir_X
+### lid_ir_1, lid_ir_2, lid_ir_3, lid_ir_4
 
 Read, ASCII, 0-1023
 
@@ -736,10 +738,9 @@ For reading and writing binary values to the PIC. From `pic.h`:
 
 Read, ASCII, 0-1023
 
-Thermoelectric cooler temperature. The conversion is not characterized (it
-does **not** use the coolant beta conversion; only the two water sensors
-do). Pro machines only: on a Basic or Plus there is no TEC and no sensor,
-and the reading sits at the 1023 rail.
+Thermoelectric cooler temperature, Pro machines only. The conversion is not
+characterized, and on a machine with no TEC fitted the reading rails; see
+[Sensors](../machine/sensors.md#power-supply-and-tec-temperatures-picpwr_temp-pictec_temp).
 
 ### water_temp_1
 

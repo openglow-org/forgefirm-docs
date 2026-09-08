@@ -74,93 +74,44 @@ and a hunt includes a head capture. Those captures are refused, and the
 action runner reports the action as failed rather than leaving the service
 waiting ([Cloud mode](cloud-mode.md)).
 
-## What the sensor can do versus what ForgeFIRM sends
+## What ForgeFIRM sends, and why it is less than the sensor can do
 
-The sensors are more capable on paper than the video you get. Each
-difference below is deliberate and has a reason.
+The sensors are more capable on paper than the video you get. What each one
+can do, and the hardware reasons behind the limits, are on
+[The cameras](../machine/cameras.md#what-the-sensors-can-do). What ForgeFIRM
+chooses, and why:
 
-| | The sensor can | ForgeFIRM sends | Why |
-|---|---|---|---|
-| Live resolution | full frame | half in each axis | CPU and bandwidth |
-| Frame rate (5 MP) | 30 fps in reduced modes | 15 fps | the full-field mode runs at 15 fps |
-| Resolution (8 MP) | 3280x2464 | 3264x2448 | the widest frame the board's camera receiver can take |
-| Bit depth | 10 bits per pixel | 8 bits | JPEG is 8-bit, and 8-bit is what makes the 8 MP frame fit |
-| Exposure / color | auto exposure and auto white balance | fixed values | a bed image has to look the same frame to frame |
-| Encoding | | MJPEG and H.264, nothing recorded | two hardware encoders, bytes are not free |
-| Mirroring | a mirror register | mirrored in software instead | the register breaks capture on this board |
+| | ForgeFIRM sends | The reason |
+|---|---|---|
+| Live resolution | half the capture in each axis | cost, below |
+| Frame rate (5 MP) | 15 fps | the only full-field mode runs at 15 fps, and full-resolution stills are worth more than 30 fps of a cropped bed |
+| Resolution (8 MP) | 3264 x 2448 | the widest frame the board's camera receiver can take |
+| Bit depth | 8 bits | JPEG is 8-bit, there is no tone curve to spend more on, and 8-bit halves the data crossing the bus |
+| Exposure and color | fixed values, the factory's | a bed camera is a measuring instrument, below |
+| Mirroring | applied in software | the sensor's own mirror register breaks capture on this board |
+| Encoding | MJPEG and H.264, nothing recorded | two hardware encoders, and bytes are not free |
 
-### Resolution and frame rate on a 5 MP machine
+**Why the stream is halved.** Demosaicing and encoding five megapixels fifteen
+times a second is far beyond this processor, and a 5 MP live view of the bed is
+of no practical use: it is a positioning aid, not a photograph. The stream
+frame is not a resampled copy of the full frame. Each 2 x 2 group of sensor
+pixels becomes exactly one output pixel, which is why the stream is precisely
+half the capture in each axis and why it is cheap enough to run continuously.
 
-The OV5648 offers several modes, and they are not simply "the same picture,
-smaller": the full-sensor mode runs at 15 fps, the skipped and cropped modes
-at 30 fps ([The cameras](../machine/cameras.md) lists them). ForgeFIRM runs
-the **2592x1944** mode. The cropped modes are unusable for a bed camera:
-they would show the middle of the bed and cut off the corners. That leaves
-the full-frame mode at 15 fps or the skipped 1280x960 mode at 30 fps.
+**Why one mode, not two.** The camera runs one mode at a time, and the live
+stream and the snapshots come from the same frames. That is what lets a
+snapshot be delivered while a stream is running, and it is why the picture
+does not stutter or re-expose when you take one.
 
-The camera runs **one mode at a time**, and the live stream and the
-snapshots come from the same frames. That is what lets a snapshot be
-delivered while a stream is running, and it is why the picture does not
-stutter or re-expose when you take one. Choosing 1280x960 would double the
-frame rate and permanently give up full-resolution stills, and full
-resolution is exactly what camera-referenced homing and cloud mode's image
-analysis need. Full stills win; 15 fps is the price.
-
-The stream is halved to 1296x972 rather than sent at full size because
-demosaicing and encoding 5 megapixels 15 times a second is far beyond this
-CPU, and because a 5 MP live view of the bed is of no practical use: it is a
-positioning aid, not a photograph. The stream frame is not a resampled copy
-of the full frame. Each 2x2 group of sensor pixels becomes exactly one
-output pixel, which is why the stream is precisely half the capture in each
-axis and why it is cheap enough to run continuously.
-
-### 8 MP ("HD") machines: a few rows short of the full array
-
-The OV8856's largest frame is 3280x2464. ForgeFIRM captures **3264x2448**,
-which is 16 columns and 16 rows less: the whole field of view, edge to edge,
-without the last few pixels of margin.
-
-The sensor can send its full frame over the two data lanes this board
-wires, but at 10 bits per pixel the link runs faster than the i.MX6's
-camera receiver accepts, so the receiver refuses the mode outright
-([The cameras](../machine/cameras.md) has the link rates). Asking the sensor
-for 8-bit pixels instead cuts a fifth off every sample and lets the same
-frame travel at half the rate, which the receiver takes comfortably. That is
-how an HD machine gets its full resolution, and it costs nothing, because
-the delivered JPEG is 8-bit anyway. The result is about 15 frames per second
-off the sensor, and roughly the same bytes per second across the bus as a
-5 MP machine at its own full frame.
-
-### Ten bits in, eight bits out
-
-Both sensors can emit 10 bits per pixel. ForgeFIRM asks both for 8 instead,
-and the delivered image is 8 bits per channel because that is what JPEG is.
-Two bits would buy nothing without a tone curve to spend them on, and there
-is no tone curve. Asking for 8 halves the data crossing the bus, which is
-what keeps the stream cheap on a 5 MP machine and what makes full resolution
-reachable at all on an 8 MP one.
-
-### Exposure, gain, and color are fixed
-
-There is no auto-exposure and no auto white balance. Exposure, gain, and the
-color balance are set to fixed values when the camera starts, matching what
-the factory firmware uses, and they are not adjustable from the panel.
-
-That is deliberate. A bed camera is a measuring instrument: camera-referenced
-homing, LightBurn's overlay, and cloud mode's image analysis all compare
-images to known geometry, and an image whose brightness and color shift
-between frames (as the head moves through the frame, or as the laser
-flashes) is worse than a consistently imperfect one.
-
-ForgeFIRM also applies **no gamma, tone curve, sharpening, or noise
-reduction**. The JPEG is the sensor's data, demosaiced and encoded. Compared
-with a phone photo the result looks flat. That is expected; it is not a
+**Why exposure and color are fixed.** Camera-referenced homing, LightBurn's
+overlay and cloud mode's image analysis all compare images to known geometry,
+and an image whose brightness and color shift between frames, as the head
+moves through the frame or as the laser flashes, is worse than a consistently
+imperfect one. ForgeFIRM also applies **no gamma, tone curve, sharpening or
+noise reduction**: the JPEG is the sensor's data, demosaiced and encoded.
+Compared with a phone photo it looks flat. That is expected, it is not a
 fault, and it does not affect how well the image works for positioning.
 
-One consequence on 8 MP machines: that sensor's driver publishes no color
-balance controls at all, so those images are less color-correct than a 5 MP
-machine's, and the exposure and gain values for that sensor are untested on
-hardware.
 
 ### Two streams, one picture: MJPEG and H.264. Nothing is recorded.
 
@@ -205,40 +156,32 @@ If you want a recording, record the stream on the computer watching it. The
 machine stores its firmware, settings, and logs on a small internal flash
 device and has no recording feature to fill it with.
 
-### The mirror is applied in software
+## The sensor profile
 
-The image is mirrored horizontally to match the orientation the factory
-software produces. The sensors have a mirror register that would do this for
-free, but setting it breaks the board's capture path (frames stop completing
-altogether), so the flip is done while the image is being demosaiced
-instead. The cost is negligible and the result is identical.
+Two sensors ship on the shared `camera@36` node
+([The cameras](../machine/cameras.md)), and the capture path follows whichever
+driver bound rather than assuming one. **Clients must take the frame size from
+`GET /cam/status`** (`sensor`, `snapshot`, `stream`) instead of hard-coding it.
 
-## Camera sensors
+| Sensor | Capture | Snapshot | Stream |
+|---|---|---|---|
+| OV5648 (5 MP) | 2592x1944 | 2592x1944 | 1296x972 |
+| OV8856 (8 MP) | 3264x2448 | 3264x2448 | 1632x1224 |
 
-Two sensors ship on the shared `camera@36` node, and the capture path
-follows whichever driver bound rather than assuming one. Clients must take
-the frame size from `GET /cam/status` (`sensor`, `snapshot`, `stream`)
-instead of hard-coding it.
+Both are captured as 8-bit BGGR (`SBGGR8_1X8` on the media bus, `SBGGR8`, one
+byte per sample), so one demosaic and one capture word serve both and the only
+thing that changes with the sensor is the geometry. Both widths are multiples
+of 32, so both take the NEON superpixel path.
 
-| Sensor | Machines | Capture mode | Media bus | Capture pixel format | Snapshot | Stream |
-|---|---|---|---|---|---|---|
-| OV5648 | 5 MP (Basic / Plus / Pro) | 2592x1944 | `SBGGR8_1X8` | `SBGGR8`, 1 byte/sample | 2592x1944 | 1296x972 |
-| OV8856 | 8 MP ("HD") | 3264x2448 | `SBGGR8_1X8` | `SBGGR8`, 1 byte/sample | 3264x2448 | 1632x1224 |
-
-Both are read as 8-bit BGGR, so one demosaic and one capture word serve both
-and the only thing that changes with the sensor is the geometry. Both widths
-are multiples of 32, so both take the NEON superpixel path.
-
-The OV8856's stock RAW10 full-resolution mode is not reachable on this SoC
-([The cameras](../machine/cameras.md)). Full resolution comes instead from a
-RAW8 mode carried at 360 MHz, added to the driver by the BSP: 8-bit samples
-need half the link rate for the same frame, and at 180 Mpx/s the mode runs
-15 fps. Its control set differs from the OV5648's: exposure counts whole
-lines and is capped by the frame length (2482), gain is `analogue_gain` with
-128 = 1x, and it publishes no auto-exposure, auto-gain, or white-balance
-controls, so white balance is uncorrected. The exposure and gain defaults
-are the OV5648 values translated into those units and are not measured on
-8 MP hardware.
+The 8 MP full-resolution mode is a RAW8 one the BSP adds to the driver,
+because the sensor's stock RAW10 mode asks the receiver for a link rate it
+does not have ([The cameras](../machine/cameras.md#8-mp-hd-machines-a-few-rows-short-of-the-full-array)).
+Its control set differs from the OV5648's, and that is what the profile
+carries: exposure counts whole lines and is capped by the frame length
+(2482), gain is `analogue_gain` with 128 = 1x, and it publishes no
+auto-exposure, auto-gain or white-balance controls, so white balance is
+uncorrected. Its exposure and gain defaults are the OV5648's values
+translated into those units, and they are not measured on 8 MP hardware.
 
 ### Stream encoding and demosaic
 
@@ -251,6 +194,33 @@ implementations, each probed at runtime and each falling back to the next:
 | MJPEG frames | CODA960 JPEG unit ([`src/vpu_jpeg.c`](https://github.com/openglow-org/forgectrl/blob/main/src/vpu_jpeg.c)) | libjpeg | `FORGECTRL_NO_VPU` |
 | H.264 stream (`/cam/h264`, fragmented MP4 via [`src/vpu_h264.c`](https://github.com/openglow-org/forgectrl/blob/main/src/vpu_h264.c) + [`src/mp4mux.c`](https://github.com/openglow-org/forgectrl/blob/main/src/mp4mux.c)) | CODA960 BIT processor | none: the endpoint answers 503 and MJPEG remains | `FORGECTRL_NO_H264` |
 | fps cap | CSI hardware frame skip (frames dropped before DMA) | software pacing in the worker | `FORGECTRL_NO_HW_SKIP` |
+
+### What each stage costs
+
+Measured on the bench reference at 1296x972, one viewer
+([The bench reference](../machine/index.md#the-bench-reference)):
+
+| Path | Per frame | Result |
+|---|---|---|
+| NEON demosaic to YUV420, then the VPU JPEG unit | convert 18 to 20 ms, encode 7 ms, dequeue and copy about 0 | 15.0 fps, the sensor's own rate; daemon about 41 % of the core |
+| GPU demosaic, IPU crop, then the VPU | render 64 ms behind a fence, IPU copy 14 ms, encode 7 ms | 13.8 fps; daemon about 14 % of the core |
+| Both encoders serving at once | two copies and two encodes, 33 ms, all off the processor | 9.8 fps |
+
+The render is the expensive stage and it is hidden: a frame renders behind an
+EGL fence while the previous frame is cropped, encoded and published, so the
+measured fence stall is 7 to 9 ms of the 64 ms render. Luma from the GPU path
+is bit-clean against the processor's demosaic.
+
+Two facts sit behind the numbers. **Capture buffers are requested
+CPU-cached**, so the demosaic reads the frame in place; the uncached
+alternative costs a bulk copy out of the buffer first, which is 34 ms a frame
+at this resolution and roughly doubles the whole per-frame cost. And **the
+chroma passes point-sample** rather than box-average: box-averaging four
+superpixels is 32 dependent fetches per fragment and cost 49 ms per chroma
+pass against the luma pass's 41 ms for the whole plane.
+
+A full-resolution still is 2.4 s warm and 2.7 s cold, because five megapixels
+of demosaic and JPEG happen on the processor.
 
 The GPU path loads Mesa with `dlopen` (no build-time GL dependency); an
 image without Mesa, a kernel without etnaviv, or any refused probe lands on
@@ -335,4 +305,15 @@ one person is standing at the machine:
   endpoint, so it obeys the same arbitration as everything else
   ([Cloud mode](cloud-mode.md)).
 - **LightBurn** consumes the lid stream for its camera overlay while it
-  drives motion over the Grbl connection; the two coexist.
+  drives motion over the Grbl connection; the two coexist. Measured while
+  jogging with the stream live: no clamped step events, and the step producer
+  ran 4.5 to 7.2 ms behind, against a 200 ms queue.
+
+    That coexistence is not free, and it is worth knowing why. The step
+    producer runs `SCHED_FIFO`, which covers a userspace competitor for the
+    single core, but it does not cover the camera: the per-frame cache
+    maintenance over a multi-megabyte capture buffer is kernel-context work
+    that no userspace priority can preempt. What made it comfortable was
+    taking work off that path rather than raising a priority further, the
+    GPU demosaic and the hardware frame skip above
+    ([the grblHAL driver](grblhal-driver.md#real-time-design)).
