@@ -88,7 +88,9 @@ The Status tab shows a standing banner while any cooling gate is turned off
 Glowforge service has moved past the firmware version cloud mode is tested
 against ([Cloud mode](cloud-mode.md)). While the commissioning gate holds
 the machine, the tab shows a banner with a link to continue the setup
-([Commissioning](commissioning.md#the-gate)).
+([Commissioning](commissioning.md#the-gate)). While the motion check waits
+for the lid or the interlock to close, the tab shows a banner that says so,
+and the button blinks amber ([Modes](modes.md#what-the-supervisor-does-for-you)).
 
 ### Machine
 
@@ -143,7 +145,9 @@ restore, the WiFi regulatory region (power save is kept off), and reboot.
 Two more cards. **Remote access** turns SSH on until the next reboot: SSH
 is off at every boot, and a development image keeps it on. It opens with
 the panel account's name and password; root has no password and works at
-the serial console only. **Commissioning** shows the state of the setup and
+the serial console only. The machine's SSH host keys are made at the first
+start and kept on `/data`, so its fingerprint stays the same across
+updates. **Commissioning** shows the state of the setup and
 the certificate fingerprint, with a link to run a step again, the printable
 summary of the record, and the record itself as a download
 ([Commissioning](commissioning.md#the-record)).
@@ -166,7 +170,7 @@ offset diagnostic's Apply button.
 | `GET /status` | Machine operational status as JSON (state, position when homed, fans, coolant, switches, `gates_off`, the `grbl` state block while a GRBL controller runs, the `diag` flag) |
 | `GET /settings` | Current settings as JSON (plus `machine_id`, the fuse-derived identity, the firmware version, `tls_fingerprint`, and the `gates` table: range, recommended band, off end and state per gate setting) |
 | `POST /settings?key=value&...` | Set any subset of known keys ([Settings](settings.md)) |
-| `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `motion-fault`, or `gated` with `why`), pid, motion verdict |
+| `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `waiting` with `why` naming what is open, `motion-fault`, or `gated` with `why`), pid, motion verdict |
 | `POST /mode?controller=grbl\|cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever: stop halts the active controller and holds supervision suspended; start resumes it ([Modes](modes.md)) |
 | `GET /cool/status` | Cooling-engine state: phase, verdict, temps, report age, `gates_off`, the effective `limits`, `fan_gates` |

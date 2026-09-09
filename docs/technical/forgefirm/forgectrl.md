@@ -63,7 +63,10 @@ Parts of the contract live on their own pages:
   move and verifies it *physically happened* via the head accelerometer,
   with a rail-off recovery ladder and an explicit `motion-fault` state. The
   lens takes its hall-edge reference in the same window, and fails to the
-  same state.
+  same state. The probe moves the gantry, so with a lid or the interlock
+  open the gate waits instead of starting a controller unverified: `/mode`
+  says `waiting` and what is open, and the button blinks amber until the
+  enclosure closes.
 - **The cooling engine.** The single owner of fans, pump, TEC, and the
   flow-check heater for both modes ([Cooling engine](cooling-engine.md)).
 - The **web control panel**, **camera service**, **telemetry**,
@@ -122,7 +125,7 @@ costs one bounded error, never a pinned thread.
 | `GET /status` | Machine operational status as JSON: state, position with `homed_axes` naming the axes that carry a reference, fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
 | `GET /settings` | Current settings as JSON, plus `machine_id` (the fuse-derived identity), the firmware version, `tls_fingerprint`, and the `gates` table: range, recommended band, off end, and state per gate setting |
 | `POST /settings?key=value&...` | Set any subset of known keys. An empty value clears a key to its built-in default. Refused (409) unless the machine is idle. `cloud_enabled=1` from 0 takes `phrase=I UNDERSTAND` (400 without it); `cloud_enabled=0` takes `homing_mode` to `none` and `controller_mode` to `grbl` when they point at the cloud |
-| `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `motion-fault`, or `gated` with `why`), pid, motion verdict |
+| `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `waiting` with `why` naming what is open, `motion-fault`, or `gated` with `why`), pid, motion verdict, and `why` behind an unverified or faulted verdict (the probe's own words) |
 | `POST /mode?controller=grbl` or `=cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever ([Mode supervision](#mode-supervision)) |
 | `POST /cool/state` | Controller job-state report, level-triggered at ~1 Hz ([Cooling engine](cooling-engine.md#job-state-reports)) |
@@ -378,9 +381,12 @@ init scripts do not start controllers; they defer to the supervisor and
 remain only as manual emergency stops.
 
 - `GET /mode` returns
-  `{"mode":"grbl|cloud","controller":"running|stopped|standby|motion-fault|gated","pid":N,"motion":"verified|unverified|fault"}`,
-  with `why` beside a `gated` controller
-  ([Commissioning and the gate](#commissioning-and-the-gate)).
+  `{"mode":"grbl|cloud","controller":"running|stopped|standby|waiting|motion-fault|gated","pid":N,"motion":"verified|unverified|fault","why":"..."}`.
+  `why` names what holds the machine: the gate's reason beside a `gated`
+  controller ([Commissioning and the gate](#commissioning-and-the-gate)),
+  what is open beside a `waiting` one, and otherwise the probe's own words
+  behind an `unverified` or `fault` verdict (empty when there is nothing to
+  say).
 - `POST /mode?controller=grbl` or `=cloud` is the live switch: idle-gated
   (machine idle, no diagnostic), stops the active controller (SIGTERM to
   SIGKILL escalation on its process group), persists `controller_mode`,
@@ -431,6 +437,18 @@ remain only as manual emergency stops.
   accepted as proof that the machine moved. What the probe reads, the
   thresholds it judges against, and why the drivers wedge are on
   [Motion hardware](../machine/motion-hardware.md#what-the-motion-witness-reads).
+- **The gate waits for the enclosure.** The probe moves the gantry, so it
+  does not run while a lid or the interlock is open, and not while the
+  switch device cannot be read (fail closed). The supervisor then starts no
+  controller: `/mode` reports `controller: waiting` with `why` naming what
+  is open, the panel's Status tab shows a banner, the button blinks amber,
+  and the log carries one line. The loop looks again five times a second,
+  so the probe runs the moment the enclosure closes, the lens takes its
+  reference, and the controller starts. A `POST /mode` made while the
+  enclosure is open stores the mode and returns at once with the `waiting`
+  state. A probe the machine cannot run for another reason (no head
+  accelerometer) still lets the controller start, with `motion: unverified`
+  and the reason in `why`.
 - **The lens takes its reference behind the probe**, in the same window and
   before any controller exists: full steps at the drive current, away from
   the hall sensor until it releases and back until it trips, which leaves the

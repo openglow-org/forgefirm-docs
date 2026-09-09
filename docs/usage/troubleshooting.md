@@ -29,6 +29,15 @@ counters advancing are never accepted as proof that the machine moved: the
 drivers on this board can latch into a state where the counters count while
 the motors produce nothing ([Modes](modes.md)).
 
+## The lid was open at power-on
+
+The test move needs the lid and the interlock closed. With either open when
+the machine powers on (or when `forgectrl` restarts), the machine starts no
+controller and waits: `GET /mode` reads `waiting` with what is open, the
+panel's Status tab shows a banner, and the button blinks amber. Close the
+lid (or close the interlock loop). The test move runs at once, the lens takes
+its reference, and the controller starts; nothing else to do.
+
 ## GRBL mode alarms and refusals
 
 | You see | What it means | What to do |

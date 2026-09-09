@@ -102,6 +102,66 @@ tool and the release gate compare
 ([Acceptance](../../developers/acceptance.md)), and `/etc/forgefirm-version`
 (echoed on the serial-console login prompt and at SSH login).
 
+## The read-only root filesystem
+
+Both images mount the root filesystem read-only. The booted slot (eMMC p1
+or p2, or the SD card on the bench) is never written while it runs. `/data`
+(p3) is the one writable partition: the machine state, the logs, and the
+staged updates ([Install and update](install-and-update.md#the-update-manager)).
+
+The `read-only-rootfs` image feature of poky carries the mechanics. The
+root line of `/etc/fstab` is `ro` (the BSP's `base-files` fstab), and
+`/etc/default/rcS` says `ROOTFS_READ_ONLY=yes`. The volatile links are made
+at build time: `/etc/resolv.conf` points into `/run`, and `/tmp`,
+`/var/tmp`, and `/var/log` point into `/var/volatile` (tmpfs, empty at every
+boot). From the first boot script on, `/var/lib` is a writable copy in RAM
+(the ntp drift file, nothing that must last). A package whose post-install
+step needs the machine fails the build. The packages a read-only rootfs
+cannot use are dropped: `shadow`, `base-passwd`, `update-rc.d`, and
+`update-alternatives`; the account files and the init links stay.
+
+What must last a reboot, or change at run time, is handled file by file:
+
+| What | Where | How |
+|---|---|---|
+| The operator accounts | `/etc/passwd`, `/etc/shadow`, `/etc/group`, `/etc/gshadow` | `forgefirm-users` renders the four files from the record `/data/forgefirm/users` into `/run/forgefirm/accounts` and bind-mounts each copy over its `/etc` file: at boot (S05, before sshd) and at every `reload` forgectrl asks for. The copies hold the image's own accounts plus the record's; a render writes through the mount, so a login that arrives mid-write is refused, never given a stale account. Until the first render the image's files are in effect, so root works at the console from the first second. The home directories are under `/data/forgefirm/home`. |
+| The console banner | `/etc/issue` | `forgefirm-banner` bind-mounts a copy under `/run/forgefirm` at the first address change after boot and writes the address block through it ([forgectrl](forgectrl.md#http-api)). |
+| The sshd host keys | `/data/forgefirm/ssh/` | Made at the first start of sshd, kept across updates: the fingerprint of the machine does not change with a release. |
+| The boot timestamp | `/data/forgefirm/timestamp` | Written at shutdown and restored at boot when it is later than the clock; the board has no battery-backed RTC (`forgefirm-persist`). |
+| The random seed | `/data/forgefirm/random-seed` | Carried from shutdown to the next boot (`forgefirm-persist`). |
+| The logrotate state | `/var/run/forgefirm-logrotate.status` | Fresh at every boot. The rules are size-capped, so nothing depends on it ([Logging](logging.md)). |
+| The rendered rsyslog rules, the settings, the records, the TLS key, the panel token, the GRBL settings store | `/data/forgefirm/` | Unchanged ([Install and update](install-and-update.md#the-update-manager)). |
+
+Everything else the daemons and the controllers write is under `/data`,
+`/run`, `/tmp`, or sysfs. The acceptance test `image.health` checks the
+mounts, and `release.sh` refuses a release rootfs whose fstab does not mount
+`/` read-only, mounts a factory slot, or keeps the host keys elsewhere.
+
+**The dev image** also mounts the two factory rootfs slots read-only under
+`/factory/img1` and `/factory/img2`, a bench convenience for reading a
+factory image in place (the `ffboot` inventory reuses the mounts). The
+release image has no `/factory` mounts; `ffboot -l` reads a slot through a
+temporary read-only mount.
+
+**To change a file on the rootfs**, a hot copy of a binary or a script on
+the bench, remount it writable for the copy and put it back:
+
+```sh
+/etc/init.d/forgectrl stop; while pidof forgectrl >/dev/null; do sleep 1; done
+mount -o remount,rw /
+cp /tmp/forgectrl /usr/bin/forgectrl && chmod 755 /usr/bin/forgectrl
+mount -o remount,ro /
+/etc/init.d/forgectrl start
+```
+
+The remount back to read-only answers "Device or resource busy" while any
+file on the rootfs is open for writing. A daemon that is still exiting is
+the usual holder (the init script's stop returns before the daemon has
+gone), so wait for the exit before the remount, or repeat the remount.
+`/data` and `/tmp` need no remount. A file under `/etc` that a bind mount
+covers (the account files, `/etc/issue`) is reached on the rootfs only after
+`umount` of the mount.
+
 ## The machine
 
 Machine `glowforge` is the i.MX6 Solo SOM in the Basic, the Plus, and the

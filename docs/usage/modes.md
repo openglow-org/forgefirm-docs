@@ -88,8 +88,10 @@ switching ([Homing](homing.md)).
 
 The route behind the selector is `POST /mode?controller=grbl|cloud`, and
 `GET /mode` reports the supervisor state: the mode, the controller state
-(`running`, `stopped`, `standby`, or `motion-fault`), the controller's pid, and
-the motion-liveness verdict (`verified`, `unverified`, or `fault`)
+(`running`, `stopped`, `standby`, `waiting`, or `motion-fault`), the
+controller's pid, the motion-liveness verdict (`verified`, `unverified`, or
+`fault`), and `why`: what is open while the machine waits, or the reason
+behind an unverified or faulted verdict
 ([The control panel](control-panel.md)).
 
 ## What the supervisor does for you
@@ -101,6 +103,12 @@ the motion-liveness verdict (`verified`, `unverified`, or `fault`)
   the accelerometer in the print head. If the stepper drivers do not wake, the
   controller stays down, `GET /mode` reports `motion-fault`, and the panel
   offers a retry ([Troubleshooting](troubleshooting.md)).
+- **The test move waits for the lid.** The move needs the lid and the
+  interlock closed. With either open when the machine powers on (or when
+  `forgectrl` restarts), the machine starts no controller: `GET /mode`
+  reports `waiting` with what is open, the panel's Status tab shows a banner,
+  and the button blinks amber. Close the lid and the test move runs at once,
+  then the controller starts.
 - **A busy controller survives a daemon restart.** If `forgectrl` itself
   stops while a job runs, the controller is left running rather than
   stopped mid-job; the returning daemon retakes supervision once the machine

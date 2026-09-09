@@ -220,10 +220,13 @@ Reinstalling ForgeFIRM afterward is the installer again from the console.
 - the commissioning record (`commissioning.json`);
 - the sheet salt (`sheet.salt`);
 - the TLS key and certificate;
-- the account record (`users`);
+- the account record (`users`) and the home directories (`home/`);
 - the panel token (`panel.token`);
 - the settings store of the GRBL controller (`EEPROM-glowforge.DAT`, the
-  `$` settings).
+  `$` settings);
+- the sshd host keys (`ssh/`), the boot timestamp (`timestamp`), and the
+  random seed (`random-seed`): the state a read-only rootfs cannot hold
+  ([Image and BSP](image-and-bsp.md#the-read-only-root-filesystem)).
 
 They live on `/data`, outside both slots, so every update and the factory
 return leave them in place.

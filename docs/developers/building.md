@@ -256,7 +256,8 @@ a cross-compile with the i.MX6 toolchain. `scripts/bench/build-glowforge.sh`
 in the `forgefirm` repository does this in the Yocto build environment, with
 the toolchain of the recipe. This is the production controller build. The
 controller is a userspace program. To deploy a new binary, replace the binary
-on the board. An image flash is not necessary.
+on the board, with the rootfs remounted writable for the copy
+([Bench](bench.md#the-bench-machine)). An image flash is not necessary.
 
 Under the ForgeFIRM image, the driver runs as a supervised child of
 forgectrl. It receives `/dev/glowforge` as an inherited file descriptor

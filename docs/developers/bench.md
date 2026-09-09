@@ -56,7 +56,25 @@ How a result was obtained is recorded in the commit that carried it.
   flash.
 - **Deploy a userspace program.** The controller and the daemon are
   userspace programs. Replace the binary on the board. A flash is not
-  necessary.
+  necessary. The rootfs is mounted read-only: remount it writable for the
+  copy, set the execute bit, and put it back
+  ([Image and BSP](../technical/forgefirm/image-and-bsp.md#the-read-only-root-filesystem)):
+
+  ```sh
+  /etc/init.d/forgectrl stop; while pidof forgectrl >/dev/null; do sleep 1; done
+  mount -o remount,rw /
+  cp /tmp/forgectrl /usr/bin/forgectrl && chmod 755 /usr/bin/forgectrl
+  mount -o remount,ro /
+  /etc/init.d/forgectrl start
+  ```
+
+  Wait for the daemon's exit before the remount back: a daemon still
+  exiting holds the rootfs open and the remount answers "busy". The same
+  remount covers a module copy into `/lib/modules`, a script under
+  `/usr/share/forgetest/bench`, and a hot copy of the acceptance suite into
+  the Python site-packages (restart `forgetest` after that copy; a suite
+  file that fails to import takes the daemon down). `/data` and `/tmp` need
+  no remount.
 - **Read the state through forgectrl or sysfs, never through the Grbl port.**
   A second connection to TCP port 23 displaces the session that holds the
   port, whether a sender or a drill. Use the `/status` route of forgectrl, or
