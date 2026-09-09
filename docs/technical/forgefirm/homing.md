@@ -140,19 +140,34 @@ references Z against the hall sensor. Hunts are not lid-gated.
   motion until the next camera home, which is why the park ignores the lid
   and the cancel flag ([Cloud mode](cloud-mode.md)).
 
+## The lens reference at every start
+
+The lens does not wait for a home. Before any controller starts, forgectrl
+sweeps the lens onto the hall sensor's rising edge in the motion-verify
+window, and the controller reads the focal height of that edge out of
+`lens_hall_edge_z_mm`. Z is therefore referenced on every start, on its own,
+while X and Y wait for a home ([forgectrl](forgectrl.md#mode-supervision)).
+
+A lens that cannot reach its edge is a **hard fault**, not a fallback: the
+lens motor is wedged, the carriage is jammed, or the hall sensor is dead, and
+a machine whose focal height would be a guess does not get to run. The
+supervisor holds every controller down and the panel names the reason.
+
 ## Running unhomed
 
-**The machine cuts fine unhomed** in GRBL mode. Without a reference,
-coordinates are relative to wherever the head happened to be when the
-controller started, so the panel shows position in red to say so, and the
-sender should use a job-start mode that does not depend on machine
-coordinates ([GRBL mode](../../usage/grbl-mode.md)). After a successful home
-the position is anchored and shown normally.
+**The machine cuts fine unhomed** in GRBL mode. Without a reference, X and Y
+are relative to wherever the head happened to be when the controller started,
+so the panel shows them in red to say so, and the sender should use a
+job-start mode that does not depend on machine coordinates
+([GRBL mode](../../usage/grbl-mode.md)). After a successful home the position
+is anchored and shown normally. Z is the exception: it carries its own
+reference from the start, so it reads normally while X and Y do not.
 
-Position comes from the kernel step counters, anchored at the last completed
-homing through `/run/grblhal.homed`, which the controller writes. forgectrl
-serves it from there and never queries the Grbl socket
-([forgectrl](forgectrl.md)).
+Position comes from the kernel step counters, anchored through
+`/run/grblhal.homed`, which the controller writes. forgectrl serves it from
+there and never queries the Grbl socket ([forgectrl](forgectrl.md)). The
+anchor names the axes it references, so the lens reference anchors Z alone
+and a completed home anchors all three.
 
 Anything that invalidates position (an underrun, a stream fault) drops the
 anchor deliberately, so a stale origin cannot be reused

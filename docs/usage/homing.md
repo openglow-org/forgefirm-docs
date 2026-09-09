@@ -75,11 +75,19 @@ want a true machine origin ([LightBurn](lightburn.md)).
 
 ## Running unhomed
 
-**The machine cuts fine unhomed.** Without a reference, coordinates are
-relative to wherever the head happened to be, so the panel shows position in
-red to say so, and your sender should use a job-start mode that does not depend
-on machine coordinates: in LightBurn, **Start From: Current Position**
+**The machine cuts fine unhomed.** Without a reference, X and Y are relative
+to wherever the head happened to be, so the panel shows them in red to say so,
+and your sender should use a job-start mode that does not depend on machine
+coordinates: in LightBurn, **Start From: Current Position**
 ([LightBurn, Job start mode](lightburn.md#job-start-mode)).
+
+**Z is the exception.** The lens references itself against its hall sensor
+every time the machine brings a controller up, so focus heights are good
+without homing and Z reads its height while X and Y show as unreferenced. The
+panel's **Homed** row names the axes that carry a reference, so an unhomed
+machine reads `Z only` rather than a plain no. If the lens cannot find its
+sensor the machine refuses to run at all and the panel says why: that is
+broken hardware, not a state to work around.
 
 Anything that invalidates position, an underrun or a stream fault, drops the
 anchor deliberately, so a stale origin cannot be reused. Re-home before you

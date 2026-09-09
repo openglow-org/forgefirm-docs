@@ -506,13 +506,17 @@ in half-steps, at its drive current during a run and its hold current at
 rest. The lens is never moved without a reference: the driver's Z soft limit
 is always on, whatever `$20` says, and until Z is referenced it holds Z
 where it is (a jog is refused with error 15, a program move raises the
-soft-limit alarm before it starts). A gfcloud home references the lens on
-its hall edge and opens the envelope to the head's free travel (the found
-stops, a half-step of slack at each end); a commissioning card, which
-references the lens itself, tells the driver with `M103 Z<focal height at
-the edge> P<free half-steps below> Q<above>` (P and Q optional: the
-settings, else the fallback window). Beyond the free travel, referenced,
-the same refusal. The panel's Machine tab shows the reach.
+soft-limit alarm before it starts). In practice Z is referenced from the
+start: forgectrl sweeps the lens onto its hall edge before the controller
+exists, and the driver takes that reference as it loads its settings, which
+opens the envelope to the head's free travel (the found stops, a half-step
+of slack at each end). The daemon steps the lens over GPIO, which the kernel
+counters never see, so the driver re-zeroes them at the reference and
+anchors Z alone. A gfcloud home references the lens the same way and anchors
+all three axes. Beyond the free travel, referenced, the same refusal. The
+panel's Machine tab shows the reach, and Z reads its height while X and Y
+still show as unreferenced
+([Homing](homing.md#the-lens-reference-at-every-start)).
 
 ## Where the driver sits in the safety design
 

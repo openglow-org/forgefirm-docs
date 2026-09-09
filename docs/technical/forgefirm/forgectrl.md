@@ -61,7 +61,9 @@ Parts of the contract live on their own pages:
   power-up unserviceable while every counter runs normally, so before each
   session's first controller spawn the supervisor commands a small probe
   move and verifies it *physically happened* via the head accelerometer,
-  with a rail-off recovery ladder and an explicit `motion-fault` state.
+  with a rail-off recovery ladder and an explicit `motion-fault` state. The
+  lens takes its hall-edge reference in the same window, and fails to the
+  same state.
 - **The cooling engine.** The single owner of fans, pump, TEC, and the
   flow-check heater for both modes ([Cooling engine](cooling-engine.md)).
 - The **web control panel**, **camera service**, **telemetry**,
@@ -117,7 +119,7 @@ costs one bounded error, never a pinned thread.
 | `GET /wiz/record?download=1`, `GET /wiz/record.html`, `POST /wiz/changed` (`what`) | The record as a download named after the sheet id; the printable summary (`recordhtml.c`: one page, no script, every value escaped, the steps in catalog order with the sentence, the settings written with their values before, and the numbers); a replaced part or a service mapped to the wizards to run again (`commission.c`: the table of changes, required for the wizards whose settings were measured on the old part, recommended for the ones that prove it; a required flag never drops to recommended, and a run clears it). The record routes take a login session or the token |
 | `POST /wiz/<id>/start`, `POST /wiz/<id>/answer` (`seq`, `value`), `POST /wiz/<id>/abort`, `POST /wiz/<id>/takeover`, `GET /wiz/dark`, `GET /wiz/shot?cam=lid\|head` | The checks (the dark wizards) and the sheet cards (the live wizards): one runs at a time on a worker thread; the status carries the phase, the progress, the time so far, the log, the open prompt with its sequence number and how long it waits (`timeout_s`, `since_s`), the result (a live card's carries a `summary` sentence), the settings the wizard wrote with their values before (`applied`), and the run's ownership (`owned`: a login session drives it; `mine`: the requester's); the login session that started a run answers and aborts it, another session is refused (409) until it takes the run over, and a requester with no session (a tool with the token) is never held back; the shot is the cameras check's last snapshot |
 | `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A sheet card's preview (the drawing the daemon streams, from the record's facts) and its program body; the live wizards stream their programs through the daemon's own sender (`jobstream.c`: lines in flight up to half the controller's RX ring, ok per line, a $ command, M102 and the program end sent alone as barriers, the emission witnesses sampled at 25 Hz) in loopback posture, with the lens referenced on its hall sensor first; the focus card homes the lens on its bottom stop to place the hall edge in the carriage's travel, and its result is the focus model in the lens's own half-steps ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)) |
-| `GET /status` | Machine operational status as JSON: state, position when homed, fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
+| `GET /status` | Machine operational status as JSON: state, position with `homed_axes` naming the axes that carry a reference, fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
 | `GET /settings` | Current settings as JSON, plus `machine_id` (the fuse-derived identity), the firmware version, `tls_fingerprint`, and the `gates` table: range, recommended band, off end, and state per gate setting |
 | `POST /settings?key=value&...` | Set any subset of known keys. An empty value clears a key to its built-in default. Refused (409) unless the machine is idle. `cloud_enabled=1` from 0 takes `phrase=I UNDERSTAND` (400 without it); `cloud_enabled=0` takes `homing_mode` to `none` and `controller_mode` to `grbl` when they point at the cloud |
 | `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `motion-fault`, or `gated` with `why`), pid, motion verdict |
@@ -148,8 +150,10 @@ and the homing runner both read this file mid-run.
 
 **Never poll the Grbl TCP socket for status.** A connection there displaces
 the sender's session (LightBurn). Position comes from the kernel step
-counters anchored at the last completed homing (`/run/grblhal.homed`,
-written by the controller). Controller-side facts reach forgectrl only
+counters anchored through `/run/grblhal.homed`, written by the controller.
+The anchor carries the three coordinates and the axes they reference, so a
+lens reference anchors Z alone and a completed home anchors all three; an
+anchor written without that field references all three. Controller-side facts reach forgectrl only
 through pushed state: the `/run` anchor files, the job-state reports, and
 the `grbl.state` file below.
 
@@ -427,6 +431,16 @@ remain only as manual emergency stops.
   accepted as proof that the machine moved. What the probe reads, the
   thresholds it judges against, and why the drivers wedge are on
   [Motion hardware](../machine/motion-hardware.md#what-the-motion-witness-reads).
+- **The lens takes its reference behind the probe**, in the same window and
+  before any controller exists: full steps at the drive current, away from
+  the hall sensor until it releases and back until it trips, which leaves the
+  carriage standing on the rising edge. The controller reads the focal height
+  of that edge from `lens_hall_edge_z_mm` and references Z at its start
+  ([Homing](homing.md#the-lens-reference-at-every-start)). A sweep that runs
+  out its bound is a hard fault, not a fallback, and gates the spawn exactly
+  as a dead gantry does: a wedged lens motor, a jammed carriage, or a dead
+  sensor would leave every focal height a guess. The bound also keeps a dead
+  sensor from stepping the carriage onward into a stop.
 
 Switching modes is a live operation from the panel's Status tab, allowed
 only when the machine is idle. The two modes side by side are on
