@@ -108,8 +108,15 @@ The consequences:
   cooling drills.
 - A platform change (the kernel, the device tree, the content of a layer)
   invalidates everything. Layer content is each file under `meta-forgefirm`,
-  `meta-glowforge-bsp`, and `meta-openglow-core`, with two exceptions:
-  documentation (`*.md`) and the component pin files. A pin file
+  `meta-glowforge-bsp`, and `meta-openglow-core`, with three exceptions:
+  documentation (`*.md`), the component pin files, and the release version
+  file (`forgefirm-release.inc`, which carries `FORGEFIRM_RELEASE` and
+  nothing else). All three are metadata rather than platform content: the
+  version is already outside the identity, and the release gate proves the
+  number against the rootfs stamp, the `.fw` meta-version and the tag, so
+  hashing the file that holds it would make every version bump a platform
+  change and invalidate the very campaign that authorizes the release. A
+  pin file
   (`<recipe>-pin.inc`) holds only the `SRCREV` of a component and the `PV`
   that moves with it. A pin bump
   is the change of the component, and the component entry already carries

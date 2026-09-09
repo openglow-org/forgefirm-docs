@@ -65,23 +65,30 @@ it only when you decide to.
 
 ## At release time
 
-1. In `kas/forgefirm-glowforge.yml`, change `meta-openglow` from the
+1. Set `FORGEFIRM_RELEASE` in
+   `meta-forgefirm/recipes-forgefirm/images/forgefirm-release.inc` to the
+   version being cut. That file holds the number and nothing else, and the
+   manifest leaves it out of the layer content hash, so the bump is not a
+   platform change and does not invalidate the campaign
+   ([Acceptance](acceptance.md#domain-fingerprints-and-inheritance)). Set it whenever
+   you like, before or after the campaign.
+2. In `kas/forgefirm-glowforge.yml`, change `meta-openglow` from the
    local-sibling block to the pinned-remote block (the commented block in
    the file).
-2. Refresh `kas lock`.
-3. Tag `forgefirm` with `v<version>`. The release version belongs to ForgeFIRM
+3. Refresh `kas lock`.
+4. Tag `forgefirm` with `v<version>`. The release version belongs to ForgeFIRM
    alone: the components (`forgectrl`, `grblHAL-glowforge`,
    `kernel-module-glowforge`, `python3-gfhardware`, `Glowforge-Utilities`) and
    the BSP layers keep their own version lines, and the pins record the
    revision of each that the release uses. The pipeline tags `forgefirm-docs`
    itself (below).
-4. Commit the acceptance artifact that the bench exported for this image, as
+5. Commit the acceptance artifact that the bench exported for this image, as
    `releases/v<version>/acceptance.json` and `acceptance.md`. There is one
    directory for each release.
-5. Make sure this site is current for the release and pushed (the currency
+6. Make sure this site is current for the release and pushed (the currency
    rule, on [Contribute](contributing.md)). The pipeline tags it, and it
    refuses a documentation checkout with uncommitted changes.
-6. Run the pipeline. Every Yocto build, the release included, runs on the
+7. Run the pipeline. Every Yocto build, the release included, runs on the
    build host ([Build](building.md)); nothing builds the images on a hosted
    runner.
 
