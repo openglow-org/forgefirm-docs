@@ -70,19 +70,15 @@ it only when you decide to.
    the file).
 2. Refresh `kas lock`.
 3. Tag each repository.
-4. Prove self-containment: build from a fresh clone. The `yocto-cold-build`
-   workflow in the `forgefirm` repository does this on a hosted runner. You
-   dispatch it by hand. It builds the release image from a fresh checkout
-   with `rm_work`. Then it publishes the artifact checksums, for a
-   comparison with the release that you built locally. It never makes release
-   artifacts.
-5. Commit the acceptance artifact that the bench exported for this image, as
+4. Commit the acceptance artifact that the bench exported for this image, as
    `releases/v<version>/acceptance.json` and `acceptance.md`. There is one
    directory for each release.
-6. Make sure this site is current for the release and pushed (the currency
+5. Make sure this site is current for the release and pushed (the currency
    rule, on [Contribute](contributing.md)). The pipeline tags it, and it
    refuses a documentation checkout with uncommitted changes.
-7. Run the pipeline.
+6. Run the pipeline. Every Yocto build, the release included, runs on the
+   build host ([Build](building.md)); nothing builds the images on a hosted
+   runner.
 
 ### The documentation tag
 

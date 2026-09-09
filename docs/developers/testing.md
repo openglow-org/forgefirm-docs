@@ -71,7 +71,6 @@ Each repository with host tests runs them on push and on pull request.
 | `forgectrl` | `build` | The CMake build with `-Werror`, and the eleven test binaries. |
 | `forgefirm` | `forgetest-ci` | On a change under `forgetest/`, the gate and manifest scripts, or the component recipes. Steps: the tree manifest from the recipe pins (`scripts/manifest-from-tree.py`, which also gets the pinned application sources that the log-phrase check reads); the unit tests; the shared-UI check (`scripts/check-ui-vendor.py`: the `theme.css` and the vendored Bootstrap of the page are byte-identical to those of forgectrl at its pinned revision); the coverage lint with `--enforce`; and a gate self-check (the gate refuses an empty artifact with exit status 1, never with a traceback). |
 | `forgefirm` | `fixture-ci` | On a change under `fixture/`. Steps: the policy host test with gcc, and the firmware build in the pinned ESP-IDF container with a placeholder `fixture.env`. Thus a change that does not compile never reaches a bench. |
-| `forgefirm` | `yocto-cold-build` | Dispatched by hand: the cold-build reproducibility probe ([Release flow](release-flow.md)). A cold Yocto build on a hosted runner with four cores takes hours and is close to the six-hour job limit. A timeout is a data point, not an emergency. |
 | `forgefirm-docs` | `check`, `deploy` | The strict build and the two lints, on each pull request and push. `deploy` publishes `main` to GitHub Pages. |
 
 ## Coverage currency
