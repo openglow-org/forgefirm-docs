@@ -151,6 +151,16 @@ any other controller picks it up at its next start.
 Writes are refused (409) unless the machine is idle, because the controller
 and the homing runner both read this file mid-run.
 
+**Idle**, for every gate on this page, means the kernel reports no program in
+progress: `idle` (the steppers energized) or `disabled` (the steppers off).
+`disabled` is the state a machine holds from power-on until something
+energizes the steppers, which for a machine out of the box is its first
+controller spawn, after the setup ([Commissioning and the
+gate](#commissioning-and-the-gate)). `running` is not idle, `fault` and
+`underrun` are not idle until each is acknowledged, and a state that cannot
+be read is not idle either: the gates fail closed
+([The kernel module](kernel-module.md#state)).
+
 **Never poll the Grbl TCP socket for status.** A connection there displaces
 the sender's session (LightBurn). Position comes from the kernel step
 counters anchored through `/run/grblhal.homed`, written by the controller.
