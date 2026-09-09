@@ -16,33 +16,6 @@ control panel, and a standard Grbl interface.
     release is available ([Updating](install/updating.md)), and report what
     you find ([Community forum](https://community.openglow.org)).
 
-## What it does
-
-**Two controller modes, selected in the web panel and switchable while the
-machine is idle:**
-
-**GRBL mode**: [grblHAL](https://github.com/grblHAL) runs on the machine and
-  speaks Grbl 1.1 over TCP port 23, so LightBurn, UGS, cncjs, etc... drive the
-  laser directly. Motion runs on the board's own hardware step engine (SDMA +
-  EPIT), fed live by a local planner. M3/M4 dynamic laser power, coolant-flow
-  verification, over-temp holds, and an operator button press to arm the laser
-  for each job.
-
-**Cloud mode**: The machine signs in to the Glowforge web service with its
-  own identity, names its software as ForgeFIRM, and uses the service the way
-  a stock machine does, so the phone and web apps work as they always did.
-  Optional, and off by default. GRBL mode jogs and cuts without it; the one
-  GRBL-mode function that still reaches the Glowforge service is
-  camera-referenced homing (below), until limit-switch homing lands.
-
-A **web control panel**: Machine status and position, coolant
-  and fan telemetry, safety-switch states, live camera stream, machine settings, hardware diagnostics, firmware updates, and boot-slot management.
-
-**Camera-referenced homing**: `$H` from any sender runs the factory-style
-  camera homing cycle through the Glowforge service (a Glowforge account and a
-  live service session are required for `$H`; everything else in GRBL mode
-  runs without them).
-
 ## Hardware
 
 The control board is common to Glowforge Basic, Plus, and Pro. The 5 MP
