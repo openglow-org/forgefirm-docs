@@ -36,18 +36,13 @@ and the driver is included in most operating systems.
 
 ## The OpenGlow serial adapter (BBPSAv1)
 
-The [OpenGlow serial adapter](https://github.com/openglow-org/openglow-serial-adapter)
+The OpenGlow serial adapter 
 is a USB-C serial-console adapter for the Glowforge Basic, Plus, and Pro
 control board. It mounts onto the board with snap-in supports and contacts
 the i.MX6 console test points (D3B, D3D, GND) through three spring-loaded
 pins: **no soldering to the machine**.
 
 ![Adapter, top side](../assets/images/board-top.png)
-
-It exists to give ForgeFIRM users a console on the factory control board
-without the two problems of the soldered FTDI-cable approach: the solder
-joints on fragile test points, and the machine refusing to boot whenever
-the cable is unpowered.
 
 ### What it does
 
@@ -58,23 +53,10 @@ the cable is unpowered.
   SN74LVC1T45 level translators with VCC isolation are what make that true.
 - **1.8 V only on the machine side**, with 1 kΩ series resistors and
   GND-referenced TVS diodes on both signal pins.
-- Single board, 58.2 × 24.35 mm, JLCPCB-assembled except for the three
-  hand-soldered pogo pins.
-
-![Adapter, bottom side](../assets/images/board-bottom.png)
-
-[DESIGN.md](https://github.com/openglow-org/openglow-serial-adapter/blob/main/DESIGN.md)
-in the adapter repository is the full circuit description: the target
-interface, every net, why the values are what they are, the mechanical
-design, and the bring-up checklist.
 
 ### Status
 
-The electrical design is complete, and the fabrication files in the
-repository's `jlcpcb/` directory are the files submitted for manufacture.
-Confirmation of the fit to the control board (the mounting-hole pattern, the
-pin registration on the test points, and the standoff length) on
-manufactured units is planned.
+Coming mid-September 2026
 
 ### Installation
 
@@ -95,28 +77,6 @@ The CH9101N uses WCH's CH343 driver family: `CH343SER` on Windows and
 macOS, `ch343ser_linux` on Linux. It can also enumerate as a plain CDC-ACM
 device. The chip reports a unique serial number, so a `udev` rule can give a
 specific adapter a stable device name.
-
-### Building one
-
-1. Order the board from `jlcpcb/production_files/` (Gerber zip, BOM, CPL)
-   with SMT assembly; all top-side parts are in the JLCPCB parts library.
-2. Hand-solder three **Mill-Max 0906-3-15-20-75-14-11-0** spring pins from
-   the top so they protrude from the bottom.
-3. Fit four **Richco DLCBST-3-01** (4.8 mm) snap-in board supports in the
-   corner holes.
-4. Run the bring-up checklist in
-   [DESIGN.md section 10](https://github.com/openglow-org/openglow-serial-adapter/blob/main/DESIGN.md#10-bring-up-checklist)
-   before the adapter goes near a machine. Step 5, the unpowered-leakage
-   measurement, is the one that proves the adapter is safe to leave mounted.
-
-Regenerating the artwork and the schematic images needs Python 3 with
-`shapely`, `svgpathtools`, `ezdxf`, and `matplotlib`, plus `kicad-cli` from
-KiCad 10; each script in `artwork/` documents its own usage in its header.
-
-The hardware design and everything in the adapter repository are licensed
-under the
-[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-license (CC BY-NC-SA 4.0).
 
 ## A soldered FTDI cable
 
