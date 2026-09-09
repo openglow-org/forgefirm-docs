@@ -333,7 +333,7 @@ the bench tools see `GF_HOST` and `GF_TOKEN` too.
 | `FORGECTRL_NO_HW_SKIP` | unset | Encode every frame; no CSI hardware frame skipping |
 | `FFLOG_LEVEL` | from the settings | Override the emit level (`off` to `debug`) |
 | `FFLOG_STDERR` | unset | Echo the log lines to stderr, also when stderr is not a terminal (for harnesses) |
-| `FFLOG_CONF`, `FFLOG_SOCK` | `/data/forgefirm.conf`, `/dev/log` | The settings file and the syslog socket (for host tests) |
+| `FFLOG_CONF`, `FFLOG_SOCK` | `/data/forgefirm/forgefirm.conf`, `/dev/log` | The settings file and the syslog socket (for host tests) |
 
 #### Work on the control panel
 

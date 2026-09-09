@@ -62,7 +62,7 @@ Line format (`ff_line`):
 
 ## Levels
 
-Per logger, two independent settings in `/data/forgefirm.conf`:
+Per logger, two independent settings in `/data/forgefirm/forgefirm.conf`:
 `log_<logger>_disk` (default `info`) and `log_<logger>_remote` (default
 `off`), each one of `off`, `error`, `warning`, `notice`, `info`, `debug`.
 Rule: **a process emits at the more verbose of its two levels**, and rsyslog

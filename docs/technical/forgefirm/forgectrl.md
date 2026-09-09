@@ -141,7 +141,7 @@ costs one bounded error, never a pinned thread.
 | `GET /system/ssh`, `POST /system/ssh?enable=0` or `=1` | SSH state, and the switch that turns it on until the next reboot; off at every boot, kept on by a development image |
 | `GET /system/camera-key`, `POST /system/camera-key?rotate=1` | The per-machine camera key (`/data/forgefirm/camera.key`, 128 bits) with the stream and snapshot URLs that carry it, and its rotation. A valid key, as the `key` query parameter or the `X-ForgeFIRM-Camera-Key` header, authorizes any read-only route on either listener, origin checks included, and never a write |
 
-Settings persist in `/data/forgefirm.conf`, shared with the grblHAL
+Settings persist in `/data/forgefirm/forgefirm.conf`, shared with the grblHAL
 controller (re-read on every `$H` and at every run start) and the gfhome
 homing runner (read at session start), so changes apply without restarts.
 The one exception is `xy_microsteps`, which the controller reads at its
@@ -594,7 +594,7 @@ mode. Readers are unrestricted. This table is normative.
 | Button LEDs (`/sys/class/leds/button_led_*`) | GRBL controller (arm flow) | cloud client | none |
 | Head and lid illumination (camera lamps) | forgectrl (`lamp` on snapshot); the lid lamp's idle level is the `lid_lamp_idle` setting (0 to 255, default 236), asserted at daemon start, on a settings change, and at every controller spawn | the cloud client drives the lid lamp while it runs (its `LLvl`); forgectrl re-asserts the idle level at the next spawn | forgectrl |
 | Cameras (V4L2, MIPI mux) | forgectrl; capture only with the lid closed ([privacy gate](video-pipeline.md)) | forgectrl, same gate, including the cloud client's direct-capture fallback | forgectrl, same gate |
-| `/data/forgefirm.conf` settings | read (re-read per `$H` and run start) | read | read; forgectrl writes (409 while busy) |
+| `/data/forgefirm/forgefirm.conf` settings | read (re-read per `$H` and run start) | read | read; forgectrl writes (409 while busy) |
 | `/run/grblhal.homed` anchor | GRBL controller writes | none | none |
 | `/run/forgefirm/cooling.state` | forgectrl writes, controllers read | forgectrl writes, controllers read | forgectrl writes |
 | `/data/log/forgefirm/**` log files | rsyslog writes; every process emits to `/dev/log` only | same | same |

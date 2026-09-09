@@ -15,7 +15,7 @@ are changed, and what each key means.
 ## Where settings live
 
 Machine settings live in the web panel and are stored on the machine, in
-`/data/forgefirm.conf`, shared with the grblHAL-glowforge controller (re-read on
+`/data/forgefirm/forgefirm.conf`, shared with the grblHAL-glowforge controller (re-read on
 every `$H` and at every arm) and the homing runner (read at session start), so
 changes apply without restarts. The cooling engine re-reads its keys at the
 start of every run.

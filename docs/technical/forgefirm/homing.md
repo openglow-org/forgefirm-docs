@@ -16,7 +16,7 @@ unhomed, and the planned limit-switch cycle.
 
 ## The homing methods
 
-`homing_mode` in `/data/forgefirm.conf` selects what `$H` does. The panel's
+`homing_mode` in `/data/forgefirm/forgefirm.conf` selects what `$H` does. The panel's
 Machine tab sets it, and the driver re-reads the file on every `$H`:
 
 - `gfcloud`: camera homing through the Glowforge web service, the same cycle
@@ -39,7 +39,7 @@ shadows the core's homing cycle. Under `gfcloud`:
    inherits the brokered pulse device and its environment (`GF_PULSE_FD`),
    so the handover opens and closes no device and never moves the 40 V rail
    ([forgectrl](forgectrl.md)). The runner's configuration is
-   `/data/etc/gfhome.conf`, seeded from `/etc/gfhome.conf.sample` on first
+   `/data/forgefirm/gfhome.conf`, seeded from `/etc/gfhome.conf.sample` on first
    run.
 3. While the session runs, the driver **pumps the Grbl protocol**, so the
    sender keeps getting status reports and does not time out. What the service

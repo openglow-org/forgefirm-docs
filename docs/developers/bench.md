@@ -97,8 +97,9 @@ staged copies, temporary configurations, and `__pycache__`.
   `/data/bench-scratch/`. Delete that directory as a whole when the session
   ends.
 - Nothing goes loose in `/data`. It holds only the factory state and the
-  files of ForgeFIRM: `forgefirm/`, `forgetest/`, `forgefirm.conf`,
-  `ffboot`, `etc/`, and `log/forgefirm/`.
+  files of ForgeFIRM: `forgefirm/`, `forgetest/`,
+  `ffboot`, `etc/`, and `log/forgefirm/`. Every ForgeFIRM configuration
+  file lives inside `forgefirm/`, the settings file included.
 - A bench tool that is worth a second use goes in `forgefirm/scripts/bench/`
   in the repository. The dev image installs those tools under
   `/usr/share/forgetest/bench/`. Run them from there.
@@ -173,7 +174,7 @@ From a host, stop them first.
 | `laser_lifecycle_test.py` | The host-side lifecycle harness of the operator-armed window (null-sink controller) ([Test](testing.md)). Runs in the CI of the grblHAL repository. |
 | `live_fire_drills.py` | **LIVE LASER** drills, on the board (the bench page) or from a LAN host (`GF_HOST`): `live_fire_drills.py <drill> [S] [F]`. The drills are listed below. Each drill waits for the physical arm press of the operator. |
 | `pacing_test.py` | The protocol-loop pacing check (on the board, dry motion). The idle state and the parked-in-Hold state are coarse-paced. Active motion is tight-paced. A feed hold and resume in the middle of a move keeps the position, with no feeder starve. |
-| `gfbench.py` | Not a tool: the helper that the board and host tools share. `HOST` and `LOCAL` from `GF_HOST`; `board(cmd)` (a local `sh -c`, or ssh); the factory coolant conversion `degc()`; `data_path()` (`FORGETEST_BENCH_DATA`, or next to the tool); the HTTP API of forgectrl with the panel token; `setting(key)` (from forgectrl, or from `/data/forgefirm.conf` on the board while forgectrl is stopped). |
+| `gfbench.py` | Not a tool: the helper that the board and host tools share. `HOST` and `LOCAL` from `GF_HOST`; `board(cmd)` (a local `sh -c`, or ssh); the factory coolant conversion `degc()`; `data_path()` (`FORGETEST_BENCH_DATA`, or next to the tool); the HTTP API of forgectrl with the panel token; `setting(key)` (from forgectrl, or from `/data/forgefirm/forgefirm.conf` on the board while forgectrl is stopped). |
 | `fan_test.py` | The fan and coolant bench (board or host; the controller runs). Takes a snapshot of the fan PWMs, the tachometers, and the temperatures. Drives M8 (the cut fans), then M9 (cooldown, then idle). Verifies through the tachometer readbacks. |
 | `fan_floor_measure.py` | The numbers that the airflow gates ship with (board or host). `spinup` opens a run session with M8 from idle and samples the four tachometers and the purge current at 1 Hz. It reports, for each fan, the steady speed, the time to 90 percent, and the spread over the steady window, plus the purge current at idle and at run duty (the pump is always on; a dead pump reads about 1), and candidate floors at 55 percent. `cut` only samples, during a real cut, for the spread under load. Results as JSON in the bench data directory. |
 | `flow_characterize.py` | The coolant flow characterization with the factory temperature curve (board or host; forgectrl and the controller stopped): baseline, flow, no flow, recovery. Prints the ΔT bands and their separation. Takes the heater duty as an argument (`flow_characterize.py 30`). Aborts if the downstream sensor passes 45 °C. |
