@@ -69,9 +69,12 @@ it only when you decide to.
    local-sibling block to the pinned-remote block (the commented block in
    the file).
 2. Refresh `kas lock`.
-3. Tag each repository, except `Glowforge-Utilities`: it has its own release
-   line on PyPI, and its release workflow publishes on any tag that names its
-   package version. The pin records the revision the release uses.
+3. Tag `forgefirm` with `v<version>`. The release version belongs to ForgeFIRM
+   alone: the components (`forgectrl`, `grblHAL-glowforge`,
+   `kernel-module-glowforge`, `python3-gfhardware`, `Glowforge-Utilities`) and
+   the BSP layers keep their own version lines, and the pins record the
+   revision of each that the release uses. The pipeline tags `forgefirm-docs`
+   itself (below).
 4. Commit the acceptance artifact that the bench exported for this image, as
    `releases/v<version>/acceptance.json` and `acceptance.md`. There is one
    directory for each release.
