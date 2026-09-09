@@ -339,7 +339,11 @@ item:
   at 16 and quadruple at 32), `x/y_decay=1`, `streaming=0`,
   `state=idle`, the latch locked, the hold currents. Also the head lamp and
   button LEDs off, the heater and TEC off, and the lid lamp at the
-  `lid_lamp_idle` setting of forgectrl. For forgectrl: the controller
+  `lid_lamp_idle` setting of forgectrl. On the head: purge air on, which is
+  how the machine idles, and the lens motor at its hold current in half
+  step. A check that borrows any of them hands them back, and the checks
+  that take the lens and the one that measures the purge fan by switching
+  it off are the ones that must. For forgectrl: the controller
   running with motion verified, no diagnostic, the camera engine and the
   cooling engine idle.
 - **Preserved** state, with no resting policy, that a run must hand back as
@@ -363,7 +367,18 @@ live mode.
 Deviations are **leftovers**. They are logged in the run pane, kept in the
 `evidence` of the result (`baseline.pre`, `baseline.post`), and shown in
 the message line of the page. A leftover found before a run belongs to the
-previous run. One found after is a defect of the run itself. A takeover run
+previous run. One found after is a defect of the run itself, **and it fails
+that run**. A leftover the baseline put back fails it too: the restore is
+the bench cleaning up after a defect, not the defect's absence. A test
+passes only when the machine is handed back as it was found.
+
+That rule is new, and it exists because its absence shipped. The airflow
+check measures the purge fan by switching it off, and it walked away
+without switching it back on. The leftover was recorded, the test passed,
+and the machine sat with the purge fan off until the daemon next
+restarted. The first job after that was held mid-cut by the airflow gate,
+judged against the floor that same check had written, and the operator met
+the defect at their first fire instead of the bench meeting it here. A takeover run
 also captures the kernel attributes that the controller owns, on entry. It
 writes them back before forgectrl restarts. Thus the liveness probe of the
 supervisor runs on the machine that it expects. The runner waits for

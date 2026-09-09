@@ -290,6 +290,17 @@ The record leaves the machine three ways, all from the System tab's
 
 Both routes take a login or the panel token.
 
+## When the setup will not go on
+
+The setup carries **Download logs** in its header, on every step. It builds
+the same sanitized bundle the Logs tab builds
+([Logging](logging.md)), so a setup that stops on something the page cannot
+explain can still be reported: take the bundle and attach it. The panel's
+own Logs tab is not reachable until the setup is complete, which is exactly
+when the bundle is hardest to get and most worth having. The machine
+refuses an export while it is cutting, and says so on the line under the
+header rather than leaving a dead button.
+
 ### The sheet id
 
 The sheet id is a code derived from the serial number with a secret salt
