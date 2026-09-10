@@ -82,7 +82,7 @@ deliberately no setting to turn it off.
 
 ## Watching it
 
-**In the panel.** Open `https://forgefirm.local/` or `https://<machine-ip>/`
+**In the panel.** Open `https://<machine-ip>/`
 and go to the **Status** tab.
 The *Lid camera* card shows a still by default with **Live** and **Refresh**
 buttons; **Live** switches the same frame to the running stream (H.264 when the

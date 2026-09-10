@@ -58,8 +58,8 @@ One stage, no intermediate reboots. The installer:
 ## After the first boot
 
 The machine boots into ForgeFIRM, and the serial console prints the panel's
-addresses. Open `https://forgefirm.local/` or `https://<ip>/` in a browser
-and accept the browser's certificate warning once. To check the certificate
+addresses. Open `https://<ip>/` in a browser and accept the browser's
+certificate warning once. To check the certificate
 first, open `http://<ip>/cert`: it shows the fingerprint with no warning to
 accept ([The control panel](../usage/control-panel.md#the-address)). The
 setup then runs: the

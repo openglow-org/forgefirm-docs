@@ -99,8 +99,15 @@ unflashable image. `scripts/mkfw.sh` packs the ext4 into the signed `.fw`
 ([Install and update](install-and-update.md)). Each image carries
 `/etc/forgefirm-manifest.json`, the build-input identity the acceptance
 tool and the release gate compare
-([Acceptance](../../developers/acceptance.md)), and `/etc/forgefirm-version`
-(echoed on the serial-console login prompt and at SSH login).
+([Acceptance](../../developers/acceptance.md)), and `/etc/forgefirm-version`.
+
+The version also goes under the machine mark in the two files a person
+reads: `/etc/issue`, the serial-console login prompt, and `/etc/motd`,
+which every login prints, the network ones included. The mark keeps its
+color in the motd, which a login writes out as it is. `/etc/issue` is
+parsed by the getty that prints it, so a backslash or a percent sign in it
+is written twice. There is no pre-authentication banner: a client that has
+not logged in is told nothing about the machine.
 
 ## The read-only root filesystem
 
@@ -125,7 +132,8 @@ What must last a reboot, or change at run time, is handled file by file:
 | What | Where | How |
 |---|---|---|
 | The operator accounts | `/etc/passwd`, `/etc/shadow`, `/etc/group`, `/etc/gshadow` | `forgefirm-users` renders the four files from the record `/data/forgefirm/users` into `/run/forgefirm/accounts` and bind-mounts each copy over its `/etc` file: at boot (S05, before sshd) and at every `reload` forgectrl asks for. The copies hold the image's own accounts plus the record's; a render writes through the mount, so a login that arrives mid-write is refused, never given a stale account. Until the first render the image's files are in effect, so root works at the console from the first second. The home directories are under `/data/forgefirm/home`. |
-| The console banner | `/etc/issue` | `forgefirm-banner` bind-mounts a copy under `/run/forgefirm` at the first address change after boot and writes the address block through it ([forgectrl](forgectrl.md#http-api)). |
+| The machine's name | `/etc/hostname` | `forgefirm-hostname` names the machine `forgefirm-<xxxx>`, from the last four hex digits of the wlan0 MAC address (eth0 on a machine with no WiFi), at S38 in rcS: before poky's `hostname.sh` reads the file and before the network starts. The rootfs is read-only, so the file shows a bind-mounted copy under `/run/forgefirm`. The DHCP client sends the name as the hostname option, so a network with dynamic DNS publishes it. |
+| The console banner | `/etc/issue` | `forgefirm-banner` bind-mounts a copy under `/run/forgefirm` at the first address change after boot and writes the whole banner through it: the image's own lines, kept in a second copy, and one panel URL per global address ([forgectrl](forgectrl.md#http-api)). |
 | The sshd host keys | `/data/forgefirm/ssh/` | Made at the first start of sshd, kept across updates: the fingerprint of the machine does not change with a release. |
 | The boot timestamp | `/data/forgefirm/timestamp` | Written at shutdown and restored at boot when it is later than the clock; the board has no battery-backed RTC (`forgefirm-persist`). |
 | The random seed | `/data/forgefirm/random-seed` | Carried from shutdown to the next boot (`forgefirm-persist`). |
@@ -159,7 +167,8 @@ file on the rootfs is open for writing. A daemon that is still exiting is
 the usual holder (the init script's stop returns before the daemon has
 gone), so wait for the exit before the remount, or repeat the remount.
 `/data` and `/tmp` need no remount. A file under `/etc` that a bind mount
-covers (the account files, `/etc/issue`) is reached on the rootfs only after
+covers (the account files, `/etc/hostname`, `/etc/issue`) is reached on the
+rootfs only after
 `umount` of the mount.
 
 ## The machine

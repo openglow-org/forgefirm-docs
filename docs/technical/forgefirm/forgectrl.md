@@ -88,9 +88,10 @@ mjpg-streamer aliases, `/settings`, `/grbl/settings`, `/mode`,
 `/cool/status`, `/diag/status`, `/curve/status`, `/curve/ladder.gcode`,
 `/slots`, `/update/status`, `/wiz`, `/wiz/advisories/press`, and
 `/advisories/<id>`. A state-changing route over HTTP answers a loopback
-client only; every other client is redirected to HTTPS. mDNS announces the
-machine as `forgefirm.local` and as its fuse hostname `<name>.local`; the
-console banner (`/etc/issue`) prints the addresses.
+client only; every other client is redirected to HTTPS. The console banner
+(`/etc/issue`) prints the addresses, and the DHCP request carries the
+machine's own name, `forgefirm-<xxxx>`, from the last four hex digits of its
+MAC address (`forgefirm-hostname`); there is no mDNS responder on the image.
 
 Every state-changing call is behind forgectrl's auth layer: the panel
 token plus origin checks, and, once the setup has created the account, a

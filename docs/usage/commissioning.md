@@ -18,7 +18,7 @@ factory firmware.
 
 ## The first run
 
-Open `https://forgefirm.local/` or `https://<ip>/` after the first boot. The
+Open `https://<ip>/` after the first boot. The
 serial console prints both addresses. The certificate is self-signed, so
 the browser warns once; its fingerprint is at `http://<ip>/cert` for anyone
 who wants to compare it before accepting

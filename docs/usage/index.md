@@ -39,13 +39,18 @@ motion fault instead of starting a controller, and the panel offers a retry
 
 ## Finding the machine on the network
 
-The machine answers to `forgefirm.local` over mDNS, and to its fuse
-hostname as `<name>.local`. Its network address is shown in this
-documentation as `<machine-ip>`. The serial console prints the addresses.
+The machine is reached at its network address, shown in this documentation
+as `<machine-ip>`. The serial console prints the addresses at its login
+banner, and your router lists the machine by the name it sends with its
+DHCP request: `forgefirm-<xxxx>`, where `xxxx` is the last four hex digits
+of its WiFi MAC address. Two machines on one network therefore take
+different names. A network that publishes DHCP names in its own DNS also
+answers that name; use the bare name, not the name with your network's
+domain on it ([The control panel](control-panel.md#the-address)).
 
 | Address | Service |
 |---|---|
-| `https://forgefirm.local/` or `https://<machine-ip>/` | The web control panel, with the HTTP routes behind it |
+| `https://<machine-ip>/` | The web control panel, with the HTTP routes behind it |
 | `http://<machine-ip>/` | The read-only routes over plain HTTP: status, settings, the cameras ([The control panel](control-panel.md#access)) |
 | `<machine-ip>:23` | The Grbl 1.1 protocol, in GRBL mode ([GRBL mode](grbl-mode.md)) |
 

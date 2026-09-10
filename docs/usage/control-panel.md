@@ -15,9 +15,16 @@ address, the login, its tabs, and the HTTP routes an operator uses.
 
 ## The address
 
-Open `https://forgefirm.local/` or `https://<ip>/`. The machine answers to
-`forgefirm.local` over mDNS, and to its fuse hostname as `<name>.local`.
-The serial console prints the addresses at its login banner.
+Open `https://<ip>/`. The serial console prints the addresses at its login
+banner, and your router lists the machine by the name it sends with its
+DHCP request: `forgefirm-<xxxx>`, where `xxxx` is the last four hex digits
+of its WiFi MAC address.
+
+A network that publishes DHCP names in its own DNS also answers
+`https://forgefirm-<xxxx>/`. Use the bare name. The panel refuses a name
+that carries your network's domain, because a name with a domain on it can
+be registered by anyone, and refusing it is what stops a DNS-rebinding
+attack ([Access](#access)).
 
 The panel is served over HTTPS with a certificate the machine makes at its
 first start. The browser warns once; accept the warning. The certificate's
@@ -208,7 +215,10 @@ itself; every other client is redirected to HTTPS.
 
 Every route that changes machine state needs a login session, and a browser
 request must not be cross-site. That is what stops a hostile page in
-another tab from reaching your machine. The read-only routes answer any
+another tab from reaching your machine. The panel also answers only to its
+own addresses and to its own bare name (`forgefirm-<xxxx>`), never to a
+name with a domain on it: a hostile page that points its own domain at your
+machine gets nothing back. The read-only routes answer any
 client on your network by default, so LightBurn can read the camera without
 a login. The setting `panel_open_reads=0` closes them to logged-in sessions
 and to the machine itself ([Settings](settings.md)).
