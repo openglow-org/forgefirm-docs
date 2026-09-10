@@ -5,9 +5,7 @@ title: Buses and the serial console
 # Buses and the serial console
 
 This page describes the control board's serial console port and the I²C
-devices the public documents name. The circuit of the pogo-pin serial adapter
-is in its own repository:
-[DESIGN.md](https://github.com/openglow-org/openglow-serial-adapter/blob/main/DESIGN.md).
+devices the public documents name.
 How to get a console on your machine is on
 [Serial access](../../install/serial-access.md).
 
