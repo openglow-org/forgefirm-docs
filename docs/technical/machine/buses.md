@@ -52,11 +52,6 @@ Two mechanisms:
 2. The adapter's unpowered TX pin holds the target's RX low, which the console
    reads as a continuous break / `0x00`, enough to interrupt U-Boot autoboot.
 
-The pogo-pin adapter is designed to be clipped on and left there, so its
-unpowered state is benign: both target-facing pins go high-impedance (≤ 2 µA)
-when USB is unplugged. The circuit that achieves this is in
-[DESIGN.md](https://github.com/openglow-org/openglow-serial-adapter/blob/main/DESIGN.md).
-
 ## I²C devices
 
 | Device | Bus and address | What it is |
