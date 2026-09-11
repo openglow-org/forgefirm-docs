@@ -334,7 +334,9 @@ and anything external. It carries:
   and `soc_throttle`, the kernel's CPU-frequency cooling state (0 at full
   speed); each `null` when absent; watched, not gated;
 - the SoC load (`sys`): `cpu_pct`, busy percent from `/proc/stat` over the
-  interval since the previous status read (`null` on the first read), and
+  interval since the previous status read that moved the counters (`null`
+  until one has; a read inside the same scheduler tick as the previous
+  read, which concurrent readers produce, repeats the last percent), and
   `mem_pct`, used percent from `MemTotal` against `MemAvailable`;
 - the sampled laser evidence, faults, HV, and lid IR values;
 - the switch map above.
