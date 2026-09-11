@@ -154,7 +154,10 @@ and every card again.
    meets a stop, a few steps before the motor could slip; the lens backs
    off at once and the count back to the reference proves nothing slipped.
    That is the head's free travel, written as `lens_stop_below_steps` and
-   `lens_stop_above_steps`, and every lens move afterward stays inside it.
+   `lens_stop_above_steps` before the ladder burns: the controller opens
+   its Z limit from the same two numbers when it starts for the card, so
+   the ladder and the limit are one window, and every lens move afterward
+   stays inside it.
    When the stops cannot be found on a machine (the ring unreadable, no
    stop within reach, or a slip), the card keeps a reduced travel that
    clears the stops on any head, says so in its result, and asks you to
