@@ -145,7 +145,8 @@ issue reports ([Logging](logging.md)).
 
 Firmware slots (A/B boot selection), ForgeFIRM updates, image install and
 restore, the WiFi regulatory region (power save is kept off), and reboot.
-[Updating](../install/updating.md),
+A newer ForgeFIRM release shows an alert above every tab, with the release
+dialog behind it. [Updating](../install/updating.md),
 [Back to the factory firmware](../install/factory-restore.md), and
 [Recovery](../install/recovery.md) describe the update and restore tools.
 

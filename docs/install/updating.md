@@ -65,19 +65,39 @@ uses ([Recovery](recovery.md#ffboot)).
 
 ### Update check
 
-A manual **check** button; the panel also checks once, the first time the
-System tab is opened. The check is offline-tolerant. The release version resolves from the
-fixed-name asset redirect on GitHub
-(`.../releases/latest/download/forgefirm.fw` redirects to
-`.../download/v<ver>/...`), so no GitHub API call and no rate limit is
-involved.
+The machine checks for a new release once a day, and when you press
+**Check now**. The check asks the GitHub releases API for the latest
+published release (one unauthenticated read, with no token; it does not
+request the firmware file, so GitHub's download counter counts installs
+only). The check is offline-tolerant: a machine without a route to the API
+keeps its last answer and tries again an hour later.
+
+A release is newer than the installed version by version order
+(`v<major>.<minor>.<patch>`). A development build counts as older than
+every release. When the latest release is newer, the panel shows an alert
+on every tab. The alert stays until you install the release or dismiss it;
+a dismissal is for that release only, and a later release raises the alert
+again. **Show the alert again** on the System tab undoes a dismissal.
 
 ### Apply a release
 
-The manager downloads `forgefirm.fw` to `/data`, verifies its signature,
-applies it to the inactive slot, and verifies the written slot. The boot
-selection changes **only on your explicit confirmation**, and the manager
-then prompts for a reboot.
+The alert and the **Install** button on the System tab open the release
+dialog: the installed version, the release, its date and size, and its
+release notes. **Install and restart** runs the whole update:
+
+1. Download `forgefirm.fw` to `/data`.
+2. Verify its signature against the release key.
+3. Write it to the firmware slot that is not running, and verify the
+   written slot.
+4. Select that slot for the next boot.
+5. Restart the machine.
+
+The dialog shows each step and a progress bar. Do not switch the machine
+off while it runs. When the machine is back, the page reloads on its own so
+the browser loads the panel the new firmware serves. The firmware that was
+running stays in its slot: the boot selector can go back to it
+([Recovery](recovery.md)). The dialog names the reason when a step fails,
+and nothing after the failed step runs.
 
 ### Upload
 
@@ -123,7 +143,9 @@ release catches up ([Cloud mode](../usage/cloud-mode.md)).
     |---|---|
     | `GET /slots` | The slot inventory. |
     | `POST /boot` | Select the next boot target (probe-gated). |
-    | `POST /update/check` | Check for a release. |
+    | `GET /update/release` | The last answer of the release check, with the installed version, whether the release is newer, and whether its alert is dismissed. |
+    | `POST /update/check` | Check for a release now; the answer is the same as `GET /update/release`. |
+    | `POST /update/dismiss?version=<tag>` | Dismiss the alert for that release; an empty version undoes it. |
     | `POST /update/download` | Download a release archive to `/data`. |
     | `POST /update/apply` | Apply a downloaded archive to the inactive slot. |
     | `POST /update/upload` | Upload an archive or an image. |

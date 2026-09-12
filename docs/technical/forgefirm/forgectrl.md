@@ -138,7 +138,7 @@ costs one bounded error, never a pinned thread.
 | `POST /curve/record`, `GET /curve/status`, `POST /curve/stop`, `GET /curve/ladder.gcode` | The dose-curve recorder ([below](#the-dose-curve-recorder)) |
 | `GET /logs`, `GET /logs/tail`, `POST /logs/export` | The logging tree ([Logging](logging.md)) |
 | `GET /cam/stream`, `GET /cam/snapshot`, `GET /cam/status`, `GET /cam/h264`, the mjpg-streamer aliases | The camera service ([Video pipeline](video-pipeline.md)) |
-| `GET /slots`, `POST /boot`, `POST /update/check`, `POST /update/download`, `POST /update/apply`, `POST /update/upload`, `GET /update/status`, `POST /restore/factory`, `POST /restore/factory-return?confirm=1`, `POST /system/reboot` | The update manager ([Install and update](install-and-update.md#the-update-manager)) |
+| `GET /slots`, `POST /boot`, `GET /update/release`, `POST /update/check`, `POST /update/dismiss`, `POST /update/download`, `POST /update/apply`, `POST /update/upload`, `GET /update/status`, `POST /restore/factory`, `POST /restore/factory-return?confirm=1`, `POST /system/reboot` | The update manager ([Install and update](install-and-update.md#the-update-manager)) |
 | `GET /system/ssh`, `POST /system/ssh?enable=0` or `=1` | SSH state, and the switch that turns it on until the next reboot; off at every boot, kept on by a development image |
 | `GET /system/camera-key`, `POST /system/camera-key?rotate=1` | The per-machine camera key (`/data/forgefirm/camera.key`, 128 bits) with the stream and snapshot URLs that carry it, and its rotation. A valid key, as the `key` query parameter or the `X-ForgeFIRM-Camera-Key` header, authorizes any read-only route on either listener, origin checks included, and never a write |
 

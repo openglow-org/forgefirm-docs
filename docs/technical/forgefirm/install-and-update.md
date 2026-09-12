@@ -179,9 +179,18 @@ cold-Yocto reproducibility build whose only product is a checksum.
 The endpoints are in forgectrl's `src/update.c`, driven from the panel's
 System tab. Trust anchors live in `/etc/forgefirm/keys` (the
 `forgefirm-keys` recipe: the release public key plus the Glowforge keyring).
-The release version resolves from the fixed-name asset redirect
-(`.../releases/latest/download/forgefirm.fw` redirects to
-`.../download/v<ver>/...`), so there is no GitHub API use and no rate limit.
+The release check reads the latest published release from the GitHub
+releases API (`GET /repos/openglow-org/forgefirm/releases/latest`, one
+unauthenticated read, allowed 60 times an hour per address): the tag, the
+notes, the assets and their sizes. It never requests the firmware file's
+URL, which GitHub counts as a download. The daemon checks two minutes after
+it starts, then every 24 hours; a check that got no answer is retried after
+an hour. The download requests
+`.../releases/download/<tag>/forgefirm.fw` once, for the tag the check
+found. `new` in the check's answer is the version order of
+`v<major>.<minor>.<patch>` tags; an installed version that is not one (a
+development build's stamp) is older than every release. The dismissed
+release is the settings key `update_dismissed`.
 
 All slot writes run on one background job (polled through
 `GET /update/status`), take the installer's `/data/forgefirm/update.lock`,
@@ -192,7 +201,9 @@ signature before writing, and re-verify the written filesystem.
 |---|---|
 | `GET /slots` | The slot inventory (the ffboot probe) |
 | `POST /boot` | Set the boot target; probe-gated, refuses unprobeable targets |
-| `POST /update/check` | Check the latest release |
+| `GET /update/release` | The last answer of the release check: `available`, `version`, `current`, `new`, `published`, `bytes`, `notes`, `detail`, `checked`, `dismissed` |
+| `POST /update/check` | Check the latest release now; answers as `GET /update/release` |
+| `POST /update/dismiss?version=<tag>` | Dismiss the alert for that release (an empty version undoes it) |
 | `POST /update/download` | Download the `.fw` to `/data` |
 | `POST /update/apply` | Verify and apply to the inactive slot, verify the written slot |
 | `POST /update/upload` | Streamed multipart upload to `/data` |
@@ -235,12 +246,13 @@ Functions of the panel page:
 
 - **Inventory:** slot contents (the probe), current and next boot
   selection, archive presence and version.
-- **Update check** against the GitHub releases (a manual button, plus one
-  check the first time the System tab is opened; offline-tolerant,
-  rate-limit friendly).
-- **Apply release:** download the `.fw` to `/data`, verify the signature,
-  apply to the inactive slot, verify, then flip only on explicit user
-  confirmation, and prompt for a reboot.
+- **Update check** against the GitHub releases API (daily, plus a manual
+  button; offline-tolerant), with an alert on every tab for a newer
+  release, dismissable per release.
+- **Apply release:** one dialog with the release notes and one button:
+  download the `.fw` to `/data`, verify the signature, apply to the
+  inactive slot, verify, select that slot for the next boot, and restart;
+  the page reloads when the machine is back.
 - **Upload:** streamed multipart to `/data` through the framework's
   upload sink; the framework's own copy of a request body is capped at
   64 KiB. Accepts a `.fw` (verified; warns if unsigned) and nothing else.
@@ -324,8 +336,5 @@ slot scheme.
 
 ## Open items
 
-- The periodic panel update check, default-on or opt-in (it pings GitHub;
-  the proposal is on by default, apply always manual, with a config switch
-  to disable).
 - Recovery kernel modules: carried from the factory image, or rebuilt from
   the GPL source (a recovery-refresh decision).
