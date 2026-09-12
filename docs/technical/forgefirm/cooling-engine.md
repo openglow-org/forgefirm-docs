@@ -177,6 +177,16 @@ a job).
   profile is written, and again when a fan is commanded faster mid-run (the
   armed window opening raises a lowered fan). Nothing counts inside it,
   because the big exhaust fan takes seconds to reach speed.
+- **Every fan duty written is read back.** The head's air-assist register
+  and the two thermal PWMs report the duty in force, so the engine reads
+  each write back, tries a write that did not take three times, and names
+  one that never took in the log. Once a tick it reads the three duties
+  back against what it commanded and puts back a duty a device lost (a
+  head reset, a dropped transaction), with the spin-up grace again for a
+  fan raised back, up to three times a session. A device that keeps
+  losing its duty is judged at its tach like any other fan. The airflow
+  fault names the duty commanded and the duty in force beside the reading,
+  so a fan that never got its duty reads as that, not as a slow fan.
 - **The first fire waits for the fans.** The engine acknowledges the
   armed window (`armed` in the verdict) only once every gated fan reads at
   or above its floor, and the controller waits for that acknowledgment
