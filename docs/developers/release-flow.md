@@ -129,7 +129,10 @@ release.sh --dev                   build and pack a dev-signed .fw for the
 
 The script runs its gates, builds both images, packs and signs
 `forgefirm.fw`, stages the assets with `sha256sums.txt`, and prints the
-`gh release create` command. The gates:
+`gh release create` command. The release notes are
+`releases/v<version>/notes.md` when the release carries that file (staged
+beside the assets, not uploaded as one); otherwise GitHub generates them.
+The gates:
 
 - **The version contract.** `<version>` must equal `FORGEFIRM_RELEASE` in
   `forgefirm-image.bb`, `/etc/forgefirm-version` in the built rootfs
