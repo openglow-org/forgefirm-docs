@@ -35,7 +35,7 @@ control board:
 
 ![Remove Board Screws](../../assets/images/serial-access/OpenGlow-USB-1.png)
 
-GENTLY place the OpenGlow adapter on the control board, with the arrow pointing towards the laser bed, 
+GENTLY place the OpenGlow adapter on the control board, with the arrow pointing toward the laser bed, 
 and align the standoffs with the four holes on the control board. **DO NOT APPLY FORCE**:
 
 ![Place and Align the Adapter](../../assets/images/serial-access/OpenGlow-USB-2.jpg)

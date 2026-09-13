@@ -34,7 +34,7 @@ To use, gently lift the edge of the plastic shell, and insert the jig under:
 
 ![Lift Shell](../../assets/images/serial-access/Factory-USB-5.jpg)
 
-Align the outer edge of the adapter with the raised edge of the rail, and slide towards the back of the machine until you feel the USB connector lock into the board:
+Align the outer edge of the adapter with the raised edge of the rail, and slide toward the back of the machine until you feel the USB connector lock into the board:
 
 ![Lift Shell](../../assets/images/serial-access/Factory-USB-6.jpg)
 
