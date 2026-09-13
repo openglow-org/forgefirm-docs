@@ -28,7 +28,7 @@ How a result was obtained is recorded in the commit that carried it.
   card. The dev image has a BusyBox userland, python3, gdb, and strace. Log
   in over SSH as root; the dev image permits a root login without a
   password. A serial console is available on `ttymxc0`
-  ([serial access](../install/serial-access.md)).
+  ([serial access](../install/serial-access/index.md)).
 - **Deploy a kernel.** Write the new dev image to the SD card again
   ([Build](building.md)). This works because U-Boot (in the eMMC boot0 area)
   reads the saved environment at eMMC user-area offset 0x80000. That

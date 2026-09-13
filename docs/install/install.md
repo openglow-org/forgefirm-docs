@@ -21,7 +21,7 @@ need, and [Regulatory and legal](index.md#regulatory-and-legal) before you begin
 
 ## Run the installer
 
-Log in at the factory console ([Serial access](serial-access.md); login
+Log in at the factory console ([Serial access](serial-access/index.md); login
 `root`, no password) and run:
 
 ```sh

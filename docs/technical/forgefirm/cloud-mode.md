@@ -449,7 +449,7 @@ Glowforge: the serial from `HW_OCOTP_MAC0`, and the password from
 `HW_OCOTP_SRK0..7` (each read from `/sys/fsl_otp/`, the eight SRK words
 concatenated as 8-digit hexadecimal). The hostname is the identifier shown
 at the command prompt, in capitals. Reading them needs
-[serial access](../../install/serial-access.md) to the board. On a ForgeFIRM
+[serial access](../../install/serial-access/index.md) to the board. On a ForgeFIRM
 machine the clients read the fuse identity themselves, and `gf_serial` /
 `gf_password` in `/data/forgefirm/forgefirm.conf` override it.
 

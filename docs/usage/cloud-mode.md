@@ -74,7 +74,7 @@ The panel can show it: `GET /fuse-identity` returns the serial, the derived
 hostname, and the password. It needs a login and the physical button held
 while the request is made, and it is fetched on demand only.
 
-At a console ([Serial access](../install/serial-access.md)) the identity comes
+At a console ([Serial access](../install/serial-access/index.md)) the identity comes
 from the i.MX6 OCOTP fuses: the serial from `HW_OCOTP_MAC0`, the password from
 `HW_OCOTP_SRK0..7`. The hostname is the identifier shown at the command prompt,
 in capitals. In a Python shell on the machine:

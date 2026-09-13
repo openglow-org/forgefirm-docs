@@ -24,7 +24,7 @@ Work down the ladder. Each step is more involved than the one before it.
    selector and `ffboot` list the card as a target
    ([Build](../developers/building.md) for how the image is written).
 4. **The serial console.** Log in at the console
-   ([Serial access](serial-access.md)). From the factory firmware,
+   ([Serial access](serial-access/index.md)). From the factory firmware,
    rerunning the installer recovers a broken ForgeFIRM install: it skips
    the archives it already has and rewrites the ForgeFIRM slot
    ([Install](install.md)).

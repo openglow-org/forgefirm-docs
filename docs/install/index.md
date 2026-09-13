@@ -25,7 +25,7 @@ to update, and how to recover. Read [Safety](../safety/index.md) first, and
 
 | Page | Contents |
 |---|---|
-| [Serial access](serial-access.md) | The console on the control board: the Micro-USB port of early machines, the OpenGlow serial adapter, or a soldered 1.8 V FTDI cable. |
+| [Serial access](serial-access/index.md) | The console on the control board: the Micro-USB port of early machines, the OpenGlow serial adapter, or a soldered 1.8 V FTDI cable. |
 | [Install](install.md) | The one-stage installer, run at the factory console, and the first boot. |
 | [Back to the factory firmware](factory-restore.md) | The factory archive, and how to restore the factory firmware from it. |
 | [Updating](updating.md) | Signed `.fw` releases and the update manager in the control panel. |
@@ -49,8 +49,9 @@ their build rather than this one: get it from the source
 
 - A stock Glowforge Basic, Plus, or Pro. The control board is common to all
   three, and nothing on it is modified.
-- [Serial console](serial-access.md) access. The factory firmware does not
-  offer SSH, so the install runs at the console (login `root`, no password).
+- [Serial console](serial-access/index.md) access. The factory firmware does not
+  offer SSH and does not support installing firmware that is not signed by 
+  Glowforge, so the install runs at the console (login `root`, no password).
 - About 300 MB free on `/data` (a factory machine has far more).
 - Internet access on the machine for the standard flow. For an offline
   install, place a `forgefirm.fw` on `/data` beforehand and pass its path to
@@ -67,7 +68,7 @@ firmware from that archive whenever you wish
 ([Back to the factory firmware](factory-restore.md)).
 
 The install and every later update use the factory's own update mechanism:
-the eMMC carries two 200 MiB rootfs slots, a signed `.fw` archive is
+the onboard storage (4GB eMMC) carries two 200 MiB rootfs slots, a signed `.fw` archive is
 applied to the slot that is not running, the result is verified, and the
 boot selection moves to it. Nothing is repartitioned, and the factory
 `/data` partition (settings, credentials, logs) is untouched and keeps its

@@ -107,7 +107,10 @@ nav:
   - Safety: safety/index.md
   - Installation:
       - install/index.md
-      - Serial access: install/serial-access.md
+      - Serial access:
+        - install/serial-access/index.md
+        - Factory USB Console: install/serial-access/factory-usb.md
+        - OpenGlow Console Adapter: install/serial-access/openglow-adapter.md
       - Install: install/install.md
       - Back to the factory firmware: install/factory-restore.md
       - Update: install/updating.md

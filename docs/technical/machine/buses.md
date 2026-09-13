@@ -7,7 +7,7 @@ title: Buses and the serial console
 This page describes the control board's serial console port and the I²C
 devices the public documents name.
 How to get a console on your machine is on
-[Serial access](../../install/serial-access.md).
+[Serial access](../../install/serial-access/index.md).
 
 ## The serial console
 
