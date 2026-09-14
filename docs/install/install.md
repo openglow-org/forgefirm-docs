@@ -64,7 +64,7 @@ first, open `http://<ip>/cert`: it shows the fingerprint with no warning to
 accept ([The control panel](../usage/control-panel.md#the-address)). The
 setup then runs: the
 advisories, your account, the preferences, the machine facts, and the cloud
-decision ([Commissioning](../usage/commissioning.md)). No controller runs for
+decision ([Setup](../usage/setup.md)). No controller runs for
 a sender until the setup is complete.
 
 Root has no password and works at the serial console only; SSH refuses root.

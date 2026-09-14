@@ -415,7 +415,7 @@ Bits: 0: X Axis, 1: Y1 Axis, 2: Y2 Axis, 3: Z Axis
 The factory's idle posture is 8 (the lens locked out of the pulse path), and
 both ForgeFIRM controllers take that posture at their start. A program that
 moves the lens needs the bit clear for its run: the cloud client clears it for
-every motion and puts it back after, and a commissioning card that steps the
+every motion and puts it back after, and a setup card that steps the
 lens clears it for its session. A print streamed with the bit set burns every
 line at one height and counts the Z steps it never made.
 

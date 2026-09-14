@@ -227,7 +227,7 @@ off, about 628 with it on.
 - **Accelerometer**: the head carries an ST LIS2HH12, bound to the mainline
   `st_accel` driver. It is the machine's **motion witness**: the step drives
   are open loop, so position counters are never proof of motion, and it is the
-  sensor ForgeFIRM's motion-liveness gate, crash watch and commissioning lens
+  sensor ForgeFIRM's motion-liveness gate, crash watch and setup lens
   finder all use (see [forgectrl](../forgefirm/forgectrl.md),
   [the cooling engine](../forgefirm/cooling-engine.md), and
   [Motion hardware](motion-hardware.md#what-the-motion-witness-reads) for what

@@ -70,7 +70,7 @@ side-by-side comparison of the two modes.
 
 Switch from the panel's Status tab, with the controller-mode selector. The
 Factory cloud choice exists only once the setup's cloud step turned cloud
-mode on (`cloud_enabled=1`, [Commissioning](commissioning.md#cloud-mode)).
+mode on (`cloud_enabled=1`, [Setup](setup.md#cloud-mode)).
 The switch is allowed only when the machine is idle and no diagnostic is
 running.
 It stops the active controller, persists `controller_mode`, starts the other

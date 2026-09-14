@@ -68,8 +68,8 @@ each gate does.
 |---|---|---|---|---|---|
 | `cool_temp_min` | 5 °C | 0 to 40 °C | 3 to 8 °C | 0 | Coolant floor, a fire gate; it clears 1 °C above itself. |
 | `cool_temp_start` | 16 °C | 0 to 40 °C | 12 to 20 °C | 0 | Warm-up gate: a session opening under it holds with the loop heater on until the coolant reaches it. Kept above the floor. |
-| `cool_tec_present` | 0 | 0 or 1 | | | Whether a thermoelectric cooler (a Pro's chiller) is fitted. The line has no readback, so this is the operator's word; leave it 0 on a Basic or a Plus. The setup's TEC check proves the drive and clears it when nothing cools ([Commissioning](commissioning.md#the-checks)). |
-| `cool_temp_offset_c` | 0 | -5 to 5 C | | | Added to both coolant readings after the conversion: the per-machine offset from one room-thermometer reading in the setup's sensors check. |
+| `cool_tec_present` | 0 | 0 or 1 | | | Whether a thermoelectric cooler (a Pro's chiller) is fitted. The line has no readback, so this is the operator's word; leave it 0 on a Basic or a Plus. The setup's TEC check proves the drive and clears it when nothing cools ([Setup](setup.md#the-checks)). |
+| `cool_temp_offset_c` | 0 | -5 to 5 C | | | Added to both coolant readings after the conversion, a per-machine correction. No setup step writes it: the coolant and the air in the case are not at one temperature on a machine that has been on for a while, so a room thermometer is not a reference for it. Set it by hand only when a known-good reading says the sensors are off. |
 | `cool_tec_on_c` | 20 °C | 6 to 32 °C | 18 to 24 °C | never | TEC on threshold (upstream coolant reading). Kept above `cool_tec_off_c`. |
 | `cool_tec_off_c` | 18 °C | 5 to 31 °C | 16 to 22 °C | never | TEC off threshold. The TEC runs only while the fans run, and never within a degree of the coolant floor. |
 | `cool_fire_q1_alert` | 275 | 0 to 1023 | 250 to 450 | 0 | Flame watch, lowest sorted lid-IR reading: the pause tier. |

@@ -64,8 +64,8 @@ between "no light" and "full light" is below.
 The numbers in this section are the bench reference's
 ([The bench reference](index.md#the-bench-reference)). A tube is a consumable
 with a wide tolerance, and it ages, so treat the shape as general and the
-values as one machine's. The commissioning sheet measures the two that matter
-on yours ([Commissioning](../../usage/commissioning.md#the-sheet)).
+values as one machine's. The setup sheet measures the two that matter
+on yours ([Setup](../../usage/setup.md#the-sheet)).
 
 ### Two thresholds, far apart
 

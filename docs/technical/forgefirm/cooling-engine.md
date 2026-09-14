@@ -132,7 +132,7 @@ print gets the fan profile the service designed for it and a lens hunt stays
 quiet.
 
 **The quiet hold.** A listening to the head accelerometer wants the machine
-quiet, because a running fan or pump is in the reading. The commissioning
+quiet, because a running fan or pump is in the reading. The setup
 focus card's stop finder takes the engine's quiet hold for its listening:
 the air assist, exhaust, intake and purge fans off whatever the phase says,
 the pump still running (the finder was proven that way). The bench tools
@@ -160,7 +160,7 @@ a job).
   that fan reaches at the cut profile on the bench reference (the measured
   speeds and spin-up times are on
   [Coolant and airflow](../machine/coolant-and-airflow.md#what-the-fans-actually-reach)),
-  with a recommended band of 50 to 60 percent. The commissioning airflow check
+  with a recommended band of 50 to 60 percent. The setup airflow check
   measures a machine's own and writes them. A cloud job's header can raise a
   tach floor for that job, never lower it.
 - **A fan is judged at the operating point where its floor is measured.**
@@ -294,7 +294,7 @@ which is a hair from a false suspicion.
 Two tunables ride with the flow gate and are not gates:
 `cool_laser_heat_cw` and `cool_laser_heat_density`, the tube's share of a
 heater rise in °C per raw-second of `pic/hv_current` under each power model
-(defaults 3.06e-5 and 2.36e-5, legal 0 to 2e-4; the commissioning sheet's
+(defaults 3.06e-5 and 2.36e-5, legal 0 to 2e-4; the setup sheet's
 flow-load card measures them, with the check held for the card so the
 heater does not swamp the tube's share: `cool_flow_check_hold`, released
 at the run's end or after ten minutes whatever happens). The model the controller

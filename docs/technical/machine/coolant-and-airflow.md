@@ -80,8 +80,8 @@ the spin-up times are why the gates have a grace window
 ([the cooling engine](../forgefirm/cooling-engine.md#airflow-gates-a-fan-that-is-not-moving-the-air)).
 They are one machine's: an exhaust duct with an inline booster fan changes the
 back pressure and can move the exhaust reading by a few percent either way,
-and the commissioning airflow check measures your machine's own
-([Commissioning](../../usage/commissioning.md#the-checks)).
+and the setup airflow check measures your machine's own
+([Setup](../../usage/setup.md#the-checks)).
 
 ## What the kernel does on its own
 

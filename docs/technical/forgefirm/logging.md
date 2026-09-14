@@ -98,7 +98,7 @@ cap protects.
 |---|---|
 | `GET /logs` | Loggers with configured and effective levels and on-disk sizes, the remote target, `pending_reboot` |
 | `GET /logs/tail?name=&lines=&from=` | The last `lines` of a logger's live file, or everything since byte offset `from` (incremental follow) |
-| `POST /logs/export?sanitize=1` or `=0` | Streams a `tar.gz` of every logger's files plus a system snapshot (version, dmesg, uptime, memory, disk, processes, effective levels, settings with secrets masked, and the commissioning record as `system/commissioning.json`, indented so the sanitizer sees one value per line) |
+| `POST /logs/export?sanitize=1` or `=0` | Streams a `tar.gz` of every logger's files plus a system snapshot (version, dmesg, uptime, memory, disk, processes, effective levels, settings with secrets masked, and the setup record as `system/setup.json`, indented so the sanitizer sees one value per line) |
 
 All three require a login session or the panel token
 ([forgectrl](forgectrl.md#http-api)).

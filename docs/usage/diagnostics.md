@@ -4,10 +4,10 @@ title: Diagnostics
 
 # Diagnostics
 
-The panel's Commissioning tab runs hardware tests that take the machine over.
+The panel's Setup tab runs hardware tests that take the machine over.
 This page tells you what each tool does, how long it takes, and when to run it.
 The setup runs the same tests as its coolant steps, with the automatic heater
-retry and the record ([Commissioning](commissioning.md#the-checks)); the tools
+retry and the record ([Setup](setup.md#the-checks)); the tools
 here are the way to run one by hand.
 
 !!! danger "Read the Safety page first"

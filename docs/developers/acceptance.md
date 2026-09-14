@@ -74,8 +74,8 @@ Each test declares, in code (`forgetest/forgetest/suite/*.py`):
 - **precheck**: a condition that the machine must meet for the test to start
   at all, and that the test cannot make for itself. `kernel.fire-line` needs
   HV not reporting good, which is the rule of the kernel for a zero-duty
-  latch unlock. `commission.gate-blocks-controllers` needs a completed
-  commissioning record to start from. A start that the precheck refuses is
+  latch unlock. `setup.gate-blocks-controllers` needs a completed
+  setup record to start from. A start that the precheck refuses is
   not a result. The page says why. A queue skips the test with the reason
   and continues. Nothing is recorded. A precheck never names a setting the
   operator should change: a test that needs a setting, a record, or an

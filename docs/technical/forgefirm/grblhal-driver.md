@@ -204,7 +204,7 @@ at every spindle precompute, so `$35` is derived, never typed. S commands a
 light fraction, and `laser_dose_curve` maps it onto the density that
 delivers it; `laser_corner_gamma` is the corner rolloff under `M4`. `M102`
 reloads the three inside a job, synchronized behind every buffered motion,
-through the same spindle configuration the arm runs: the commissioning
+through the same spindle configuration the arm runs: the setup
 sheet's cards change them between their passes. The
 analog rendering (continuous FIRE at a duty) is not selectable on a machine.
 It fires the tube's strike transient as a spot at every beam-on, and exists
@@ -486,7 +486,7 @@ Every head shares the lens screw and its travel, so the Z scale is a
 constant: `$102` is 2.922 half-steps per millimeter (36 over the carriage's
 12.32 mm), about 0.34 mm a half-step. What differs from head to head is the
 step along the travel at which the hall sensor trips. That rising edge is
-the one reference the head has, and the commissioning focus card measures
+the one reference the head has, and the setup focus card measures
 the one number the head needs: `lens_hall_edge_z_mm`, the focal height above
 the tray when the lens sits on it. A home in gfcloud mode leaves the lens on
 that edge, sets Z to the number, placed on the whole step the controller

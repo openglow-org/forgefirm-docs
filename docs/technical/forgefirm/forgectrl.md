@@ -72,16 +72,16 @@ Parts of the contract live on their own pages:
 - The **web control panel**, **camera service**, **telemetry**,
   **diagnostics**, persisted **machine settings**, the **logging** tree, and
   the A/B **update system**.
-- **Commissioning.** The first-run setup, the login, and the gate that
+- **Setup.** The first run, the login, and the gate that
   holds every controller until the setup is complete
-  ([below](#commissioning-and-the-gate)).
+  ([below](#setup-and-the-gate)).
 
 ## HTTP API
 
 forgectrl runs two listeners. HTTPS on port 443 serves every route. Its
 certificate is self-signed, made at the first start, and kept under
 `/data/forgefirm/` across updates. `GET /settings` reports its SHA-256
-fingerprint as `tls_fingerprint`; the panel's Commissioning card and
+fingerprint as `tls_fingerprint`; the panel's Setup card and
 `GET /cert` show the same fingerprint. HTTP on port 80
 serves only the read-only routes to the LAN. Those are `GET /status`, the camera routes and the
 mjpg-streamer aliases, `/settings`, `/grbl/settings`, `/mode`,
@@ -119,8 +119,8 @@ costs one bounded error, never a pinned thread.
 |---|---|
 | `GET /` | The control panel ([Control panel](../../usage/control-panel.md)); the setup until it is complete |
 | `GET /login`, `POST /login`, `POST /logout` | The login page, the login (`name`, `password`), the sign-out |
-| `GET /setup`, `GET /wiz`, `GET /wiz/record`, `GET /advisories/<id>`, `POST /wiz/advisories/accept`, `POST /wiz/advisories/press`, `GET /wiz/advisories/press`, `POST /wiz/advisories/press/cancel`, `POST /wiz/account`, `POST /wiz/preferences`, `POST /wiz/machine`, `POST /wiz/cloud`, `POST /wiz/complete` | The setup ([Commissioning](../../usage/commissioning.md#the-routes)); an advisory's `ETag` is its hash; `GET /wiz` carries the what-changed menu (`changes`) |
-| `GET /wiz/record?download=1`, `GET /wiz/record.html`, `POST /wiz/changed` (`what`) | The record as a download named after the sheet id; the printable summary (`recordhtml.c`: one page, no script, every value escaped, the steps in catalog order with the sentence, the settings written with their values before, and the numbers); a replaced part or a service mapped to the wizards to run again (`commission.c`: the table of changes, required for the wizards whose settings were measured on the old part, recommended for the ones that prove it; a required flag never drops to recommended, and a run clears it). The record routes take a login session or the token |
+| `GET /setup`, `GET /wiz`, `GET /wiz/record`, `GET /advisories/<id>`, `POST /wiz/advisories/accept`, `POST /wiz/advisories/press`, `GET /wiz/advisories/press`, `POST /wiz/advisories/press/cancel`, `POST /wiz/account`, `POST /wiz/preferences`, `POST /wiz/machine`, `POST /wiz/cloud`, `POST /wiz/complete` | The setup ([Setup](../../usage/setup.md#the-routes)); an advisory's `ETag` is its hash; `GET /wiz` carries the what-changed menu (`changes`) |
+| `GET /wiz/record?download=1`, `GET /wiz/record.html`, `POST /wiz/changed` (`what`) | The record as a download named after the sheet id; the printable summary (`recordhtml.c`: one page, no script, every value escaped, the steps in catalog order with the sentence, the settings written with their values before, and the numbers); a replaced part or a service mapped to the wizards to run again (`setup.c`: the table of changes, required for the wizards whose settings were measured on the old part, recommended for the ones that prove it; a required flag never drops to recommended, and a run clears it). The record routes take a login session or the token |
 | `POST /wiz/<id>/start`, `POST /wiz/<id>/answer` (`seq`, `value`), `POST /wiz/<id>/abort`, `POST /wiz/<id>/takeover`, `GET /wiz/dark`, `GET /wiz/shot?cam=lid\|head` | The checks (the dark wizards) and the sheet cards (the live wizards): one runs at a time on a worker thread; the status carries the phase, the progress, the time so far, the log, the open prompt with its sequence number and how long it waits (`timeout_s`, `since_s`), the result (a live card's carries a `summary` sentence), the settings the wizard wrote with their values before (`applied`), and the run's ownership (`owned`: a login session drives it; `mine`: the requester's); the login session that started a run answers and aborts it, another session is refused (409) until it takes the run over, and a requester with no session (a tool with the token) is never held back; the shot is the cameras check's last snapshot |
 | `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A sheet card's preview (the drawing the daemon streams, from the record's facts) and its program body; the live wizards stream their programs through the daemon's own sender (`jobstream.c`: lines in flight up to half the controller's RX ring, ok per line, a $ command, M102 and the program end sent alone as barriers, the emission witnesses sampled at 25 Hz) in loopback posture, with the lens referenced on its hall sensor first; the focus card homes the lens on its bottom stop to place the hall edge in the carriage's travel, and its result is the focus model in the lens's own half-steps ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)) |
 | `GET /status` | Machine operational status as JSON: state, position with `homed_axes` naming the axes that carry a reference, fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
@@ -131,7 +131,7 @@ costs one bounded error, never a pinned thread.
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever ([Mode supervision](#mode-supervision)) |
 | `POST /cool/state` | Controller job-state report, level-triggered at ~1 Hz ([Cooling engine](cooling-engine.md#job-state-reports)) |
 | `GET /cool/status` | Cooling-engine state: phase, verdict, `fire_ok`, `hold`, `resume_ok`, temps, report age, `gates_off`, the effective `limits`, `fan_gates`, `fire_watch`, `accel_watch`, `quiet_hold` |
-| `POST /cool/quiet?on=1` or `=0`, with `pump=1` | The quiet hold for a listening to the head accelerometer (the bench tools; the commissioning finder uses the same hold inside the daemon): every fan off, and with `pump=1` the coolant pump and the TEC too, the machine silent. Taken only from an idle machine with no diagnostic running; the engine releases it itself when a run session opens or after 600 s ([Cooling engine](cooling-engine.md#what-the-fans-do-and-when)) |
+| `POST /cool/quiet?on=1` or `=0`, with `pump=1` | The quiet hold for a listening to the head accelerometer (the bench tools; the setup finder uses the same hold inside the daemon): every fan off, and with `pump=1` the coolant pump and the TEC too, the machine silent. Taken only from an idle machine with no diagnostic running; the engine releases it itself when a run session opens or after 600 s ([Cooling engine](cooling-engine.md#what-the-fans-do-and-when)) |
 | `POST /diag/flow-verify`, `POST /diag/flow-calibrate`, `POST /diag/aa-offset-calibrate`, `POST /diag/abort`, `GET /diag/status` | The diagnostics runner ([Diagnostics](../../usage/diagnostics.md)) |
 | `GET /fuse-identity` | The machine's fuse identity ([Control panel](../../usage/control-panel.md)) |
 | `GET /grbl/settings` | The controller's `$$` view, verbatim; 404 with no live controller |
@@ -156,8 +156,8 @@ and the homing runner both read this file mid-run.
 progress: `idle` (the steppers energized) or `disabled` (the steppers off).
 `disabled` is the state a machine holds from power-on until something
 energizes the steppers, which for a machine out of the box is its first
-controller spawn, after the setup ([Commissioning and the
-gate](#commissioning-and-the-gate)). `running` is not idle, `fault` and
+controller spawn, after the setup ([Setup and the
+gate](#setup-and-the-gate)). `running` is not idle, `fault` and
 `underrun` are not idle until each is acknowledged, and a state that cannot
 be read is not idle either: the gates fail closed
 ([The kernel module](kernel-module.md#state)).
@@ -171,24 +171,24 @@ anchor written without that field references all three. Controller-side facts re
 through pushed state: the `/run` anchor files, the job-state reports, and
 the `grbl.state` file below.
 
-### Commissioning and the gate
+### Setup and the gate
 
 The first run of the panel is the setup: the advisories, the account, the
 preferences, the machine facts, and the cloud decision
-([Commissioning](../../usage/commissioning.md)). It is served at `/` until
+([Setup](../../usage/setup.md)). It is served at `/` until
 it is complete and at `/setup` afterward. The advisories step ends with one
 press of the machine's button, requested by `POST /wiz/advisories/press`;
 the button breathes teal while it waits. A document that changes in a later
 release must be accepted again.
 
-The record is `/data/forgefirm/commissioning.json`. It holds the advisories
+The record is `/data/forgefirm/setup.json`. It holds the advisories
 with their hashes and acceptance times, the account name, and the machine
 facts. It also holds each wizard's completed version with its results and
 applied settings, and the flags. The sheet id is derived from the serial with the salt in
 `/data/forgefirm/sheet.salt`; it never reveals the serial. The account
 record is `/data/forgefirm/users`. The record grows with every result, so
 its routes hand out a malloc'd dump, never a fixed buffer; the sanitized
-log export carries it as `system/commissioning.json`
+log export carries it as `system/setup.json`
 ([Logging](logging.md)).
 
 The button LED during the setup (`led.c`, written only while no controller
@@ -203,7 +203,7 @@ panel is first served.
 The gate: until the setup is complete, the supervisor spawns no controller.
 The same holds while a required step is out of date or a required flag is
 raised. `GET /mode` reports `controller: gated` with `why`, and the panel's
-Status tab shows a banner. The file `/run/forgefirm/commissioning-override`,
+Status tab shows a banner. The file `/run/forgefirm/setup-override`,
 created as root, lifts the hardware gate until the next reboot. It never
 lifts the advisories or the account, and the panel says so.
 
@@ -396,7 +396,7 @@ remain only as manual emergency stops.
 - `GET /mode` returns
   `{"mode":"grbl|cloud","controller":"running|stopped|standby|waiting|motion-fault|gated","pid":N,"motion":"verified|unverified|fault","why":"..."}`.
   `why` names what holds the machine: the gate's reason beside a `gated`
-  controller ([Commissioning and the gate](#commissioning-and-the-gate)),
+  controller ([Setup and the gate](#setup-and-the-gate)),
   what is open beside a `waiting` one, and otherwise the probe's own words
   behind an `unverified` or `fault` verdict (empty when there is nothing to
   say).

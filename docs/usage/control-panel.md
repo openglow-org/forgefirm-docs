@@ -28,7 +28,7 @@ attack ([Access](#access)).
 
 The panel is served over HTTPS with a certificate the machine makes at its
 first start. The browser warns once; accept the warning. The certificate's
-SHA-256 fingerprint is on the System tab's Commissioning card. Compare it
+SHA-256 fingerprint is on the System tab's Setup card. Compare it
 with what the browser shows. To check
 it before you accept the warning, open `http://<ip>/cert` (plain HTTP, no
 login, no redirect): the page shows the fingerprint, the names on the
@@ -43,7 +43,7 @@ camera and other readers ([Access](#access)).
 ## Login
 
 The first run of the panel creates one account, a name and a password
-([Commissioning](commissioning.md)). After that the panel asks for a login.
+([Setup](setup.md)). After that the panel asks for a login.
 The session is a cookie, sent over HTTPS only, and it expires after 12
 hours idle. Five wrong attempts from one address lock the login for 30 s.
 The **Sign out** button in the header ends the session. The same name and
@@ -51,7 +51,7 @@ password open SSH ([System](#system)).
 
 Forgot the password? Hold the machine's button while you turn the machine
 on, for ten seconds, until the button blinks amber. The setup then asks for
-a new account ([Commissioning](commissioning.md#a-forgotten-password)).
+a new account ([Setup](setup.md#a-forgotten-password)).
 
 ## The page
 
@@ -93,9 +93,9 @@ feeds the charge-pump watchdog with the lid closed
 The Status tab shows a standing banner while any cooling gate is turned off
 ([Cooling and fans](cooling-and-fans.md)), and a compatibility warning when the
 Glowforge service has moved past the firmware version cloud mode is tested
-against ([Cloud mode](cloud-mode.md)). While the commissioning gate holds
+against ([Cloud mode](cloud-mode.md)). While the setup gate holds
 the machine, the tab shows a banner with a link to continue the setup
-([Commissioning](commissioning.md#the-gate)). While the motion check waits
+([Setup](setup.md#the-gate)). While the motion check waits
 for the lid or the interlock to close, the tab shows a banner that says so,
 and the button blinks amber ([Modes](modes.md#what-the-supervisor-does-for-you)).
 
@@ -110,7 +110,7 @@ airflow gates ([Cooling and fans](cooling-and-fans.md)).
 ### GF Cloud
 
 The tab exists only while cloud mode is turned on (`cloud_enabled`,
-[Commissioning](commissioning.md#cloud-mode)). Glowforge web-service
+[Setup](setup.md#cloud-mode)). Glowforge web-service
 overrides: machine identity (serial and password; blank
 means the factory fuse identity), the homing-session timeout, the print-pause
 counts, and the job-size guards ([Cloud mode](cloud-mode.md)).
@@ -123,14 +123,14 @@ grace), the laser dose and the dose-curve recorder, the lid and interlock
 policy, the motor-rail settle time, and the lid lamp
 ([GRBL mode](grbl-mode.md), [Settings](settings.md)).
 
-### Commissioning
+### Setup
 
 The checks the setup ran, with the version each completed at and what the
 machine asks for again (required or recommended, with the reason), and a
-link to the setup to run one again ([Commissioning](commissioning.md)). The
+link to the setup to run one again ([Setup](setup.md)). The
 **What changed?** menu names a replaced part or a service, and the checks
 that depend on it are asked for again
-([What changed](commissioning.md#what-changed)). Below them, the cooling
+([What changed](setup.md#what-changed)). Below them, the cooling
 tools that take the hardware over (the active controller is suspended
 through the supervisor for the duration): verification and calibration
 ([Diagnostics](diagnostics.md)).
@@ -155,10 +155,10 @@ is off at every boot, and a development image keeps it on. It opens with
 the panel account's name and password; root has no password and works at
 the serial console only. The machine's SSH host keys are made at the first
 start and kept on `/data`, so its fingerprint stays the same across
-updates. **Commissioning** shows the state of the setup and
+updates. **Setup** shows the state of the setup and
 the certificate fingerprint, with a link to run a step again, the printable
 summary of the record, and the record itself as a download
-([Commissioning](commissioning.md#the-record)).
+([Setup](setup.md#the-record)).
 
 The WiFi region (`wifi_country`) sets the radio's allowed channels and
 transmit power. Automatic follows the country the access point advertises,
@@ -184,13 +184,13 @@ offset diagnostic's Apply button.
 | `GET /cool/status` | Cooling-engine state: phase, verdict, temps, report age, `gates_off`, the effective `limits`, `fan_gates` |
 | `GET /grbl/settings` | The GRBL controller's `$$` view, while a GRBL controller runs |
 | `GET /login`, `POST /login`, `POST /logout` | The login page, the login (`name`, `password`), and the sign-out |
-| `GET /setup`, `GET /wiz`, `GET /wiz/record`, `GET /wiz/record.html`, `GET /advisories/<id>`, `POST /wiz/...` | The setup, its record (as JSON, a download, or the printable summary), and the what-changed menu ([Commissioning](commissioning.md#the-routes)) |
+| `GET /setup`, `GET /wiz`, `GET /wiz/record`, `GET /wiz/record.html`, `GET /advisories/<id>`, `POST /wiz/...` | The setup, its record (as JSON, a download, or the printable summary), and the what-changed menu ([Setup](setup.md#the-routes)) |
 | `GET /system/ssh`, `POST /system/ssh?enable=0\|1` | SSH state, and the switch that turns it on until the next reboot |
 | `GET /system/camera-key`, `POST /system/camera-key?rotate=1` | The camera key with the URLs that carry it, and a new key ([Cameras](cameras.md#watching-it)) |
 | `GET /cert`, `GET /cert.pem` | The certificate page (fingerprint, names, validity) and the certificate in PEM form; on plain HTTP too, no login, no redirect, so the fingerprint can be checked before the browser's warning is accepted |
 | `GET /licenses` | The Licenses page every panel page links in its footer: the manifest of every installed package with its license, and the bundle download |
 | `GET /system/licenses`, `GET /system/licenses/manifest` | The image's license bundle (`tar.gz`: the manifest and the full license texts), and the manifest alone as text |
-| `POST /restore/factory-return?confirm=1` | The setup's factory-return exit ([Commissioning](commissioning.md#go-back-to-the-factory-firmware)) |
+| `POST /restore/factory-return?confirm=1` | The setup's factory-return exit ([Setup](setup.md#go-back-to-the-factory-firmware)) |
 
 `POST /cool/state` is the active controller's job-state report to the cooling
 engine, not an operator route; it accepts loopback connections only.

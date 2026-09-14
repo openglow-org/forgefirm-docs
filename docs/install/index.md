@@ -92,7 +92,7 @@ checksums. A restore runs from the control panel
 After the install the machine boots into ForgeFIRM, and the serial console
 prints the panel's addresses. Open `https://<ip>/`, accept the browser's
 certificate warning once, and complete
-the setup ([Commissioning](../usage/commissioning.md)). Root has no password
+the setup ([Setup](../usage/setup.md)). Root has no password
 and works at the serial console only. SSH is off until you turn it on from
 the panel, and it opens with the account the setup creates
 ([Install](install.md#after-the-first-boot)).

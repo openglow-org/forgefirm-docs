@@ -219,7 +219,7 @@ additionally require the physical button held
 
 **The factory return.** Every screen of the first-run setup carries a
 footer link, "Go back to the factory firmware"
-([Commissioning](../../usage/commissioning.md#go-back-to-the-factory-firmware)).
+([Setup](../../usage/setup.md#go-back-to-the-factory-firmware)).
 After a confirmation, `POST /restore/factory-return?confirm=1` runs. It
 restores the archived factory image into the other slot, when that slot no
 longer holds one. Then it moves the boot selection and reboots. It runs as
@@ -228,7 +228,7 @@ Reinstalling ForgeFIRM afterward is the installer again from the console.
 
 **What `/data/forgefirm/` holds.** Beside the archive and the update lock:
 
-- the commissioning record (`commissioning.json`);
+- the setup record (`setup.json`);
 - the sheet salt (`sheet.salt`);
 - the TLS key and certificate;
 - the account record (`users`) and the home directories (`home/`);

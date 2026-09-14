@@ -1,10 +1,10 @@
 ---
-title: Commissioning
+title: Setup
 ---
 
-# Commissioning
+# Setup
 
-Commissioning is the first run of the control panel on a new ForgeFIRM
+Setup is the first run of the control panel on a new ForgeFIRM
 install. It collects your consent, creates your account, records the
 machine's facts, and decides whether cloud mode exists. This page describes
 the steps, the button press, the record, and the gate that holds the
@@ -24,7 +24,7 @@ the browser warns once; its fingerprint is at `http://<ip>/cert` for anyone
 who wants to compare it before accepting
 ([The control panel](control-panel.md#the-address)). Until the setup is
 complete, the panel serves it at `/`. Afterward the setup lives at `/setup`,
-and the System tab's **Commissioning** card opens it again.
+and the System tab's **Setup** card opens it again.
 
 The setup runs in these steps:
 
@@ -71,8 +71,7 @@ keeps the values before and after.
    within 1.5 C of each other and within 0 to 40 C, the chassis and the
    processor in range, the lid infrared sensors under the fire watch's
    alert tier, no accelerometer event, the laser supply power-good, no HV
-   current, the fans turning at idle. Optional: a room thermometer reading
-   sets `cool_temp_offset_c`, the coolant sensors' per-machine offset.
+   current, the fans turning at idle.
 3. **Airflow.** The fans run at the cut profile for 35 s. Each fan's steady
    speed (the median of the last ten seconds) and its time to 90 percent set
    the floors: 55 percent of steady for `cool_tach_exhaust_min_rpm`,
@@ -121,7 +120,7 @@ cancels it. Eye protection, the exhaust, and an extinguisher in reach are on
 you. Every card's page shows a preview of what it burns, and the program
 behind it; the placement page shows the whole sheet with every card on
 it. The sheet carries the patterns you judge; the numbers they yield
-go into the record and show on the page and the Commissioning tab, not on
+go into the record and show on the page and the Setup tab, not on
 the wood. While a card runs the page names what the machine is doing and
 counts the seconds (the lens reference, the controller start, the coolant
 settle, the burn, the dark tail), prompts the press when the button lights
@@ -216,8 +215,8 @@ The machine asks for a check again on its own: a fan that starts a job
 within 10 percent of its floor recommends Airflow; a coolant flow fault
 twice in a row requires Coolant flow; a thin margin on the flow check
 recommends it; a different head at boot requires Your machine. The panel's
-Commissioning tab lists the checks and what is asked
-([The control panel](control-panel.md#commissioning)).
+Setup tab lists the checks and what is asked
+([The control panel](control-panel.md#setup)).
 
 ## The button press
 
@@ -250,7 +249,7 @@ then on. A tool that uses the panel token without a login is never held back.
 ## What changed
 
 A replaced part makes the numbers measured on the old one wrong. The
-Commissioning tab's **What changed?** menu names the change, and the checks
+Setup tab's **What changed?** menu names the change, and the checks
 that depend on it are asked for again:
 
 | The change | Required again | Recommended |
@@ -269,7 +268,7 @@ also found on its own: a different head at boot requires **Your machine**.
 
 ## The record
 
-The setup writes `/data/forgefirm/commissioning.json`. The record holds the
+The setup writes `/data/forgefirm/setup.json`. The record holds the
 accepted advisories with their hashes and times, the account name, and the
 machine facts. It also holds each wizard's completed version, its results,
 its applied settings (each with the value before), and the flags. The
@@ -277,7 +276,7 @@ record is on `/data`, outside the firmware slots, so it survives updates.
 It never holds the serial number, a network name, or a credential.
 
 The record leaves the machine three ways, all from the System tab's
-**Commissioning** card and from the setup's last screen:
+**Setup** card and from the setup's last screen:
 
 - **Printable summary**: `GET /wiz/record.html`, a page with no script, to
   print or save beside the sheet: the machine facts, the acknowledgment
@@ -287,7 +286,7 @@ The record leaves the machine three ways, all from the System tab's
   named after the sheet id. `GET /wiz/record` is the same document as a
   plain read.
 - **The log export**: the sanitized bundle carries the record as
-  `system/commissioning.json` ([Logging](logging.md)). Beta testers are
+  `system/setup.json` ([Logging](logging.md)). Beta testers are
   asked to send that bundle by private message, so the project learns what
   varies from machine to machine.
 
@@ -313,10 +312,10 @@ machine.
 
 ## Running a step again
 
-The System tab's **Commissioning** card shows the state of the setup and the
+The System tab's **Setup** card shows the state of the setup and the
 certificate fingerprint, with a link to `/setup`. Open it to run a step
 again, or to complete a step that a release requires again. The
-Commissioning tab lists every check with the version it completed at, what
+Setup tab lists every check with the version it completed at, what
 the machine asks for again and why, and the **What changed?** menu
 ([What changed](#what-changed)).
 
@@ -328,7 +327,7 @@ raised. `GET /mode` reports the controller as `gated`, with a `why` field.
 The panel's Status tab shows a banner with a link to continue the setup.
 
 The override, for a person at the machine: create the file
-`/run/forgefirm/commissioning-override` as root, at the console or over
+`/run/forgefirm/setup-override` as root, at the console or over
 SSH. It lifts the hardware gate until the next reboot. It never lifts the
 advisories or the account, and the panel says so.
 
@@ -343,7 +342,7 @@ service ([Settings](settings.md)). A tool that writes the key through
 off there takes the cloud homing and the cloud boot mode down with it.
 
 To change the decision later, open the setup from the panel's
-Commissioning card and choose **Cloud mode** in the rail on the left. The
+Setup card and choose **Cloud mode** in the rail on the left. The
 step starts from the current choice. The preferences and the machine
 steps run again the same way, and so does any step the record has opened
 again, such as the advisories after a document changed. Turning cloud
@@ -369,7 +368,7 @@ account.
 |---|---|
 | `GET /setup` | The setup page (also `/` until the setup is complete) |
 | `GET /wiz` | The setup state |
-| `GET /wiz/record`, `GET /wiz/record?download=1`, `GET /wiz/record.html` | The commissioning record, the same as a download named after the sheet id, and the printable summary |
+| `GET /wiz/record`, `GET /wiz/record?download=1`, `GET /wiz/record.html` | The setup record, the same as a download named after the sheet id, and the printable summary |
 | `POST /wiz/changed` | A replaced part or a service (`what`: `tube`, `pump`, `coolant`, `fan`, `head`, `tray`, `service`); the checks it maps to are flagged |
 | `GET /advisories/<id>` | The text of one advisory; the `ETag` is its hash |
 | `POST /wiz/advisories/accept` | Confirm one document (`doc`, `hash`, `phrase`) |

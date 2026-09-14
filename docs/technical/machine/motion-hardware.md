@@ -68,7 +68,7 @@ so such a count reads low by an even number at random). Going down, the
 sensor lets go four to six half-steps under the edge; the lens rings a
 little on every step, which is the jitter in that band. Where along the
 travel the edge sits differs from head to head, and that is the one
-per-head number for Z: the commissioning focus card references the lens on
+per-head number for Z: the setup focus card references the lens on
 the edge, burns a ladder over the head's free travel, and the user's pick
 on the sheet's thickness gives the focal height when the lens is on the
 edge (`lens_hall_edge_z_mm`). The free travel itself is found by the head
@@ -83,7 +83,7 @@ machine; when the stops cannot be found on a head, every move keeps a
 fallback window, ten half-steps below the edge to twelve above, that clears
 both stops on any head whose edge sits within six half-steps of the bench
 bench reference's, and the user is told. See
-[Commissioning](../../usage/commissioning.md#the-sheet).
+[Setup](../../usage/setup.md#the-sheet).
 
 The factory's focus law, from its own Z commands, is a count of full steps
 up from its zero, where its hunt parks the lens: 4 full steps down from the
@@ -99,7 +99,7 @@ the focus at `lens_park_z_mm`, a user setting, 3 mm by default
 below the tray: the tray comes out for tall work.
 
 The lens is never moved without a reference first: in GRBL mode a job's Z
-moves it within the free travel once a home, or a commissioning card, has
+moves it within the free travel once a home, or a setup card, has
 referenced it, and the driver refuses Z otherwise.
 
 The lens rises only at the driver's drive current (`z_current` 0). At the
@@ -206,7 +206,7 @@ run-current step before it samples, because that step jolts the head.
 Raw accelerometer reads through sysfs take about 150 ms each, which is enough
 for a yes-or-no verdict over a multi-second window and useless for a waveform.
 Reading the part straight over its bus gives about 530 to 800 samples a
-second, which is what the crash watch and the commissioning lens finder use
+second, which is what the crash watch and the setup lens finder use
 (see [Sensors](sensors.md)).
 
 **A contact strike, for any future contact sensing.** From the retired

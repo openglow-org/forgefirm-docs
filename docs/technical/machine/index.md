@@ -77,7 +77,7 @@ floors, the coolant flow threshold, the tube's heat coefficients, the
 air-assist offset on the coolant readings, the laser floor and dose curve, and
 the head's lens reference height. The first run of the control panel measures
 them on your machine and writes your values
-([Commissioning](../../usage/commissioning.md)).
+([Setup](../../usage/setup.md)).
 
 Where a number is a genuine constant, it is one because the mechanism makes it
 so, and the page says which: the lens screw's pitch, the step engine's byte

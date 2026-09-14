@@ -83,6 +83,6 @@ to keep everything for your own use.
 |---|---|
 | `GET /logs` | Loggers with configured and effective levels and on-disk sizes, the remote target, `pending_reboot` |
 | `GET /logs/tail?name=&lines=&from=` | The last `lines` of a logger's live file, or everything since byte offset `from` (incremental follow) |
-| `POST /logs/export?sanitize=1\|0` | Streams the `tar.gz` bundle, sanitized by default; it carries the commissioning record as `system/commissioning.json` ([Commissioning](commissioning.md#the-record)) |
+| `POST /logs/export?sanitize=1\|0` | Streams the `tar.gz` bundle, sanitized by default; it carries the setup record as `system/setup.json` ([Setup](setup.md#the-record)) |
 
 All three require a login ([The control panel](control-panel.md#access)).

@@ -43,7 +43,7 @@ The client, its scope, and its handling of a job are in
 Select **Factory cloud** with the controller-mode selector on the panel's
 Status tab, while the machine is idle ([Modes](modes.md)). The choice exists
 only once the setup's cloud step turned cloud mode on (`cloud_enabled=1`,
-[Commissioning](commissioning.md#cloud-mode)); while it is off, nothing
+[Setup](setup.md#cloud-mode)); while it is off, nothing
 contacts the Glowforge service. The setting persists across reboots.
 Switching back to GRBL mode is the same selector.
 
