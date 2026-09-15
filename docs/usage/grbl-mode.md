@@ -29,8 +29,10 @@ the first. That is also why the web panel reads position from the machine's own
 counters and never from the Grbl socket.
 
 A TCP disconnect never stops the controller process. A disconnect during a
-laser job holds the job where the cut stopped (see the table below). Jog from
-a sender's console with a standard jog command, for example `$J=G91X40F1200`.
+laser job holds the job where the cut stopped (see the table below); a
+motion-only job continues to its end. On connect the console shows the
+controller's banner. Jog from a sender's console with a standard jog command,
+for example `$J=G91X40F1200`.
 
 ??? note "Running the controller by hand"
 
@@ -109,7 +111,10 @@ closes, and the laser locks again, when:
 - your sender disconnects or a different one connects, because the consent
   you gave belonged to that session;
 - the laser has been off and idle for `laser_disarm_s` (60 s by default),
-  which keeps counting while a job sits paused;
+  which keeps counting while a job sits paused and while you jog: a jog is
+  not the job you consented to, and never keeps the window open;
+- the cooling engine's fail tier (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`):
+  the job ends with alarm 3 and the laser locked;
 - anything goes wrong: an alarm, a homing cycle, a reset, or a stream fault.
 
 The next job asks for a fresh press. That is the same press the machine's own
@@ -121,14 +126,16 @@ disagree about whether the machine is armed.
 | You do | What happens |
 |---|---|
 | Feed hold (`!`) | Controlled ramp to a stop, position kept. The ramp runs lit (velocity-scaled under `M4`), the stop is dark, and the disarm grace keeps counting. |
-| Cycle start (`~`) | Resumes from the hold, lit from the first step: a pause is a sharp corner in time, and the corner rolloff governs its mark. If the grace closed the window during the pause, the button lights first and your press resumes the job. Under a cooling hold with no resume (`AIRFLOW`, `CRITICAL`), the job is held again within a second and the console says why: reset it. |
-| Your sender disconnects mid-job | The job is held where the cut stopped and the window closes. The next sender finds it in Hold: `~` lights the button and a press resumes it, or `^X` ends it. |
+| Cycle start (`~`) | Resumes from the hold, lit from the first step: a pause is a sharp corner in time, and the corner rolloff governs its mark. If the grace closed the window during the pause, the button lights first and your press resumes the job. Under a standing pause-tier verdict the resume moves dark and is held again within a second, and the console says why. |
+| Your sender disconnects mid-job | A laser job is held where the cut stopped and the window closes. The next sender finds it in Hold: `~` lights the button and a press resumes it, or `^X` ends it. A motion-only job continues to its end. |
 | Jog cancel (`0x85`) | Controlled stop, jog abandoned, position kept. |
 | Soft reset (`^X`) | Controlled deceleration into Alarm, latch relocked, machine position retained; `$X` clears the alarm. |
 | Press the button mid-job | Pause; press again to resume (below). |
 | Open the lid or the interlock loop | The job is **canceled**, not paused (below). |
 | Ring runs dry (underrun) | Motion stops instantly. While armed this is a hard fault: alarm, latch relocked, position invalidated; re-home before trusting coordinates. A motion-only job gets one sanctioned retry. |
-| Coolant fault or over-temp | Feed hold with cut airflow forced on; fire is gated. Over-temp resumes automatically once the loop recovers. |
+| Cooling verdict, pause tier (`OVERTEMP`, `COLD`, `WARMUP`, `SENSOR`, `FLAME`, `BUMP`, or a verdict gone stale) | Feed hold with the cut airflow on; the deceleration runs lit and the stop is dark. When the verdict clears, the job resumes on its own, with no press. |
+| Cooling verdict, fail tier (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`) | The job ends with alarm 3 and the laser locked; nothing resumes it. Resolve the verdict, `$X`, start again ([Cooling and fans](cooling-and-fans.md)). |
+| A move past the bed, after `$H` | Alarm 2 before any motion for a program move, error 15 for a jog: after a home the bed is the limit ([Homing](homing.md)). |
 | Controller crash or hang | The daemon stops motion and relocks the latch, then restarts the controller. |
 
 The controller clamps any feed faster than its limits: travels run up to

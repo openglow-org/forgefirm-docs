@@ -76,7 +76,10 @@ The laser keys apply at the next job. Grbl `$` settings (rates,
 accelerations, laser mode) are set through your sender in the usual way; the
 defaults are baked in from the factory machine's own measured values, and
 the X and Y steps per millimeter (`$100`, `$101`) follow `xy_microsteps`
-rather than a typed value. If you
+rather than a typed value; `$102` (the lens screw), `$32` (laser mode) and
+the `$110`/`$111` ceiling the machine tick carries are held the same way, so
+a typed value is overwritten on the spot
+([The grblHAL driver](../technical/forgefirm/grblhal-driver.md#the-xy-scale)). If you
 change a baked default and it does not appear to take, remember that stored
 settings win: `$RST=$` restores the defaults. A spindle `$` setting takes
 effect when the controller restarts ([GRBL mode](grbl-mode.md)).

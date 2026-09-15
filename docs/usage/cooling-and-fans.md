@@ -136,9 +136,9 @@ or an overheating loop. The banner says so.
 | A session opened under `cool_temp_start` | `WARMUP`: hold with the loop heater on and the fans idle until the gate is reached, then the run starts with a flow check. |
 | A coolant sensor unreadable for two ticks in a row | `SENSOR`: fire blocked, hold, heater off; released the moment both sensors read again. The other coolant gates keep their state meanwhile. |
 | Lid IR over an alert threshold for two ticks | `FLAME`: hold, fire blocked; released once the reading is back under the alert for five ticks. |
-| Lid IR over a critical threshold | `FIRE`: motion stopped, laser locked, hold until the next run session. |
+| Lid IR over a critical threshold | `FIRE`: motion stopped, laser locked, the controller stopped and started again, hold until the next run session. |
 | Head accelerometer over an alert threshold | `BUMP`: hold, fire blocked; released after five quiet polls. |
-| Head accelerometer over the abort threshold | `CRASH`: motion stopped, laser locked, hold for the rest of the run session. |
+| Head accelerometer over the abort threshold | `CRASH`: motion stopped, laser locked, the controller stopped and started again, hold for the rest of the run session. |
 | A fan under its floor inside the spin-up grace | Nothing yet: the gate reads `grace`. |
 | A fan under its floor for three seconds after the grace | `AIRFLOW`: fire blocked, hold, no resume this job (a resume under it is held again within a second; reset the job); fans held at run duty; the next job starts the gates fresh. |
 | Purge-air current absent at run duty | `AIRFLOW`, the same way. |
@@ -149,6 +149,14 @@ or an overheating loop. The banner says so.
 | Verdict file missing or stale | The controller treats it as fire-blocked and holds. |
 | Diagnostic running | Engine suspends its writes and publishes fire-blocked. |
 | Engine gone while armed | Controller writes factory run duties once, holds, stands down. |
+
+In GRBL mode the verdicts fall into two tiers as you see them. A pause-tier
+hold (`OVERTEMP`, `COLD`, `WARMUP`, `SENSOR`, `FLAME`, `BUMP`, or a verdict
+gone stale) holds the job where it is and resumes it by itself when the
+verdict clears, with no press. A fail-tier verdict (`FIRE`, `CRASH`,
+`AIRFLOW`, `CRITICAL`) ends the job with alarm 3 and the laser locked
+([GRBL mode](grbl-mode.md#pausing-stopping-and-faults)). In cloud mode the
+same tiers pause the print or cancel it.
 
 Expect a legitimate suspicion on the first checks after manually stopping and
 starting the pump. That is an airlock; the two-step decision absorbs it, and it

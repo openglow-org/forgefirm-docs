@@ -22,9 +22,11 @@ rule that connects a code change to the release gate.
 | Repository | Command | What it proves |
 |---|---|---|
 | `kernel-module-glowforge` | `make -C tests check` | The kernel-independent parts of the module, built with the host compiler against `src/`: `interlock_test` (`cnc_interlock.c`) and `backtrack_test` (`cnc_backtrack.h`). Each test is a standalone binary that returns nonzero on failure. |
-| `grblHAL-glowforge` | `cmake -B build && cmake --build build`, then `./build/switch_map_test` and `./build/laser_arm_test` | The switch-map decode truth table, and the operator-arm coolant re-check. The host build is the null-sink controller (below). |
-| `grblHAL-glowforge`, with the harnesses from `forgefirm/scripts/bench/` | `python3 laser_stream_test.py build/grblHAL_glowforge` and `python3 laser_lifecycle_test.py build/grblHAL_glowforge` | The laser pulse-stream emission rules, and the operator-armed-window lifecycle (below). |
-| `forgectrl` | `cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-Werror && cmake --build build`, then the test binaries under `build/` | `status_idle_test` (`machine_is_idle` fails closed), `status_sys_test` (the system block of the status document), `sanitize_test` (the log-export sanitizer), `debayer_test` (raw-frame narrowing and the Bayer phase), `lid_gate_test` (the camera privacy gate fails closed), `camhealth_test` (the capture frame-health ladder), `cool_gate_test` (the gate settings table), `airflow_test` (the airflow gate), `coolfmt_test` (the cooling status document), `auth_peer_test` (the loopback peer check), `mp4mux_test` (the fragmented-MP4 muxer). `tests/fflog_e2e.sh` proves the full logging path on a host against a private rsyslogd: the emitter, the relay, the format, and the per-logger filter. |
+| `grblHAL-glowforge` | `cmake -B build && cmake --build build`, then the nine test binaries under `build/` | `switch_map_test` (the switch-map decode truth table), `laser_arm_test` (the arm flow: its gates, the button wait, the verdict's tiers, the re-arm), `latch_test` (the latch writer: retries, the fault on a lost lock, the relight rules), `cooling_test` (the verdict client: the tiers by name, the stale pause, the per-poll enforcement), `switches_test` (a lid cancel in flight with the switch device gone), `serial_test` (the RX ring under a sender that ignores flow control, the banner on connect, the TX stall bound), `bind_addr_test` (the listen-address parser), `lens_home_test` (the lens reference and the homing key clamps), `xy_scale_test` (the pinned settings). The host build is the null-sink controller (below). |
+| `grblHAL-glowforge`, with the harnesses from `forgefirm/scripts/bench/` | `python3 <harness>.py build/grblHAL_glowforge` for `laser_stream_test.py`, `laser_lifecycle_test.py`, `z_envelope_test.py`, `xy_mode_test.py` and `planner_blocks_test.py` | The laser pulse-stream emission rules, the operator-armed-window lifecycle (below), the Z and X/Y envelopes, the XY microstep modes, and the planner buffer depth. |
+| `forgectrl` | `cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-Werror && cmake --build build`, then the test binaries under `build/` | One binary per module, `tests/*_test.c`: among them `super_test` (the controller-mode supervisor, one lifecycle pass at a time: death as a signal, the runner and the kernel before a respawn, the enclosure before every spawn, the lever reaching a probe, the safing write's retries, the broker failing closed, the fail-tier restart), `cool_flow_test` and `cool_fanwrite_test` (the cooling engine by inclusion: the flow check, the hang dead-man, the fail tiers' stop hook), `status_idle_test` (`machine_is_idle` fails closed), `enclosure_wait_test`, `lid_gate_test` (the camera privacy gate fails closed), `jobstream_test` (the daemon's own Grbl sender), `sanitize_test`, `debayer_test`, `camhealth_test`, `cool_gate_test`, `airflow_test`, `accel_test`, `lenshome_test`, `coolfmt_test`, `auth_peer_test`, `mp4mux_test`, and the rest. `tests/fflog_e2e.sh` proves the full logging path on a host against a private rsyslogd; `tests/test_devserver_mock.py` holds the panel's dev-server mock to the C tables. |
+| `python3-gfhardware` | `python3 -m pytest tests/` (or `python3 -m unittest` per module) | The cloud client: the run loop and its holds (`test_machine_lid_button`), the pulse feeder (`test_feeder`), the power-before-fire check on a job's bytes (`test_pulse_body`), the homing runner's exit (`test_gfhome_exit`), the lid gate, the limits, the shared machine glue. |
+| `Glowforge-Utilities` | `python3 -m pytest tests/` | The service layer: the pulse header checks, the pulse source, the offline service, the dispatch, the firmware policy. |
 | `forgefirm/forgetest` | `python3 -m unittest discover -s tests -v` | The acceptance tool: the campaign rules, the fingerprints, the artifact build and its verification (the decision of the release gate, with the negative fixtures), the runner and the HTTP API end to end with a fake catalog and a fake bench tool, the suites replayed on the log lines of the machine, and the check that each log phrase the cloud suite looks for is one that the pinned cloud application can log. |
 | `forgefirm/fixture` | `CC=gcc sh test/run.sh`, or `./fixture.sh test` | `policy.c` of the bench actuator: the decisions that need no hardware (the channel names, the loop request words, the button pulse clamp, the key comparison). |
 | `forgefirm-docs` | `zensical build`, `python scripts/check-style.py`, `python scripts/check-interfaces.py` | This site: a strict build (a broken link fails it), the house-style lint, and the interface-coverage lint ([This site](docs.md)). |
@@ -50,7 +52,19 @@ the driver:
     - the next job in the same process fires at the level where the
       previous job ended;
     - a feed hold leaves no dark ground in either mode: lit into the hold,
-      dark while held, lit from the first step out.
+      dark while held, lit from the first step out;
+    - the verdict's pause tier holds lit into the stop and resumes with no
+      press, its fail tier ends the job dark, a sender change holds the job
+      with the deceleration dark, and a verdict gone stale holds at its own
+      expiry;
+    - a producer stall while armed faults the stream with no step burst,
+      the same stall unarmed is a warning and the move completes, and a
+      stall of the sink's write leaves the producer on pace.
+    The stand-in engine takes `GFSINK_STALL_MS` (the producer starved
+    once) and `GFSINK_WRITE_STALL_MS` (the sink's write held once), and
+    every session reads the latch sideband: with `GFSINK_LATCH_LOG` set the
+    controller appends one line per latch write, so a rule can say which
+    locks and unlocks a job made.
 - `laser_lifecycle_test.py` walks the operator-armed window:
     - one arm for each job, with M5/M3 persistence;
     - the M2 close;
@@ -58,7 +72,11 @@ the driver:
       change puts a running job into;
     - the disarm grace that counts down in Hold, and the resume that
       re-arms a held job (the sender's `~` and the button);
-    - the arm refusal under a cooling verdict that blocks.
+    - the arm refusal under a cooling verdict that blocks;
+    - the pause tier that resumes with no press, the fail tier that ends
+      the job, a sender change that cancels a re-arm, a jog that does not
+      hold the window open, and a press that counts only after the button
+      has been seen up.
 
 ## Continuous integration
 
@@ -67,8 +85,9 @@ Each repository with host tests runs them on push and on pull request.
 | Repository | Workflow | Steps |
 |---|---|---|
 | `kernel-module-glowforge` | `build` | The host tests. Then a cross build of the module with `KCFLAGS=-Werror` against linux-fslc 6.12, with the Glowforge BSP overlay and patches applied, and with the `imx_v6_v7` configuration plus the `glowforge` fragment. |
-| `grblHAL-glowforge` | `build` | The CMake build and the two C tests. Then a checkout of `forgefirm` for the two laser harnesses, which run against the null-sink build. The harnesses come from the head of `master` in `forgefirm`, unpinned. Push a harness change before the driver change that needs it. |
-| `forgectrl` | `build` | The CMake build with `-Werror`, and the eleven test binaries. |
+| `grblHAL-glowforge` | `build` | The CMake build and the nine C tests. Then a checkout of `forgefirm` for the five harnesses, which run against the null-sink build. The harnesses come from the head of `master` in `forgefirm`, unpinned. Push a harness change before the driver change that needs it. |
+| `forgectrl` | `build` | The CMake build with `-Werror`, and every test binary. |
+| `python3-gfhardware`, `Glowforge-Utilities` | `host-tests` | Every test module, each in its own interpreter. |
 | `forgefirm` | `forgetest-ci` | On a change under `forgetest/`, the gate and manifest scripts, or the component recipes. Steps: the tree manifest from the recipe pins (`scripts/manifest-from-tree.py`, which also gets the pinned application sources that the log-phrase check reads); the unit tests; the shared-UI check (`scripts/check-ui-vendor.py`: the `theme.css` and the vendored Bootstrap of the page are byte-identical to those of forgectrl at its pinned revision); the coverage lint with `--enforce`; and a gate self-check (the gate refuses an empty artifact with exit status 1, never with a traceback). |
 | `forgefirm` | `fixture-ci` | On a change under `fixture/`. Steps: the policy host test with gcc, and the firmware build in the pinned ESP-IDF container with a placeholder `fixture.env`. Thus a change that does not compile never reaches a bench. |
 | `forgefirm-docs` | `check`, `deploy` | The strict build and the two lints, on each pull request and push. `deploy` publishes `main` to GitHub Pages. |

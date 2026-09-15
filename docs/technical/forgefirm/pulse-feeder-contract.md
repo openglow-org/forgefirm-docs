@@ -226,6 +226,9 @@ range at the ~40 kHz carrier). Two rules:
   resets the duty to about 100 %.** A stream must send its first power byte
   before its first laser-on byte, or the first pulses fire at full power.
 
+The cloud client checks every chunk of a downloaded job for this rule
+before it writes it ([Cloud mode](cloud-mode.md#header-enforcement)).
+
 ### Termination
 
 End every stream with laser-off bytes (bit 4 clear). The script forces the
@@ -249,7 +252,12 @@ costs two channel-0 SDMA transactions. Pace by wall clock
 "back off". Keep the queue depth **bounded** (50 to 200 ms) so feed and
 power overrides take effect promptly. The ring (default 32 MiB, the
 `ring_mb` module parameter) holds many minutes of stream, so depth is a
-latency choice, not a capacity one.
+latency choice, not a capacity one. A feeder that produces under a lock
+writes with the lock released: a write that blocks must never hold the step
+producer. A producer that falls behind real time clamps its late events
+forward onto later bytes; inside an armed window that clamp is a fault,
+because the burst it compresses is energy where it was not commanded
+([The grblHAL driver](grblhal-driver.md#faults)).
 
 A whole-file preloader (cloud mode) buffers as much of the job as the ring
 holds, about 1 MiB per 100 s of 10 kHz stream, so about 56 min at the

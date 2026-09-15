@@ -36,8 +36,8 @@ test levers.
 
 | Piece | Role |
 |---|---|
-| `gfcloud.py` (`/usr/sbin`) | Full cloud-mode controller daemon. Spawned and supervised by forgectrl when `controller_mode = cloud` (the init script defers to the supervisor and remains a manual stop only); the pulse device arrives as a broker-inherited fd (`GF_PULSE_FD`) that is never closed, so job boundaries and mode switches do not cycle the 40 V rail. SIGTERM stops the service loop, tells a running action to stop and waits for it (no park on the way down), safes the hardware, and exits. |
-| `gfhome.py` (`/usr/sbin`) | One-shot service-driven homing. Invoked for `$H` when `homing_mode = gfcloud`; dispatches with `allow_print=False` so a print can never run inside a homing session. Completion is guarded: a run of near-identical service corrections aborts (the machine is not physically moving), and quiet only counts as homed when the head accelerometer witnessed real motion during the session ([Homing](homing.md)). |
+| `gfcloud.py` (`/usr/sbin`) | Full cloud-mode controller daemon. Spawned and supervised by forgectrl when `controller_mode = cloud` (the init script defers to the supervisor and remains a manual stop only); the pulse device arrives as a broker-inherited fd (`GF_PULSE_FD`) that is never closed, so job boundaries and mode switches do not cycle the 40 V rail. SIGTERM stops the service loop, tells a running action to stop and waits for it (no park on the way down), safes the hardware, and exits. If the WebSocket thread itself dies, the service loop ends the same way and the process exits; the supervisor starts it again. |
+| `gfhome.py` (`/usr/sbin`) | One-shot service-driven homing. Invoked for `$H` when `homing_mode = gfcloud`; dispatches with `allow_print=False` so a print can never run inside a homing session. Completion is guarded: a run of near-identical service corrections aborts (the machine is not physically moving), and quiet only counts as homed when the head accelerometer witnessed real motion during the session ([Homing](homing.md)). Every exit, SIGTERM from the controller included, goes through one shutdown: the service socket is shut and the machine stopped, the laser latched and the device released. |
 | `ffmachine.py` (site-packages) | Shared hardware-machine glue: identity overrides from the shared config, and the forgectrl-routed capture machine both clients use. |
 | `gfutilities` | Protocol and service layer: auth, WebSocket client, action dispatch, settings report, pulse-file handling ([Glowforge-Utilities](https://github.com/openglow-org/Glowforge-Utilities)). |
 | `gfhardware` | The hardware `Machine`: motion, laser latch, switches, cameras ([python3-gfhardware](https://github.com/openglow-org/python3-gfhardware)). Thermal hardware belongs to the forgectrl cooling engine: the cloud client reports job state (`POST /cool/state`, with the pulse header's run fan duties as the per-job profile) and enforces the published verdict on its fire path, gaining the flow verification and over-temp protection the engine provides ([The cooling engine](cooling-engine.md)). |
@@ -200,7 +200,10 @@ writes into the ring, and plays:
    steps would be counted and never made, and at the hold current the lens
    rises two steps into the service's ramp and stalls ([The motion
    hardware](../machine/motion-hardware.md#the-lens-and-its-travel)).
-5. The button wait arms the laser, exactly as in GRBL mode.
+5. The button wait arms the laser. The laser latch stays locked through
+   the button wait, the warm-up, and the verdict wait; it unlocks once the
+   verdict has passed, immediately before the run starts, and it locks
+   again when the job ends.
 6. The ring plays to the end; the client supervises it and reports state.
 
 There is no live re-planning. The ring is filled before the button is asked
@@ -244,12 +247,16 @@ buffered at once, not how long a job may be (below).
       gone with the laser armed) locks and holds, turns the check heater
       off, and writes the run airflow once. Before the run, a print whose
       armed session opens under a hold (`WARMUP`, `COLD`, a hot loop) waits
-      it out the same bounded way; only an absent engine refuses to arm.
+      it out the same bounded way with the latch still locked; a verdict
+      that refuses fire for the whole bound cancels the print with the
+      latch never unlocked, and only an absent engine refuses to arm.
       That wait also holds until the engine's own `armed` flag comes back in
       the verdict, so a print never starts on the verdict computed for the
       idle session before its arm, which would read clean while the fans
-      were still at their idle duty. Motions and hunts are not armed and are
-      not held.
+      were still at their idle duty. The warm-up before that wait is taken
+      in 100 ms slices, and the lid, the interlock loop, and a service
+      cancel are sampled between them: any of them ends the job at once.
+      Motions and hunts are not armed and are not held.
     - The kernel leaves the run on its own (a fault, a disable): the job
       ends canceled, never completed, and a park that faults reports no
       success; the service re-hunts rather than dead-reckon from a position
@@ -287,11 +294,19 @@ buffered at once, not how long a job may be (below).
       over ground it already cut, seam hidden, `print:paused` and
       `print:resumed` reporting it exactly as the button pause does; if it
       does not, the job is canceled rather than left stopped in the
-      material. A feed that stalls repeatedly (three holds) is canceled
-      rather than cut in pieces, and a full ring is never mistaken for a
-      stall. A press during a hold is not lost: pausing a stopped job is not
-      a thing the machine can do, so the press is read once the job is
+      material. A feed that stalls repeatedly is canceled on its fourth
+      stall rather than cut in pieces, and a full ring is never mistaken for
+      a stall. A press during a hold is not lost: pausing a stopped job is
+      not a thing the machine can do, so the press is read once the job is
       moving again.
+    - **A job longer than the ring is declared a live feed** before the run
+      (`cnc/streaming=1`, read back after the write) and the declaration is
+      withdrawn once every byte is enqueued, so the device tells a starved
+      ring from the job's end ([The pulse-feeder contract](pulse-feeder-contract.md#streaming-protocol)).
+      A declaration that does not land cancels the job before it starts,
+      and a live-fed run that ends with bytes still in the feeder's hands is
+      canceled, never completed: the service is never told a print
+      completed that did not.
 - Post-action cleanup always locks the laser latch and drops the
   pulse-device registration, including when an action crashes.
 - A job larger than the ring runs anyway: the client holds the compressed
@@ -359,6 +374,14 @@ Thermal policy is the cooling engine's, on purpose: it runs its own coolant
 ceiling and critical line, flow verification, airflow gates, emission
 witness, and silence timeout, and a remote service can tighten those limits
 for a job and never loosen them ([The cooling engine](cooling-engine.md)).
+
+**The body is checked on its way to the ring.** A stream must carry a laser
+power byte before its first FIRE byte, because the kernel resets the duty to
+about full on every run ([The pulse-feeder contract](pulse-feeder-contract.md#power-bytes)).
+The feeder checks each chunk before it writes it, so the offending byte never
+reaches the ring: before the run the job is refused, with the payload offset
+in the log; past the primed window the feed stops short of the byte and the
+run ends on a starved ring.
 
 ### The warm-up and the rest
 

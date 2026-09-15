@@ -51,7 +51,11 @@ shadows the core's homing cycle. Under `gfcloud`:
 
 `^X` aborts the session (SIGTERM, then SIGKILL). A failure or a timeout
 queues `ALARM:18`, like a failed core homing cycle; the budget is
-`gfcloud_home_timeout_s` (default 300 s).
+`gfcloud_home_timeout_s` (default 300 s, held to 10 to 3600 s: a value
+outside is clamped with a log line, as `gfcloud_home_x` and
+`gfcloud_home_y` are to the bed). The `ok` for `$H` is sent when the
+session ends, so a sender that waits for it waits the whole session while
+the status reports keep flowing.
 
 ### The homing session
 
@@ -113,7 +117,10 @@ head reaches without touching a stop
 The factory home is the machine origin, the back-left corner,
 with the workspace all-positive from there
 ([The motion hardware](../machine/motion-hardware.md)). The position is then
-anchored, and the panel shows it normally.
+anchored, and the panel shows it normally. A successful home also turns the
+driver's X and Y soft limits on, with the bed as the envelope, whatever `$20`
+says; they go off with the anchor whenever the position is invalidated
+([The grblHAL driver](grblhal-driver.md#the-lens-z)).
 
 ## Homing in cloud mode
 

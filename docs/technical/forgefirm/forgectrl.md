@@ -389,9 +389,10 @@ dose model itself is on [grblHAL driver](grblhal-driver.md).
 forgectrl owns the controller lifecycle: exactly one of the GRBL controller
 or the cloud client runs at a time, spawned as a **direct child** of
 forgectrl. The parent-child relationship carries the pulse-device fd under
-the broker, and detects controller death the moment it happens. The boot
-init scripts do not start controllers; they defer to the supervisor and
-remain only as manual emergency stops.
+the broker, and detects controller death the moment it happens: `SIGCHLD`
+wakes the lifecycle thread, which safes the machine within milliseconds of
+the exit. The boot init scripts do not start controllers; they defer to the
+supervisor and remain only as manual emergency stops.
 
 - `GET /mode` returns
   `{"mode":"grbl|cloud","controller":"running|stopped|standby|waiting|motion-fault|gated","pid":N,"motion":"verified|unverified|fault","why":"..."}`.
@@ -409,9 +410,11 @@ remain only as manual emergency stops.
 - `POST /controller/stop` and `POST /controller/start` are the manual
   emergency lever (the controller init scripts route here). Stop halts the
   active controller and HOLDS supervision suspended; it is deliberately
-  **not** idle-gated, and the exit safing writes run as always. Start
-  resumes supervision of the selected mode. A bare `pkill` of a controller
-  would just be safed and respawned seconds later.
+  **not** idle-gated, and the exit safing writes run as always. The lever
+  reaches a motion probe in flight too: the probe's ladder ends between its
+  steps with motion stopped, and the request returns once the probe is
+  gone. Start resumes supervision of the selected mode. A bare `pkill` of a
+  controller would just be safed and respawned seconds later.
 - **Controller exit safing.** The supervisor safes the machine (`cnc/stop`,
   `cnc/laser_latch=1`) **before it signals a child to stop**, on **every**
   transition out of a running child (unexpected death, mode switch,
@@ -424,8 +427,19 @@ remain only as manual emergency stops.
   controlled stop, latch relocked, exit). Under the broker a child exit is
   not a final close of the pulse device, so these writes are the safing
   mechanism; both are harmless no-ops when the machine is already idle and
-  latched. Unexpected deaths additionally respawn with exponential backoff
-  (1 s to a 30 s cap, reset after 60 s healthy).
+  latched. The safing writes are tried three times, 10 ms apart, before a
+  failure is named, and the stop path repeats the pair once more after the
+  signal. Unexpected deaths additionally respawn with exponential backoff
+  (1 s to a 30 s cap, reset after 60 s healthy). A respawn waits first for
+  the GRBL controller's homing runner to be gone (a controller that dies
+  during `$H` leaves it alive on the inherited fd; it is ended with SIGTERM,
+  then SIGKILL after 5 s) and for the kernel to go idle, bounded at 10 s,
+  past which the kernel is halted and said so. An unexpected death also
+  clears the engine's last report, so the hang dead-man does not count the
+  silence of a controller that is already gone. A broker fd that cannot be
+  locked, or a pulse device that cannot be opened, starts no controller: the
+  supervisor tries again and says so once, rather than start a controller
+  that opens the device itself.
 - **Diagnostics takeover** rides the same machinery: suspend (controller
   down, mode unchanged) and resume. The controller that comes back is the
   selected mode's.
@@ -437,7 +451,9 @@ remain only as manual emergency stops.
   machine is idle**: it stops the unmanaged controller, holds the pulse
   device, re-probes motion, and starts a supervised controller of the
   selected mode (a new process; the old one's inherited fd cannot be
-  adopted). `POST /mode` remains the manual lever.
+  adopted). `POST /mode` remains the manual lever. Until the orphan's first
+  report reaches the engine, the hang dead-man is blind to it: the kernel's
+  own backstops cover that window.
 - **Motion liveness gates the first spawn** of each broker session. The
   supervisor commands a small probe move through its own fd (+X first, then
   back; a cable lives at the end of left travel; laser latched, no axis
@@ -450,9 +466,15 @@ remain only as manual emergency stops.
   accepted as proof that the machine moved. What the probe reads, the
   thresholds it judges against, and why the drivers wedge are on
   [Motion hardware](../machine/motion-hardware.md#what-the-motion-witness-reads).
-- **The gate waits for the enclosure.** The probe moves the gantry, so it
-  does not run while a lid or the interlock is open, and not while the
-  switch device cannot be read (fail closed). The supervisor then starts no
+  A kernel still playing (a controller that died mid-move) makes the probe
+  wait and ask again a second later; only a missing head accelerometer
+  skips it. The fans are not quieted for the probe: its thresholds sit twice
+  away from what the bench reference reads with the fans at their idle duty.
+- **The gate waits for the enclosure.** The enclosure check runs before
+  every spawn, respawns included: no controller starts while a lid or the
+  interlock is open, or while the switch device cannot be read (fail
+  closed), and the probe, once per broker hold, runs behind the same check.
+  The supervisor then starts no
   controller: `/mode` reports `controller: waiting` with `why` naming what
   is open, the panel's Status tab shows a banner, the button blinks amber,
   and the log carries one line. The loop looks again five times a second,
@@ -462,6 +484,11 @@ remain only as manual emergency stops.
   state. A probe the machine cannot run for another reason (no head
   accelerometer) still lets the controller start, with `motion: unverified`
   and the reason in `why`.
+- **The engine's fail tiers end the controller.** On a lid IR fire signal or
+  a head crash signal the cooling engine, after its own kernel writes, asks
+  the supervisor to stop the controller the deliberate way (the safing pair
+  before SIGTERM) and start it again at once
+  ([Cooling engine](cooling-engine.md#the-fire-watch)).
 - **The lens takes its reference behind the probe**, in the same window and
   before any controller exists: full steps at the drive current, away from
   the hall sensor until it releases and back until it trips, which leaves the

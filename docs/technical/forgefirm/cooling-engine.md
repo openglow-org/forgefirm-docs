@@ -370,9 +370,9 @@ and it clears on its own.
 | `SENSOR` | A coolant sensor unreadable for two ticks in a row: fire blocked, hold, heater off; released the moment both sensors read again. The other coolant gates keep their state while the engine is blind. A flow check in flight is abandoned and asked for again; a warm-up gets its heater back. |
 | `AIRFLOW` | A fan under its floor: fire blocked, hold, no resume this job. |
 | `FLAME` | The fire watch's pause tier: hold, fire blocked; released when the reading clears. |
-| `FIRE` | The fire watch's fail tier: motion stopped, latch locked, hold until the next run session. |
+| `FIRE` | The fire watch's fail tier: motion stopped, latch locked, the controller stopped and started again, hold until the next run session. |
 | `BUMP` | The crash watch's pause tier: hold, fire blocked; released once the head sits quiet. |
-| `CRASH` | The crash watch's fail tier: motion stopped, latch locked, hold for the rest of the run session. |
+| `CRASH` | The crash watch's fail tier: motion stopped, latch locked, the controller stopped and started again, hold for the rest of the run session. |
 
 ## Over-temperature
 
@@ -490,8 +490,10 @@ its 1 Hz tick.
 - **Emission evidence.** `cnc/laser_on_sampled` counts the last ~1 s
   window's emitting samples on the gated output of the hardware AND-gate:
   evidence, not a commanded state. Emission with no armed window in the
-  recent past gets the hung-controller treatment (`cnc/stop` +
-  `cnc/laser_latch=1`, repeated while the evidence persists).
+  last 3 s (the sample window's lag past a disarm) gets the hung-controller
+  treatment (`cnc/stop` + `cnc/laser_latch=1`, repeated while the evidence
+  persists). The GRBL controller runs the same check in-process once a
+  second and alarms on it ([The grblHAL driver](grblhal-driver.md#faults)).
 - **Laser supply power-good** is watched during an armed window: when fewer
   than half of the last second's samples read good, the engine warns once per
   session. On a healthy supply the line is good in every sample, so the
@@ -510,7 +512,10 @@ its 1 Hz tick.
   released once the reading is back under the alert for five ticks). Over
   its critical threshold is the fail tier (motion stopped, latch locked,
   verdict `FIRE` with `hold` until the next run session, smoke-clear airflow
-  held). The defaults are the thresholds the factory ships in every pulse
+  held, and the controller ended: after its own kernel writes the engine
+  asks the supervisor to stop the controller and start it again, so no run
+  start can relight what was locked and the sender sees the job end
+  ([forgectrl](forgectrl.md#mode-supervision))). The defaults are the thresholds the factory ships in every pulse
   header (quartiles three and four it leaves at zero). They sit far above a
   fully lit lid lamp, so the lamp never trips them, and a candle-sized flame
   stays under them too: this catches a developed fire. Zero turns a tier
@@ -524,7 +529,8 @@ its 1 Hz tick.
   the per-axis X and Y alert thresholds (the pause tier: verdict `BUMP`,
   hold, fire blocked; released after five quiet polls). IG2 takes the shared
   abort threshold (the fail tier: motion stopped, latch locked, verdict
-  `CRASH` with `hold` for the rest of the run session). Thresholds are IG
+  `CRASH` with `hold` for the rest of the run session, and the controller
+  stopped and started again the same way as on `FIRE`). Thresholds are IG
   register units at the ±4 g run full scale, so 1 g is about 64; the defaults
   are the factory's own header values, about 2 g, far above normal commanded
   motion. Z is never armed: gravity rides it, and the factory ships Z zero
@@ -534,8 +540,8 @@ its 1 Hz tick.
   cloud homing read the accelerometer through `st_accel` in unarmed sessions,
   and the armed watch owns the part's ODR and full scale (`st_accel` leaves it
   powered down between one-shots; the watch sets 800 Hz and ±4 g, re-asserts
-  them every poll, and restores what it found on disarm). A head that stops
-  answering stands the watch down for the session, said once.
+  them every poll, and restores what it found on disarm). A head that fails
+  three polls in a row stands the watch down for the session, said once.
   `/cool/status` carries the watch state as
   `accel_watch: off | watch | armed | alert | ALARM` (`off` = the part
   absent or not answering; `watch` = thresholds set, window not armed).
@@ -715,13 +721,16 @@ plus rename) at ~1 Hz and on every verdict change:
   the session (the ceiling's pause tier keeps holding while the loop is
   hot), `FIRE` holds until the next one starts. Controllers key on the
   flags, not the name; an unknown name with `hold=true` holds.
-- **Enforcement stays in the controller.** The fire gate and hold/resume
-  issuance run in-process in each controller (the GRBL controller as a feed
-  hold and cycle start, the cloud client as its laser-off pause and retraced
-  resume, bounded by `cloud_hold_max_s`); the verdict file is an input
-  they must survive losing. The channel is not fast enough for anything
-  safety-critical. The hardware AND-gate is the safety boundary; this is
-  equipment protection.
+- **Enforcement of the pause tier stays in the controller.** The fire gate
+  and hold/resume issuance run in-process in each controller (the GRBL
+  controller as a feed hold and cycle start, with FIRE masked on every tick
+  of its stream by the window and `fire_ok`; the cloud client as its
+  laser-off pause and retraced resume, bounded by `cloud_hold_max_s`); the
+  verdict file is an input they must survive losing. The fail tiers do not
+  wait for it: their kernel writes land first, and the controller is stopped
+  and started again by the supervisor. The channel is not fast enough for
+  anything safety-critical. The hardware AND-gate is the safety boundary;
+  this is equipment protection.
 - `fire_ok` additionally requires a fresh job-state report: an armed window
   the engine cannot see never reads `fire_ok=true`, and never reads
   `armed=true` either. A controller about to fire is, by this contract,

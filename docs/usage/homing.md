@@ -58,6 +58,11 @@ home ends focused about 3 mm above the bed.
 - **A quiet service is not a homing.** The cycle counts as complete only when
   the accelerometer in the print head witnessed real motion during the
   session. A service that goes quiet without moving the head is a failure.
+- **The `ok` comes at the end.** Your sender's `ok` for `$H` arrives when the
+  session ends; the status reports keep coming meanwhile.
+- **After a home the bed is the limit.** A program move past the bed alarms
+  before it moves (alarm 2), and a jog past it is refused (error 15). The
+  limits go with the reference: an underrun or a stream fault takes both.
 
 After a successful home the position is anchored and the panel shows it
 normally. The home corner is the back-left corner of the bed, and the workspace

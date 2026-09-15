@@ -42,7 +42,9 @@ Four threads carry the work:
 - **shipper thread** (`SCHED_FIFO`): writes due bytes to `/dev/glowforge`
   with a bounded queue (default 200 ms, which is also the feed-hold latency).
   It owns the kernel run/stop/streaming/underrun state machine and the
-  factory's PIC run/hold stepper-current scheme.
+  factory's PIC run/hold stepper-current scheme. It builds each chunk under
+  the engine's lock and writes it with the lock released, so a write that
+  blocks never holds the producer.
 - **cooling reporter thread**: reports the job state to the forgectrl
   cooling engine at 1 Hz ([Cooling engine](cooling-engine.md)).
 
@@ -70,7 +72,10 @@ over the same distance. `$100`/`$101` are re-asserted from the mode on
 every settings dispatch, in RAM only, the way `$35` is: a `$100` typed by a
 sender is overwritten on the spot. `$110`/`$111` are held under the feed the
 tick carries (one step per tick per axis), which only bites when the bench
-lowers the tick with `GFSINK_RATE`. The driver writes the mode to the
+lowers the tick with `GFSINK_RATE`. `$102` (the lens screw's half-steps per
+millimeter) and `$32` (laser mode) are pinned the same way: a typed `$102`
+would move the Z envelope off the head, and laser mode is the machine's,
+not a sender's choice. The driver writes the mode to the
 drivers' MODE pins at its start, at idle. A change of the setting takes a
 controller restart, which forgectrl does for an idle machine when the
 setting is saved. Cloud mode runs at the service's own 8.
@@ -143,6 +148,14 @@ Measured on the bench reference: **2.7 percent of the core at idle, 34 to 35
 percent during an active move, and 2.7 to 3.0 percent parked.** Client receive
 is armed only while the ring has a full read's worth of room, so a sender that
 ignores flow control is paced rather than spun on.
+
+**Every sender that connects is welcomed with the banner**
+(`GrblHAL 1.1f ['$' or '$HELP' for help]`), the way a UART build prints it at
+power-up, so a sender that waits for the banner before it speaks does not sit
+on a running controller in silence. The transmit ring holds 2048 bytes, and a
+`$$` dump (about 750 bytes) queues whole. A sender that stops reading for a
+second is dropped, and a drop is a sender change: a running laser job holds
+and its window closes ([The armed window](#the-armed-window)).
 
 ### Idle is produced, not played
 
@@ -237,9 +250,19 @@ recovers the levels, with no visible dither pattern.
 
 **The laser latch.** The driver keeps the kernel's laser latch locked except
 inside an operator-armed job window, and the kernel relocks it whenever the
-pulse device is closed ([The kernel module](kernel-module.md)). The hardware
-safety AND-chain stays authoritative regardless: an armed underrun fails
-safe, and the latch relocks on disarm, alarm, and reset.
+pulse device is closed ([The kernel module](kernel-module.md)). The latch
+has one writer in the process: every lock and unlock goes through the stream
+engine, which records which way this process last wrote it. A write that
+fails is tried three times, 10 ms apart. A lock that still fails is a stream
+fault (the window closes, the homing anchor drops, the job alarms), and an
+unlock that fails refuses the arm. A run start unlocks only a lock this
+process wrote inside an open window with the fire gate open; a lock it did
+not write, the cooling engine's fail tier, is never undone: the job plays
+dark and the verdict closes the window. Locking the latch also sets the
+hardware button latch, which only a physical press clears, so every lock the
+software writes costs a new press by construction. The hardware safety
+AND-chain stays authoritative regardless: an armed underrun fails safe, and
+the latch relocks on disarm, alarm, and reset.
 
 ## The armed window
 
@@ -254,20 +277,28 @@ arm flow on the protocol thread:
    chain has no head term. Presence is the head driver having probed (the
    `/sys/glowforge/head/` group exists), never the head-attention switch
    bit.
-3. **Forces the cut airflow profile on**, so every fire window is covered
+3. **Checks that the button can be read.** On hardware the button is an
+   EV_SW bit on the input device the device tree names `switches`; no
+   device, no arm, because a button that cannot be read is no consent.
+4. **Forces the cut airflow profile on**, so every fire window is covered
    by running fans and active flow verification.
-4. **Unlocks the kernel laser latch, lights the button white, and pauses
+5. **Unlocks the kernel laser latch, lights the button white, and pauses
    the job** until the operator presses the physical button. The sender
-   keeps getting status reports, so it does not time out.
+   keeps getting status reports, so it does not time out; the `ok` for the
+   line that armed the laser follows the press.
 
 The hardware button latch is what the press clears. The software wait exists
 so the job does not start streaming FIRE bits into a blocked gate. A press
-with the lid open does not arm; the hardware button latch would not clear on
-it either. A soft reset, or a lid or interlock open, cancels the job
-instead. If nobody presses within `laser_button_timeout_s` (default 300 s),
-the job ends in an alarm with the latch relocked. The coolant verdict is
-re-checked after the press, so a window can never open against a fault that
-appeared during the wait.
+counts only after the button has been seen released during the wait, so a
+button held from before the job never arms. A press with the lid open does
+not arm; the hardware button latch would not clear on it either. A soft
+reset, a lid or interlock open, a sender change (the consent belongs to the
+session that asked), or three unreadable switch reads in a row cancel the
+job instead. If nobody presses within `laser_button_timeout_s` (default
+300 s), the job ends in an alarm with the latch relocked. Check mode (`$C`)
+never arms: a dry run keeps the laser off. The coolant verdict is re-checked
+after the press, so a window can never open against a fault that appeared
+during the wait.
 
 The re-check waits for a verdict that answers this job. Forcing the airflow
 profile on is a report to the cooling engine, and the engine applies the run
@@ -286,9 +317,18 @@ latch, when any of these happens:
 
 - program end (`M2`, `M30`, `%`), the normal case, within the cycle;
 - the sender's connection changes (the consent belonged to that session);
-- `laser_disarm_s` (default 60 s) of spindle-off idle, counted down in Hold,
-  Door, and Tool Change as well as Idle;
+- `laser_disarm_s` (default 60 s) of spindle-off grace, counted down in
+  Idle, in a jog, and in a job parked in Hold, Door, and Tool Change; only a
+  cycle or a lingering `M3` keeps the window open, and a jog is not the job
+  the press consented to;
+- the cooling verdict's fail tier (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`):
+  the latch locks, the job is reset the way `^X` resets it, and `ALARM:3`
+  says why ([The cooling client](#the-cooling-client));
 - immediately on alarm, homing, reset, or a stream fault.
+
+Nothing widens the window. A jog under an open window ships dark and does not
+restart the grace, and the pause tier of the verdict holds the job under the
+window without touching the latch.
 
 **Disarm.** After the disarm grace, or on program end or abort, the
 controller relocks the latch, turns the button LED off, and stands the
@@ -308,7 +348,12 @@ The safety inputs are `src/glowforge_switches.c`. The lid switches and the
 remote-interlock loop drive the core's safety-door signal. The `doors` bit
 (both lid switches closed, the series combination the hardware chain sees)
 and the `interlock` bit (loop open) are read from the gpio-keys switch
-device; the switch map is under [forgectrl](forgectrl.md).
+device; the switch map is under [forgectrl](forgectrl.md). On hardware the
+device must be the one the device tree names `switches` (`GF_SWITCH_DEV`
+points a bench at another path). A device that cannot be opened refuses the
+arm, and a read that fails is never "still closed": a failing read ends an
+arm wait, and a lid cancel in flight goes on to its reset and its park
+without waiting on the device.
 
 **The safety door.** The signal is shown to the core only while it is in a
 job-time state (cycle, hold, tool change, door). A running job parks with a
@@ -419,9 +464,24 @@ The operator's table of what each stop does is on
   the kernel is stopped and re-armed, what the ring still held is cleared, and
   the controller moves again without a restart. The position stays invalid
   until a re-home.
-- **A coolant fault or over-temperature** verdict is a feed hold with the
-  cut airflow forced on; fire is gated. Over-temperature resumes
-  automatically once the loop recovers (see "The cooling client" below).
+- **The cooling verdict** has two tiers ([The cooling client](#the-cooling-client)):
+  the pause tier is a feed hold under the open window, resumed with no
+  press when the verdict clears; the fail tier ends the job with `ALARM:3`.
+- **Late step events.** A producer that falls behind real time (starved of
+  CPU) has its late events clamped forward onto later bytes, and the clamp
+  is counted. Unarmed that is a warning in the log and the move completes.
+  Inside an armed window it is a fault (`ALARM:17`): the burst the clamp
+  compresses onto later bytes is energy where it was not commanded, so the
+  stream stops the kernel, the latch locks, and the anchor drops.
+- **Uncommanded emission.** Once a second the driver reads the emission
+  sample count on the gated output (`cnc/laser_on_sampled`). Emission with
+  the window closed for more than 3 s (the sample window's lag past a
+  disarm) locks the latch and raises `ALARM:3`. The cooling engine runs the
+  same witness from its side ([The cooling engine](cooling-engine.md#the-fire-watch)).
+- **A kernel state that cannot be read** is never "still playing". The
+  relock after a job waits for the kernel to idle, a state that stays
+  unreadable is relocked after 2 s, and a run is refused rather than
+  started against a state the driver cannot read.
 - **A controller crash or hang** is caught by forgectrl: it stops motion,
   relocks the latch, and restarts the controller ([forgectrl](forgectrl.md)).
 
@@ -440,16 +500,31 @@ two channels ([The cooling engine](cooling-engine.md) owns both formats):
   applies. It also publishes `grbl.state` and `grbl.settings` under
   `/run/forgefirm`, written atomically on change from the protocol thread;
   forgectrl echoes them in its status ([forgectrl](forgectrl.md)).
-- **The verdict.** The driver reads the engine's published verdict file,
-  gates fire, and issues hold and resume from it. A missing or stale verdict
-  reads as fire-blocked. The armed window requires a fresh `fire_ok` verdict
-  (flow verification, over-temperature, the airflow floors on every fan, the
-  lid-IR emission witness); a stale or failed verdict relocks in-process.
-  Auto-resume after an over-temperature hold is the controller's call, on
-  the verdict's `resume_ok`. A job resumed under a standing hold (the
-  button, `~`, a sender) is held again within the client's next poll, and
-  the sender is told why: a verdict with no resume is a reset, never a
-  pause.
+- **The verdict.** The driver reads the engine's published verdict file
+  every 500 ms and enforces the cached flags on every poll. A missing or
+  stale verdict (older than 2 s) reads as fire-blocked and held. The armed
+  window requires a fresh `fire_ok` verdict (flow verification,
+  over-temperature, the airflow floors on every fan, the lid-IR fire watch)
+  and the engine's own `armed` acknowledgment. Inside an open window the
+  verdict has two tiers, keyed on its name:
+    - `FIRE`, `CRASH`, `AIRFLOW`, and `CRITICAL` are the fail tier. The
+      window closes, the latch locks, the job is reset the way `^X` resets
+      it, and `ALARM:3` is raised. Nothing resumes it.
+    - Every other `fire_ok=false` verdict, and a stale one, is the pause
+      tier. The job is held under the open window: the first deceleration
+      runs lit and the fire gate masks from the stop on, a resume under the
+      standing verdict (the button, `~`, a sender) moves dark and is held
+      again within the next poll with the sender told why, and the clean
+      verdict's `resume_ok` resumes the hold the driver took, with no new
+      press. The pause tier never writes the latch: a lock sets the hardware
+      button latch, which only a press clears, so a lock belongs to the fail
+      tier alone.
+- **The fire gate.** The stream engine masks the FIRE bit on every tick with
+  a gate the laser module publishes: the window, and the verdict's
+  `fire_ok`, held open through the pause tier's first deceleration. A gate
+  that falls clears the fire state in flight and every queued fire-on, so no
+  fire in flight survives a closed window beyond the bytes already in the
+  kernel's queue, and fire returns only when the core asserts it again.
 
 The thermal gates are settings with a wide range whose far end turns the gate
 off by value, loudly ([Cooling and fans](../../usage/cooling-and-fans.md)).
@@ -466,7 +541,8 @@ taken only when the single writer is provably absent.
 
 Position counters are not proof of motion: the step-stream drives are open
 loop. The head accelerometer is the motion witness, and
-`beam_detect_analog` on the head is the live emission witness.
+`beam_detect_analog` on the head is the live emission witness; the driver's
+own check of it once a second is under [Faults](#faults).
 
 ## Homing handover
 
@@ -506,7 +582,12 @@ in half-steps, at its drive current during a run and its hold current at
 rest. The lens is never moved without a reference: the driver's Z soft limit
 is always on, whatever `$20` says, and until Z is referenced it holds Z
 where it is (a jog is refused with error 15, a program move raises the
-soft-limit alarm before it starts). In practice Z is referenced from the
+soft-limit alarm before it starts). X and Y join it after a home: a
+successful home turns the driver's X and Y soft limits on with the bed as
+the envelope (`$130` by `$131` from the home corner), whatever `$20` says,
+and whatever invalidates the position (an underrun, a stream fault, a new
+homing session) turns them off again
+([Homing](homing.md#the-position-after-a-home)). In practice Z is referenced from the
 start: forgectrl sweeps the lens onto its hall edge before the controller
 exists, and the driver takes that reference as it loads its settings, which
 opens the envelope to the head's free travel (the found stops, a half-step

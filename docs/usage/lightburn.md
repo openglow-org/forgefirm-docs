@@ -107,6 +107,23 @@ with the head re-parked.
   (`$X` in Console or LightBurn's prompt), jog the head clear, and carry on in
   Current Position mode. Restart the controller with the head re-parked if you
   want a clean absolute frame.
+- **Flow control.** The controller answers every line with `ok`, and its
+  status report carries `Bf:` with the room left in its buffer. A line sent
+  past that room is dropped whole and the job is aborted, so leave
+  LightBurn's buffered streaming on. On connect the Console shows the
+  controller's banner (`GrblHAL 1.1f`).
+- **Two long waits are normal.** The `ok` for the line that arms the laser
+  arrives after your press, and the `ok` for `$H` after the homing session.
+  The status reports keep coming meanwhile, and LightBurn does not time out
+  on them. Machine Settings reads `$$` whole; `$I+` in the Console lists the
+  controller's build and its axes.
+- **A stalled connection is dropped after a second** without progress, and
+  a drop counts as a change of sender: a running job holds where the cut
+  stopped and the armed window closes. Reconnect, and the resume asks for the
+  button.
+- **After an error, send an empty line.** The controller answers the lines
+  after a refused one (a jog past the bed, a bad word) with the same error
+  until an empty line or a `$` command clears it.
 - **Move tab**: jogging (set a sane speed, for example 6000 mm/min), Get
   Position, distance buttons.
 - **Console tab**: raw Grbl: `?` status, `$$` settings, `$X` unlock,
