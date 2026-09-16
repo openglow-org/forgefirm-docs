@@ -56,7 +56,7 @@ the values are on [The motion hardware](../machine/motion-hardware.md).
 ### The XY scale
 
 The X and Y microstep mode is one number in the shared config,
-`xy_microsteps` (8, 16 or 32; unset reads as 8, the factory's), read once at
+`xy_microsteps` (8, 16 or 32; unset reads as 32, and 8 is the factory's), read once at
 the driver's start. Three things are derived from it and never typed:
 
 | Mode | `$100`/`$101` (steps/mm) | Machine tick (Hz) | Kernel stop ramp (Hz/s) |

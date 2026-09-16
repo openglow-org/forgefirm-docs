@@ -335,8 +335,8 @@ item:
   writes of the GRBL controller. The kernel values: `motor_lock=0` (every
   axis in the pulse path; the driver's Z soft limit guards the lens),
   `x/y_mode`, `step_freq` and `ramp_rate` at the `xy_microsteps` setting's
-  values (8, 28160 and 125000 at the default; the tick and the ramp double
-  at 16 and quadruple at 32), `x/y_decay=1`, `streaming=0`,
+  values (32, 112640 and 500000 at the default; the x8 base is 28160 and
+  125000, doubled at 16 and quadrupled at 32), `x/y_decay=1`, `streaming=0`,
   `state=idle`, the latch locked, the hold currents. Also the head lamp and
   button LEDs off, the heater and TEC off, and the lid lamp at the
   `lid_lamp_idle` setting of forgectrl. On the head: purge air on, which is

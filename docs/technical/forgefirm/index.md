@@ -182,7 +182,7 @@ Two behaviors follow from this that you will notice:
 | Who plans motion | grblHAL on the machine | the Glowforge service |
 | Input | G-code over TCP port 23 | a downloaded pulse file |
 | Ring use | live-streamed, small window | preloaded before the button; topped up as it drains when the job is longer than the ring |
-| Machine tick | 28160 Hz default | 10 kHz (from the job header) |
+| Machine tick | 112640 Hz at the x32 default (28160 Hz base × the mode) | 10 kHz (from the job header) |
 | Job length limit | none | none (the ring buffers ~56 minutes at a time) |
 | Needs internet | no | yes |
 | Laser arming | button press per job | button press per job |
