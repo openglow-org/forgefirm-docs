@@ -655,29 +655,31 @@ intended to be set directly. Set them through the
 
 Read/Write, Binary, varies
 
-Used to read and write data in groups. From `pic.h`:
-
-> Register groups. These allow reading or updating multiple registers at
-> once. Input/output is a sequence of 16-bit binary little-endian values.
-> When writing to a register group file, the number of bytes written must
-> exactly match the number of registers in the group times 2. (because each
-> register is 2 bytes in size.)
+Reads or updates a whole group of registers in one operation. Data moves in
+either direction as a run of little-endian 16-bit values, so a write has to
+carry exactly two bytes for every register in the group; any other length is
+refused.
 
 ### hex
 
 Read/Write, ASCII, varies
 
-For reading and writing multiple registers. From `pic.h`:
+The ASCII-hexadecimal counterpart to `raw`, covering several registers at a
+time. A write is a comma-separated list of `register=value` pairs:
 
-> To write a set of registers:
-> `echo 18=0123,19=4567,1a=89ab,1b=cdef > /sys/glowforge/pic/hex`
-> The string must be a comma-separated list of register=value pairs.
-> To read a set of registers:
-> `echo 18,19,1a,1b > /sys/glowforge/pic/hex && cat /sys/glowforge/pic/hex`
-> The string must be a comma-separated list of register numbers.
-> Reading from this file returns the register values transmitted by the PIC
-> during the previous write transaction. The string is a comma-separated
-> list of register values, each exactly 4 hex characters long.
+```
+echo 18=0123,19=4567,1a=89ab,1b=cdef > /sys/glowforge/pic/hex
+```
+
+A read takes two steps: write a comma-separated list of register numbers,
+then read the file back.
+
+```
+echo 18,19,1a,1b > /sys/glowforge/pic/hex && cat /sys/glowforge/pic/hex
+```
+
+What comes back is whatever the PIC clocked out during that preceding write,
+as one comma-separated list of values, each exactly four hex characters wide.
 
 ### hv_current
 
@@ -727,12 +729,9 @@ and unverified; the value is published as a raw count. See
 
 Read/Write, Binary, varies
 
-For reading and writing binary values to the PIC. From `pic.h`:
-
-> Write to this file to send a chunk of raw binary data to the PIC. The
-> number of bytes written must be a multiple of 3.
-> Read from this file to obtain the binary data transmitted by the PIC
-> during the previous write transaction.
+Sends a block of raw binary straight to the PIC. A write has to be a multiple
+of three bytes long. Reading returns the bytes the PIC sent back over the
+previous write.
 
 ### tec_temp
 
@@ -833,21 +832,17 @@ Turns the water pump on or off. 0: off, 1: on.
 
 ### /sys/class/leds/button_led_X, /sys/class/leds/lid_led_X
 
-Interface to control the button LEDs and the lid LEDs. From
-`ledtrig_smooth`:
+Interface to control the button LEDs and the lid LEDs, driven by the
+`ledtrig_smooth` trigger. It carries four attributes:
 
-> target: (range: [0, 255]) The new brightness set-point. The LED fades
-> from its current value to the target value. May be changed while the LED
-> is already fading.
-> speed: (range: [1, 160]) The speed at which the LED seeks its target
-> brightness. The default is 64.
-> pulse_on: (milliseconds)
-> pulse_off: (milliseconds)
-> When both values are > 0, the LED's target will alternate between minimum
-> and maximum brightness automatically.
-> The delay between target=255 and target=0 is specified by pulse_on.
-> The delay between target=0 and target=255 is specified by pulse_off.
-> Both values are internally truncated to multiples of MSECS_PER_UPDATE.
+- `target` (0 to 255) — the brightness to settle on. The LED eases there from
+  wherever it currently sits, and the target may be moved again mid-fade.
+- `speed` (1 to 160) — how fast the LED closes on its target. Defaults to 64.
+- `pulse_on`, `pulse_off` (milliseconds) — raise both above zero and the LED
+  swings between full and zero brightness on its own. `pulse_on` is how long
+  it holds before dropping from 255 to 0, `pulse_off` how long before it
+  climbs back. Each is rounded down internally to a whole multiple of
+  `MSECS_PER_UPDATE`.
 
 ### /sys/class/leds/camera_mux_oe
 
