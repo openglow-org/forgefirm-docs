@@ -8,7 +8,10 @@ rules a machine can enforce:
 - American English (a fixed list of British spellings);
 - no paths from anyone's workstation (drive letters, /mnt/<drive>, home
   directories);
-- no bench-machine identity (private IP addresses, root@host).
+- no bench-machine identity (private IP addresses, root@host);
+- no camera metadata in a published image: a photograph carrying GPS tags
+  gives away where the bench is, and the make, model, owner or serial of the
+  camera identifies who took it.
 
 Prints one line per finding as path:line: RULE: detail and exits 1 if there
 were any. A line may carry the marker ``<!-- style: ignore -->`` to be
@@ -18,6 +21,7 @@ skipped, for the rare quotation that has to stay as written.
 from __future__ import annotations
 
 import re
+import struct
 import sys
 from pathlib import Path
 
@@ -80,6 +84,101 @@ RULES = [
 ]
 
 
+IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff"}
+
+JPEG_SOI = bytes((0xFF, 0xD8))
+PNG_SIG = bytes((0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A))
+EXIF_ID = b"Exif" + bytes(2)
+
+# EXIF tags that identify a place, a camera or a person. GPSInfo is the
+# pointer to the GPS sub-IFD; its mere presence is the finding.
+EXIF_FLAGGED = {
+    0x8825: "GPS",
+    0x010F: "Make",
+    0x0110: "Model",
+    0x0131: "Software",
+    0x013B: "Artist",
+    0x8298: "Copyright",
+    0xA430: "CameraOwnerName",
+    0xA431: "BodySerialNumber",
+}
+
+
+def _ifd_tags(buf: bytes, bo: str, off: int, found: set) -> None:
+    if not 0 < off < len(buf) - 2:
+        return
+    (n,) = struct.unpack(bo + "H", buf[off:off + 2])
+    for k in range(n):
+        e = off + 2 + k * 12
+        if e + 12 > len(buf):
+            return
+        (tag,) = struct.unpack(bo + "H", buf[e:e + 2])
+        if tag in EXIF_FLAGGED:
+            found.add(EXIF_FLAGGED[tag])
+        if tag == 0x8769:                       # ExifIFD: owner and body serial
+            (sub,) = struct.unpack(bo + "I", buf[e + 8:e + 12])
+            _ifd_tags(buf, bo, sub, found)
+
+
+def _tiff_tags(buf: bytes) -> set:
+    """Tag names of interest in a TIFF/EXIF stream. Best effort: a stream
+    this cannot parse carries nothing it can report."""
+    found = set()
+    try:
+        bo = {b"II": "<", b"MM": ">"}.get(buf[:2])
+        if bo is None:
+            return found
+        magic, off = struct.unpack(bo + "HI", buf[2:8])
+        if magic == 42:
+            _ifd_tags(buf, bo, off, found)
+    except (struct.error, IndexError):
+        pass
+    return found
+
+
+def image_tags(data: bytes) -> set:
+    """Flagged EXIF tag names carried by a JPEG or PNG."""
+    if data[:2] == JPEG_SOI:
+        i = 2
+        while i < len(data) - 3 and data[i] == 0xFF:
+            marker = data[i + 1]
+            if marker == 0xDA:                  # start of scan; metadata is behind us
+                break
+            try:
+                (ln,) = struct.unpack(">H", data[i + 2:i + 4])
+            except struct.error:
+                break
+            seg = data[i + 4:i + 2 + ln]
+            if marker == 0xE1 and seg[:6] == EXIF_ID:
+                return _tiff_tags(seg[6:])
+            i += 2 + ln
+    elif data[:8] == PNG_SIG:
+        i = 8
+        while i + 8 <= len(data):
+            (ln,) = struct.unpack(">I", data[i:i + 4])
+            kind = data[i + 4:i + 8]
+            if kind == b"eXIf":
+                return _tiff_tags(data[i + 8:i + 8 + ln])
+            if kind == b"IDAT":
+                break
+            i += 12 + ln
+    return set()
+
+
+def images() -> list[Path]:
+    return sorted(p for p in (ROOT / "docs").rglob("*")
+                  if p.suffix.lower() in IMAGE_SUFFIXES)
+
+
+def check_image(path: Path) -> list[str]:
+    rel = path.relative_to(ROOT).as_posix()
+    tags = image_tags(path.read_bytes())
+    if not tags:
+        return []
+    what = "GPS tags" if "GPS" in tags else ", ".join(sorted(tags))
+    return [f"{rel}: EXIF: {what} - strip the metadata before publishing"]
+
+
 def files() -> list[Path]:
     found = sorted((ROOT / "docs").rglob("*.md"))
     readme = ROOT / "README.md"
@@ -106,6 +205,7 @@ def check(path: Path) -> list[str]:
 
 def main() -> int:
     findings = [f for p in files() for f in check(p)]
+    findings += [f for p in images() for f in check_image(p)]
     for f in findings:
         print(f)
     if findings:

@@ -4,7 +4,7 @@ title: Factory USB Console
 
 ## Machines with a Micro-USB port
 
-Original Glowforges came with a Micro-USB serial port connector on the control
+Original Glowforge units came with a Micro-USB serial port connector on the control
 board. This was feature was no longer included [starting in early 2018](https://community.glowforge.com/t/heads-up-new-run-of-boards-will-not-have-the-usb-connector/18741). You should be able to see if it is there 
 by looking under the plastic shell covering the control board.
 
