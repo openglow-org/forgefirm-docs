@@ -39,6 +39,14 @@ regulatory ramifications. It is up to you, the end user, to make sure that
 you adhere to all laws, regulations, certifications, and insurance terms that
 apply where you are. The project cannot advise you on them.
 
+Cloud mode and the other features that reach Glowforge's servers are yours to
+use within that vendor's terms of service. Staying inside them is the user's
+responsibility, and the project cannot advise you on those either.
+
+Glowforge is a trademark of Glowforge, Inc. ForgeFIRM is not affiliated with,
+authorized by, or endorsed by Glowforge, Inc., and the mark is used here only
+to say which machine this firmware runs on.
+
 ForgeFIRM is free software under MIT and GPL licenses, and the text of this
 site is CC BY-SA 4.0 ([Licenses](../developers/index.md#licenses)). There is
 nothing to buy, and if someone offers to sell it to you, what you take home is
