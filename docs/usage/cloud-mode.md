@@ -53,8 +53,18 @@ The machine signs in to the service with a serial number and a password. By
 default it uses the identity burned into the board's factory fuses, so a
 machine running under its own account needs nothing configured.
 
-The **GF Cloud** tab holds the overrides, for a machine that stands in for
-another one:
+The **GF Cloud** tab holds the overrides. They exist for one job: putting a
+machine's own identity back after a control board is replaced.
+
+The identity is fused into the board, not the chassis. A board that comes from
+another machine - a donor board from a unit scrapped for a dead tube or power
+supply, which is how most replacements are obtained - carries that machine's
+serial. Left alone, the machine signs in as the donor, and the service applies
+the donor's stored calibrations for the laser, the camera and the optics to
+hardware they were never measured on. The overrides set the serial and password
+back to the ones the machine had before the repair, so the service serves the
+calibrations that belong to the hardware in front of it.
+
 
 | Setting | Meaning |
 |---|---|
@@ -69,6 +79,20 @@ Blank fields mean the factory fuse identity.
     issue report; the log export masks them by default ([Logging](logging.md)).
 
 ### Reading your machine's identity
+
+!!! tip "Record the identity while the board still works"
+
+    The serial and password live in the control board's fuses and are
+    readable only from a board that runs. A board that has failed takes them
+    with it, and there is no way to recover them from it afterward - which
+    leaves a repair with no way to put the machine's own identity back on a
+    replacement board, and the service serving the donor's calibrations for
+    good.
+
+    Read them once, now, and keep the pair somewhere safe and private: a
+    password manager, or paper away from the machine. Treat them like a
+    password, because the second one is one ([Keep the serial and password
+    secret](#credentials) above).
 
 The panel can show it: `GET /fuse-identity` returns the serial, the derived
 hostname, and the password. It needs a login and the physical button held
