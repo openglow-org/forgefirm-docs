@@ -143,8 +143,10 @@ and nothing after the failed step runs.
 ### Upload
 
 An upload streams to `/data`. The manager accepts a `.fw` archive
-(verified, with a warning if it is unsigned) and nothing else; a development
-build is packed as a dev-signed `.fw` for the same path.
+(verified, with a warning if it is unsigned) and nothing else. The
+development image does not come this way: it is larger than a slot and runs
+from an SD card instead
+([Install and update](../technical/forgefirm/install-and-update.md)).
 
 ### Boot selector
 

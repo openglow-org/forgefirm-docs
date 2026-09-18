@@ -154,12 +154,18 @@ is its pin file's `PV` (it moves with every `SRCREV` bump); version strings
 inside the component sources are informational.
 
 `release.sh --dev` packs `forgefirm-dev.fw` from the **dev image** (forgetest
-and the bench tools included) for the panel's upload path, signed with the
-dev key so it is never an unsigned file in transit. The machine holds the
-release key and the Glowforge keyring only, so there a dev archive classifies
-as unsigned and installs through the operator-present path: the upload's
-unsigned confirmation with the machine button held. No gate runs on it, and
-the slot inventory shows its `-dev-` stamped version.
+and the bench tools included), signed with the dev key so it is never an
+unsigned file in transit. The machine holds the release key and the Glowforge
+keyring only, so a dev archive classifies as unsigned there and takes the
+operator-present path: the unsigned confirmation with the machine button
+held. No gate runs on it.
+
+**The dev image is SD-only.** forgetest and the bench tools put the dev
+rootfs at about 368 MiB, well past the 200 MiB slot, so it is never installed
+into one: it goes on an SD card, which the boot selector carries as a
+first-class location. Write `forgefirm-image-dev-glowforge.rootfs.wic.gz` to
+the card, or point `fwup` at the card rather than a slot. The slot size gate
+in `release.sh` therefore applies to the release rootfs alone.
 
 **Cloud-mode compatibility baseline.** The cloud client's connect-time probe
 records `{latest_gf_version, tested_against_gf}` to
@@ -322,8 +328,9 @@ slot scheme.
 - Size gates live in two layers: bitbake fails past the 200 MiB slot;
   `release.sh` warns at 170 MiB and fails at 195 MiB.
 - Dev archives (`release.sh --dev`) carry the dev key's signature, which no
-  machine holds: on the machine they install through the button-held
-  unsigned path.
+  machine holds: they take the button-held unsigned path. The dev rootfs is
+  too large for a slot, so it runs from an SD card and no size gate applies
+  to it.
 - Production signing key: held offline by the operator (never in the repo,
   CI, or cloud-synced plaintext), public key embedded in the installer.
   Production-signed archives verify with fwup 1.16 and the factory's 0.14.2
