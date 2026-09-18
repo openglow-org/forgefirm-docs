@@ -277,9 +277,6 @@ keys stay in the per-job log line as a record of what the service sends.
   dead-reckons machine position, so the park after every print, finished or
   aborted, matters: a park cut short would offset every subsequent motion
   until the next camera re-home.
-- **The factory runs a focus hunt with the lid open**, and a hunt includes a
-  head capture. ForgeFIRM's cameras capture only with the lid closed, so under
-  ForgeFIRM a hunt needs the lid shut (see [Cameras](../../usage/cameras.md)).
 - **The factory streams continuous telemetry**: the binary sensor firehose
   (`POST /api/sensor`), in-band advisory logs (WSS `type:"log"`), and the
   `fault:*` / `estop:*` / `interlock:*` reporting namespace. ForgeFIRM's scope

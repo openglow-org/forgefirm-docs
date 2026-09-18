@@ -185,13 +185,9 @@ The scope and its reasons are in
 
 ## The cameras only work with the lid closed
 
-Neither camera captures while the lid is open, and in cloud mode the service
-asks for images on its own schedule. A refused image is reported back to the
-service as a failed action, so it resolves rather than hanging. One
-consequence: the factory ran its focus hunt with the lid open, and a hunt
-includes a head capture, so **a hunt attempted with the lid open fails**. Close
-the lid before you let the app focus or print. [Cameras](cameras.md) has the
-rule in full.
+Neither camera captures while the lid is open. A refused image is reported back
+to the service as a failed action, so it resolves rather than hanging.
+[Cameras](cameras.md) has the rule in full.
 
 ## Pause, cancel, and park
 
@@ -224,9 +220,9 @@ a press with the lid open never arms.
 ## Homing and hunts
 
 Cloud homing is camera-based: the service takes a lid image, moves the head,
-takes another, and computes where it is. The lens hunt references Z against the
-hall sensor. Hunt motion is not lid-gated, but the head capture inside a hunt
-is, so the lid must be closed for a hunt to complete.
+takes another, and computes where it is. Those are lid images, so homing needs
+the lid shut. The lens hunt references Z against the hall sensor and takes no
+image of its own.
 
 Connecting also resets where the machine thinks it is, so **re-home after you
 switch back to GRBL mode** ([Homing](homing.md#homing-in-cloud-mode)).

@@ -18,7 +18,7 @@ Open the System tab of the control panel and use **Factory restore**
 `/data`**: offline, no Glowforge account needed, the firmware the machine ran
 before ForgeFIRM. The factory image is written to the slot that is not
 running, verified, and the boot selection is moved to it. Reboot when it
-asks. A restore from the Glowforge service is planned, not shipped.
+asks.
 
 ## Restore from the factory recovery mode
 

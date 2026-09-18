@@ -114,9 +114,7 @@ not a factory behavior. Both capture paths enforce it (forgectrl answers
 fails closed ([The video pipeline](video-pipeline.md)). A refused image
 action is reported to the service as `<action>:failed`, so it resolves
 rather than hanging, and the client does not fall back to a direct grab that
-would refuse identically. **Consequence:** the factory runs focus hunts with
-the lid open, and a hunt includes a head capture, so a hunt attempted with
-the lid open fails; the lid must be shut before the app focuses or prints.
+would refuse identically.
 
 Head images are captured with the white torch off, because added white light
 washes out the measure-laser dot the cloud's focus analysis needs.

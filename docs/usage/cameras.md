@@ -22,39 +22,25 @@ The sensors, what they can do, and the 8 MP status are in
 camera-path sharing, and why the image looks the way it does are in
 [The video pipeline](../technical/forgefirm/video-pipeline.md).
 
-## Privacy: the cameras only work with the lid closed
+## The cameras only work with the lid closed
 
 **Neither camera captures anything while the lid is open.** Not the live view,
-not a snapshot, and not an image requested by the Glowforge service in cloud
-mode. Close the lid and everything works; open it and the sensors stop.
+not a snapshot, and not an image requested in cloud mode. Close the lid and
+everything works; open it and the sensors stop. The lid camera is mounted in
+the lid, so raising it swings the camera up to face the room; the enclosure
+being shut is the condition for an image to exist at all.
 
-The reason is where the lid camera points. It is mounted in the lid, so raising
-the lid swings it up to face the room, and in cloud mode the shutter is not
-yours to press: the service asks for images on its own schedule, whenever it is
-connected. The rule removes the question. The enclosure being shut is the
-condition for an image to exist at all.
-
-**What the rule covers**
-
-- **Both cameras.** The head camera is gated too, so this is one rule to
-  remember rather than a rule with an exception you have to trust.
-- **Every way in:** the panel, `/cam/stream`, `/cam/snapshot`, the
-  mjpg-streamer aliases, LightBurn, and cloud mode's image actions.
-- **Capture already running.** Opening the lid stops a live stream within
-  about a frame and shuts the sensor down; it does not merely block new
-  requests.
-- **The lamps.** A refused capture never raises them, so an attempt with the
-  lid open leaves no trace.
-
-**How it behaves**
+The rule covers both cameras and every way in: the panel, `/cam/stream`,
+`/cam/snapshot`, the mjpg-streamer aliases, LightBurn, and cloud mode's image
+actions. A stream already running ends within about a frame. A refused capture
+never raises the lamps.
 
 | Situation | What happens |
 |---|---|
-| Snapshot requested with the lid open | `409` and a message naming the lid; no image data |
-| Stream requested with the lid open | `409`; the stream never opens |
+| Snapshot or stream requested with the lid open | `409` naming the lid; no image data |
 | Lid opened while a stream is running | the stream ends cleanly and the pipeline is torn down |
 | Lid state unreadable | treated as open: capture refused |
-| Cloud service asks for an image with the lid open | refused, and reported back to the service as a failed action rather than left hanging |
+| Cloud service asks for an image with the lid open | refused, and reported back as a failed action rather than left hanging |
 | Lid closed again | everything works immediately; nothing to restart |
 
 `GET /cam/status` reports it: **`capture_allowed`** is false whenever the lid is
@@ -62,23 +48,13 @@ open, and **`stopped_by_lid`** records that the last capture ended because the
 lid opened rather than going idle. The panel's Status tab says *lid open, the
 cameras are off* rather than showing a stream error.
 
-**Where the check comes from.** The lid signal is the same one the hardware
-safety chain uses to gate the beam, the series combination of both lid
-switches, not a software flag, and the check **fails closed**: if the lid state
-cannot be read at all, the cameras stay dark. A unit test in CI covers that
-direction; an acceptance test on real hardware covers the end-to-end behavior.
+The lid signal is the same one the hardware safety chain uses to gate the beam,
+the series combination of both lid switches, and the check **fails closed**: if
+the lid state cannot be read, the cameras stay dark.
 
-**One thing it costs.** The factory firmware ran the cloud's focus *hunt* with
-the lid open, and part of a hunt is a head capture. Those captures are refused,
-so a hunt attempted with the lid open fails instead of completing. Close the
-lid before letting the app focus or print ([Cloud mode](cloud-mode.md)).
-
-**What it is not.** This is a rule enforced by the two programs that own the
-sensors, not a hardware cut-off: the sensor rails stay powered, and anyone with
-root on the machine could bypass it. It protects you from the Glowforge
-service, from other software on your network, and from a stream you forgot was
-running, not from someone who already controls the board. There is
-deliberately no setting to turn it off.
+It is a rule enforced by the two programs that own the sensors, not a hardware
+cut-off - the sensor rails stay powered, and root on the machine can bypass it.
+There is deliberately no setting to turn it off.
 
 ## Watching it
 

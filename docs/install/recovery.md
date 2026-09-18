@@ -84,34 +84,3 @@ upload. An uploaded archive goes through the factory updater: `fwup` checks
 its signature, writes it to slot A, and switches the boot environment to
 that slot. The check uses the Glowforge keys, so the factory recovery
 installs Glowforge firmware.
-
-## Planned: the recovery refresh
-
-A refreshed recovery is planned. It replaces only the recovery userspace in
-the boot partitions: the factory U-Boot, device tree, and recovery kernel
-stay in place, and the tool never writes the bootloader region. From the
-button hold, the refreshed recovery raises the access point and a web page
-with the factory's user experience: upload a `.fw` verified against the
-ForgeFIRM **and** the Glowforge keys (so a ForgeFIRM release and a factory
-restore can both be installed from it), install from the archive on
-`/data`, set the boot target, and export logs. The recovery ladder then
-reads: previous slot, button-hold recovery, SD card, serial console.
-
-??? note "Scope of the planned refresh"
-
-    - Only the recovery squashfs in boot0 is replaced (the boot1 `/usr`
-      only if needed). Nothing is written below offset 0xC0000 in boot0, so
-      U-Boot is physically untouchable by the refresh tool. The factory DTB
-      and the 3.14.28 kernel stay.
-    - The userspace is a static busybox, `fwup`, a small C web application
-      (ulfius), and `hostapd`/`wpa_supplicant`. No Python. It must carry WiFi
-      modules matched to kernel 3.14.28; whether they are lifted from the
-      factory recovery or rebuilt from Glowforge's published GPL kernel
-      source is an open decision.
-    - The flash tool archives boot0 and boot1 first (the installer already
-      does), unlocks `force_ro`, writes the high regions only, and verifies
-      by readback. If both partitions are written, boot1 goes first and
-      boot0 last.
-
-    The invariants and contracts behind this are in
-    [Install and update](../technical/forgefirm/install-and-update.md).

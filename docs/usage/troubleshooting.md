@@ -111,9 +111,9 @@ warning: look at the loop before the next job.
 
 ## Cloud mode
 
-- **The app cannot focus, or a hunt fails.** The lid is open. The cameras
-  capture only with the lid closed, and a hunt includes a head capture. Close
-  the lid ([Cameras](cameras.md)).
+- **The app cannot focus, or homing fails.** The lid is open. With the lid
+  open nothing moves and nothing captures. Close the lid
+  ([Cameras](cameras.md)).
 - **The service stalls silently mid-sequence.** After an abnormal end of an
   earlier session the service can stall in the next one. A fresh session
   recovers it: stop and start the controller (a mode switch away and back does

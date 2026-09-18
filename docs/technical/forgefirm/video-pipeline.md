@@ -69,8 +69,7 @@ the media graph as they were. `/cam/status` reports `capture_allowed` (the
 live lid reading) and `stopped_by_lid` (the last capture ended because the
 lid opened rather than going idle).
 
-Consequence for cloud mode: the factory runs focus hunts with the lid open,
-and a hunt includes a head capture. Those captures are refused, and the
+For cloud mode a capture attempted with the lid open is refused, and the
 action runner reports the action as failed rather than leaving the service
 waiting ([Cloud mode](cloud-mode.md)).
 
