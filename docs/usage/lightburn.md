@@ -31,7 +31,7 @@ listens on TCP port 23 at your machine's address, shown below as
 3. Connection: **Ethernet/TCP**. IP address: **`<machine-ip>`** (LightBurn
    uses TCP port 23 for GRBL devices, which is exactly where the controller
    listens).
-4. Name: for example `Glowforge ForgeFIRM`. Work area: **X 495 mm, Y 279 mm**.
+4. Name: for example `ForgeFIRM`. Work area: **X 495 mm, Y 279 mm**.
 5. **Origin**: pick the corner where the head sits after parking at home:
    **rear-left as you face the machine** (the top-left dot in the selector).
    This is what keeps jobs un-mirrored: machine +X runs right, +Y runs from the
