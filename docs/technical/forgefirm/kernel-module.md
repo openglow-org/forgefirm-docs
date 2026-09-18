@@ -835,10 +835,10 @@ Turns the water pump on or off. 0: off, 1: on.
 Interface to control the button LEDs and the lid LEDs, driven by the
 `ledtrig_smooth` trigger. It carries four attributes:
 
-- `target` (0 to 255) — the brightness to settle on. The LED eases there from
+- `target` (0 to 255): the brightness to settle on. The LED eases there from
   wherever it currently sits, and the target may be moved again mid-fade.
-- `speed` (1 to 160) — how fast the LED closes on its target. Defaults to 64.
-- `pulse_on`, `pulse_off` (milliseconds) — raise both above zero and the LED
+- `speed` (1 to 160): how fast the LED closes on its target. Defaults to 64.
+- `pulse_on`, `pulse_off` (milliseconds): raise both above zero and the LED
   swings between full and zero brightness on its own. `pulse_on` is how long
   it holds before dropping from 255 to 0, `pulse_off` how long before it
   climbs back. Each is rounded down internally to a whole multiple of
