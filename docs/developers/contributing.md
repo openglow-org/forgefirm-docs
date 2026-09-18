@@ -90,6 +90,29 @@ mechanical parts ([This site](docs.md)).
   change and no rationale comments. The reasoning goes in the commit
   message.
 
+## Sign your work
+
+Every commit carries a `Signed-off-by` line, which `git commit -s` adds:
+
+```
+Signed-off-by: Your Name <your.email@example.com>
+```
+
+It certifies the [Developer Certificate of Origin 1.1](https://developercertificate.org/),
+the same statement the Linux kernel and grblHAL use, and the full text sits in
+`CONTRIBUTING.md` in each repository. Use your real name.
+
+Signing off is not a copyright assignment. You keep the copyright in what you
+write, and your contribution is accepted under the license of the repository
+it goes to; the project asks for no transfer of rights and has no contributor
+license agreement.
+
+A patch adds no copyright line. A change to an existing file leaves its header
+alone, and the contribution is recorded by its sign-off and by git. If you
+write a whole new file, put your own name in its copyright line or leave the
+line out - either way it carries the `SPDX-License-Identifier` for that
+repository's license.
+
 ## Where to talk
 
 - The [community forum](https://community.openglow.org) for questions and
