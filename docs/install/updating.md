@@ -46,6 +46,47 @@ dev-signed archive. A manual upload may be unsigned, behind an explicit
 The release pipeline, its gates, and the version contract are in
 [Release flow](../developers/release-flow.md).
 
+### Installing your own build
+
+ForgeFIRM is free software, and the machine will run a build you made
+yourself. Nothing in the boot path forbids it: the boot loader is the
+factory U-Boot and verifies no signature, the kernel loads unsigned
+modules, and the signature check on a firmware archive is a ForgeFIRM
+policy that an operator standing at the machine can waive. There are two
+ways in.
+
+**From the control panel.** Upload your `.fw` on the System tab. An
+archive that no key on the machine verifies is classified unsigned: the
+panel says so, and the install proceeds when you **hold the machine
+button** while you confirm it. Physical presence takes the place of the
+signature; no key is needed.
+
+**From a root shell.** The serial console gives a root shell with no
+password ([Serial access](serial-access/index.md)), and `fwup` is stock
+upstream. Write your archive to the slot the machine is not running from,
+then select it:
+
+```
+fwup -a -d /dev/mmcblk2p2 -i my-build.fw -t upgrade.b
+ffboot b
+```
+
+`upgrade.a` writes slot A (`/dev/mmcblk2p1`) and `upgrade.b` writes slot B
+(`/dev/mmcblk2p2`); `ffboot -l` shows which one is running
+([Recovery](recovery.md#ffboot)). Or write
+`forgefirm-image-glowforge.rootfs.wic.gz` to an SD card and boot from that.
+
+**The trust anchor is yours to replace.** `/etc/forgefirm/keys` holds
+public keys only, as ordinary world-readable files. Put your own public
+key in `forgefirm-release.pub` and the automatic paths verify against your
+key instead: sign your builds with `fwup -S` and they install with no
+button held.
+
+Building the image is documented in
+[Building](../developers/building.md), and every release carries the
+source of everything in it
+([Release flow](../developers/release-flow.md), "The source bundle").
+
 ## The update manager
 
 The **System** tab of the control panel is the update manager. Every
