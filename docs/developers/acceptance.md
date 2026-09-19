@@ -372,6 +372,16 @@ that run**. A leftover the baseline put back fails it too: the restore is
 the bench cleaning up after a defect, not the defect's absence. A test
 passes only when the machine is handed back as it was found.
 
+A leftover is what a run left behind, not the machine part-way through its
+own work. The cooling engine publishes its state one time each second. Thus
+a read in the second after a run ends can show the last state of the run: the
+hold of a diagnostic that has just released the hardware, or the hold of a
+fail tier whose session ends on the next tick. The baseline reads an arm or a
+hold again after that tick (2.5 s) before it judges. One that the next tick
+cleared is not a leftover. One that a run left behind stays, because it holds
+for a job that does not come back. A cooldown phase that ends by itself is
+not a leftover.
+
 That rule is new, and it exists because its absence shipped. The airflow
 check measures the purge fan by switching it off, and it walked away
 without switching it back on. The leftover was recorded, the test passed,
