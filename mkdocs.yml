@@ -94,7 +94,7 @@ extra:
   # recipe pins.
   sources:
     kernel-module-glowforge: d8773e20b04469ca6efd5f36ad9c2101e75d60b4
-    forgectrl: 24e136ef4970bfe55157299c46f65f0caeeb6419
+    forgectrl: 0dae758cb93e1461034aaa58f4b9fc22edc68367
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/openglow-org/forgefirm

@@ -47,13 +47,22 @@ One stage, no intermediate reboots. The installer:
    `/data/forgefirm/archive/` (manifest with checksums; a few minutes each,
    with progress).
 4. Downloads the latest `forgefirm.fw` release (or uses the local file you
-   passed) and **verifies its signature** before touching anything.
+   passed) and **verifies its signature** before touching anything. A
+   download that fails is resumed and tried again, up to five times.
 5. Writes ForgeFIRM to the inactive slot with the factory's own `fwup`,
    then verifies the written filesystem.
 6. Installs `/data/ffboot` (the boot-slot tool) and switches the saved
    U-Boot environment to the new slot. The switch is read-back verified; on
    any failure the machine keeps booting factory firmware.
 7. Reboots into ForgeFIRM.
+
+If the installer stops, it says why, and nothing about the boot has changed
+unless it says otherwise. Fix the cause and run it again: the archives are
+kept, so a second run goes straight to the step that failed. Every run is
+recorded in the install log, and the panel's log export carries it
+([The slot installer](../technical/forgefirm/install-and-update.md#the-slot-installer)),
+so an issue report from a machine that did install still shows the run that
+did not.
 
 ## After the first boot
 

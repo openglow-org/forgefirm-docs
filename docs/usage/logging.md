@@ -66,7 +66,9 @@ The Logs tab's viewer shows the tail of one logger. **Follow** keeps it moving;
 
 **Export** streams a `tar.gz` of every logger's files plus a system snapshot:
 firmware version, kernel ring buffer, uptime, memory, disk, processes, effective
-log levels, and the settings with secrets masked.
+log levels, and the settings with secrets masked. It also carries the log the
+installer kept of each of its runs, when the machine has one
+([Logging](../technical/forgefirm/logging.md#loggers-and-the-tree)).
 
 The bundle is **sanitized by default**, for attaching to a public issue report.
 Known identifiers (serial, hostname, cloud credentials, panel token, camera

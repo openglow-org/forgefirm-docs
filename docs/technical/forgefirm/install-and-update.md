@@ -98,14 +98,29 @@ it is on [Recovery](../../install/recovery.md#ffboot).
 3. **Fetch** `forgefirm.fw` from GitHub releases (fixed asset name; the
    `releases/latest/download/` URL needs one, and the version lives in the
    fwup metadata and the release tag), or take a local file argument for
-   offline and dev installs. Verify the signature against the ForgeFIRM
-   public key embedded in the installer (raw 32-byte form for the factory's
-   fwup).
+   offline and dev installs. The download makes up to five tries, spaced
+   5, 15, 30 and 60 seconds apart; each try resumes the partial file
+   (`curl -C -`) and is bounded (20 s to connect, and a stall below 1 KB/s
+   for 30 s ends the try). A full disk and a missing release (HTTP 404) end
+   the tries at once. The file takes its name only when curl finished.
+   Verify the signature against the ForgeFIRM public key embedded in the
+   installer (raw 32-byte form for the factory's fwup).
 4. **Apply** to the **inactive** slot (fwup plus the ForgeFIRM public key).
    The booted factory install is not written; the first ForgeFIRM update
    reuses its slot.
 5. **Atomic env flip** (the flip logic is embedded, because the factory
    rootfs has no ffboot), then reboot.
+
+Every run appends its steps to `/data/log/forgefirm/install/install.log`:
+the factory version and the slots, the operator's answers, each archive,
+each download try with curl's exit code and the reason in words, the state
+of the network after a failed try (address, default route, resolver,
+whether the release host resolves), the signature and identity checks, the
+write, the boot selection, and the reason for any failure. The line carries
+the installer's own md5, which names the revision that ran. Logging never
+fails the install: with no writable log the lines go nowhere. The file's
+place in the log tree and in the export is on
+[Logging](logging.md#loggers-and-the-tree).
 
 No repartitioning, no `/data` backup and restore, no second stage. `ffboot`
 returns the machine to the intact factory slot, and `/data` (factory state,

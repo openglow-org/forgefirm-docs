@@ -60,6 +60,14 @@ Line format (`ff_line`):
 2026-08-15T16:35:44.123456-04:00 forgectrl[512] INFO super: started grbl controller (pid 3084)
 ```
 
+One directory of the tree has no logger: `install/install.log` is written
+by the installer itself, on factory firmware, before ForgeFIRM's first boot
+([The slot installer](install-and-update.md#the-slot-installer)). It uses
+the same line format with the program name `install`, in UTC, and it is
+appended across runs, so a run that failed is still there after the run
+that worked. It has no level setting and no viewer in the panel; the export
+carries it.
+
 ## Levels
 
 Per logger, two independent settings in `/data/forgefirm/forgefirm.conf`:
@@ -98,7 +106,7 @@ cap protects.
 |---|---|
 | `GET /logs` | Loggers with configured and effective levels and on-disk sizes, the remote target, `pending_reboot` |
 | `GET /logs/tail?name=&lines=&from=` | The last `lines` of a logger's live file, or everything since byte offset `from` (incremental follow) |
-| `POST /logs/export?sanitize=1` or `=0` | Streams a `tar.gz` of every logger's files plus a system snapshot (version, dmesg, uptime, memory, disk, processes, effective levels, settings with secrets masked, and the setup record as `system/setup.json`, indented so the sanitizer sees one value per line) |
+| `POST /logs/export?sanitize=1` or `=0` | Streams a `tar.gz` of every logger's files, the installer's log when the machine has one (`logs/install/`), and a system snapshot (version, dmesg, uptime, memory, disk, processes, effective levels, settings with secrets masked, and the setup record as `system/setup.json`, indented so the sanitizer sees one value per line) |
 
 All three require a login session or the panel token
 ([forgectrl](forgectrl.md#http-api)).
