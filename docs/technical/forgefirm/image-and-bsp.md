@@ -230,6 +230,7 @@ What the board needs turned on:
 | `CONFIG_CRYPTO_AES/CCM/GCM/CTR/GHASH/CMAC/SHA256=y` | The ciphers mac80211 asks the crypto API for by name at association time (CCMP, GCMP, BIP/CMAC) and SHA-256 for the signed regulatory database, built in so nothing depends on a module found by alias. |
 | Media: `CONFIG_MEDIA_SUPPORT=y`, `MEDIA_SUPPORT_FILTER=y`, `MEDIA_SUBDRV_AUTOSELECT=y`, `MEDIA_CAMERA_SUPPORT=y`, `MEDIA_PLATFORM_SUPPORT=y`, `MEDIA_CONTROLLER=y`, `VIDEO_DEV=y`, `VIDEO_V4L2_SUBDEV_API=y`, `V4L_PLATFORM_DRIVERS=y`, `V4L_MEM2MEM_DRIVERS=y`, `VIDEO_CODA=m`, `VIDEO_OV5648=m`, `VIDEO_OV8856=m`, `STAGING_MEDIA=y`, `VIDEO_IMX_MEDIA=m`, `VIDEO_MUX=m`, `MULTIPLEXER=m`, `MUX_GPIO=m`, `MUX_MMIO=m` | Mainline OV5648 (5 MP) and OV8856 (8 MP, "HD" units) subdevs behind the imx6 IPU and MIPI-CSI2 (imx-media) capture path, with a GPIO video-mux modeling the factory CAM_SEL MIPI switch (lid/head). Both sensors share the `camera@36` dual-compatible node; whichever matches the chip id binds. `MEDIA_SUPPORT_FILTER` narrows the media stack to camera and platform drivers. `VIDEO_IMX_MEDIA` covers the whole 6.12 imx6 capture path (IPU CSI plus the imx6-mipi-csi2 receiver). The GPIO mux is CAM_SEL; the MMIO mux is the IPU CSI source select in IOMUXC_GPR. |
 | WiFi: `CONFIG_CFG80211=m`, `MAC80211=m`, `WLAN_VENDOR_TI=y`, `WLCORE=m`, `WLCORE_SDIO=m`, `WL18XX=m`; `CFG80211_DEFAULT_PS` not set; `RFKILL_INPUT` not set | cfg80211 and mac80211 as modules, so they load with wlcore after the rootfs is mounted and the regulatory database loads directly. Power save default-off: a mains-powered machine gains only latency and dropouts from it (forgectrl also pins it off at startup). The `doors` switch is EV_SW code 3 in the factory switch numbering, which collides with the Linux `SW_RFKILL_ALL` code: with the rfkill-input handler built in, every lid-open would soft-block all radios and drop the WLAN mid-session. The switch code is fixed UAPI (the factory DTB and gfhardware both use it), so the handler goes instead. |
+| `CONFIG_CGROUP_SCHED=y`, `FAIR_GROUP_SCHED=y`, `CFS_BANDWIDTH=y`, `MEMCG=y`, `CGROUP_PIDS=y`; `RT_GROUP_SCHED` not set; `CONFIG_SECURITY=y`, `SECURITY_LANDLOCK=y`; `CONFIG_NF_TABLES=y`, `NF_TABLES_INET=y`, `NFT_REJECT=y`, `NFT_LIMIT=y` | The kernel's share of [the extension sandbox](#the-extension-sandbox): the cgroup v2 cpu, memory, and pids controllers, landlock, and nftables, beside the seccomp filters and the cgroup core the defconfig already gives. |
 | `CONFIG_SMP` not set | One core. The i.MX6 Solo has a single Cortex-A9, so the SMP kernel's spinlocks, IPIs, and per-CPU machinery buy nothing. The TWD stays the tick and the GPT the clocksource. |
 | `CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE=y`; the ondemand, conservative, powersave, and userspace governors not set | The CPU runs at its full 996 MHz always. A single core with a `SCHED_FIFO` step producer gains nothing from idling at 396 MHz and waiting for ondemand's sampling to notice a job, and the SoC sits at half its passive trip point at full clock. |
 | `CONFIG_ARCH_MULTI_V6` not set | Only the Cortex-A9 (ARMv7) i.MX6 Solo runs this kernel; ARMv7 alone gives the compiler the real target. |
@@ -367,6 +368,83 @@ figure: 32 MiB is about 168 seconds of stream at the 200 kHz ceiling and about
 56 minutes at the 10 kHz print tick.
 
 Revisit RT only if the underrun bench ever contradicts this arithmetic.
+
+## The extension sandbox
+
+The image holds ready what contains a process that is not part of the
+firmware: accounts for it to run as, a cgroup tree to limit and freeze it in,
+network rules that refuse what it sends, and the two kernel facilities a
+process uses to give up its own reach. They are in place from boot, before
+anything that would use them starts. The recipe is `forgefirm-sandbox`.
+
+**The account pool.** Thirty-two system accounts, `ffx0` to `ffx31`, uid and
+gid 800 to 831, one group each, created when the image is built. No home
+(`/nonexistent`), no shell (`/bin/false`), a locked password. The block sits
+below 1000 on purpose: the [account render](#the-read-only-root-filesystem)
+replaces only the accounts from 1000 up, so an account reset leaves the pool
+alone, and the read-only rootfs never needs an account made at run time. The
+image's other system ids count down from 999 and come nowhere near it.
+
+**The cgroup tree.** `forgefirm-sandbox` runs at S30 in rcS. It mounts cgroup
+v2 at `/sys/fs/cgroup`, hands the cpu, memory, and pids controllers down to
+`/sys/fs/cgroup/ffx` and from there to the groups made under it, and marks
+`ffx` idle-class (`cpu.idle`), so a runnable task in the root group always
+runs before anything under `ffx`. forgectrl, the controller, and every other
+process of the firmware stay in the root group, which has no limit and no
+controller file that could give it one. A group under `ffx` takes `cpu.max`,
+`memory.max`, and `pids.max`, and `cgroup.freeze` stops every process in it
+(the freezer is part of the v2 core; the v1 freezer controller is not built).
+
+**No realtime group scheduler.** `CONFIG_RT_GROUP_SCHED` stays off, and that
+is part of the [real-time design](#real-time), not an omission. With it, a
+`SCHED_FIFO` thread runs only inside a group that was given realtime runtime,
+and the cpu controller cannot be enabled while a realtime thread sits outside
+the root group. The pulse feeder is `SCHED_FIFO` and needs nobody's leave to
+run.
+
+**The deny rules.** The same script loads `/etc/forgefirm/ffx.nft` with `nft`
+(nftables is built into the kernel, so nothing waits on a module), and rcS
+runs before the network starts, so no pool uid ever has an interface to send
+on with the rules absent. The table is `inet ffx`, one table for IPv4 and
+IPv6:
+
+```
+chain output   type filter hook output priority filter; policy accept;
+               meta skuid 800-831 jump pool
+chain pool     meta skuid vmap @allow
+               meta l4proto tcp counter reject with tcp reset
+               counter drop
+map allow      uid : verdict
+```
+
+Every packet sent from a socket a pool uid owns is refused: on loopback, to
+the machine's own LAN address, anywhere. That keeps such a process off the
+Grbl port, off forgectrl's listeners, and off the
+[controller's report route](cooling-engine.md#job-state-reports). A refused
+TCP connect is answered with a reset, so it fails at once and does not time
+out; anything else is dropped, which the sender sees as `EPERM`. The rules
+match the sending socket's uid on the output hook, which needs no connection
+tracking, so none is built, and a packet of the firmware's own costs one
+comparison. The way through is the `allow` map: a uid mapped to a chain that
+accepts that process's permitted destinations; what the chain does not accept
+returns to `pool` and is refused. Loading the file again replaces the table,
+allowlists included: it fails closed. The kernel's `limit` expression is
+built for a transmit rate limit. nftables on the image is the `nft` binary
+and its library with JSON output (`nft -j`), no interactive shell and no
+Python binding.
+
+**What a process does to itself.** seccomp filters (from the defconfig) and
+landlock (`CONFIG_SECURITY_LANDLOCK`, first in the defconfig's `CONFIG_LSM`
+list; ABI 6 on this kernel, which includes the TCP bind and connect rules)
+need no privilege and no policy file: a process that has set `no_new_privs`
+narrows its own system calls, its own view of the file tree, and its own TCP
+connects, and its children inherit the result.
+
+`forgefirm-sandbox status` prints the state of both halves and exits nonzero
+when either is missing. The acceptance test `exthost.platform` proves each
+piece on a probe process, and `scripts/sandbox-rules-test.py` in the
+`forgefirm` repository proves the rule file on real traffic in a network
+namespace, in CI.
 
 ## Cameras
 
