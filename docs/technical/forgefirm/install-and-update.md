@@ -67,6 +67,16 @@ is on [Acceptance](../../developers/acceptance.md).
    no recognizable rootfs).
 8. Verify a written slot (fwup on-the-fly hashes, or an explicit readback
    or mount check for raw writes) before flipping boot to it.
+9. **The product gate.** A signature says who made an archive, never what it
+   is, and `fwup -a` applies whatever task it finds. Firmware and
+   [extension packages](extensions.md#the-archive) are the same container,
+   so every firmware path (the upload, the release download, and the apply,
+   before `fwup -a` runs) reads the archive's `meta-product` and takes
+   firmware only: `ForgeFIRM firmware` under the release key or unsigned,
+   `Glowforge firmware` under a factory key or unsigned. An extension
+   package is refused in words that say what it is ("this archive is an
+   extension package, not firmware") and is not kept. The extension host
+   holds the other door the same way.
 
 ## Slot-agnostic images and ffboot
 
