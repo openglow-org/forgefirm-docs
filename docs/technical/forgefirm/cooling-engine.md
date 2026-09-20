@@ -638,6 +638,18 @@ mode=idle|run|cooldown & armed=0|1 [& model=density|analog]
       & exhaust_min_rpm=<rpm> & intake_min_rpm=<rpm> & air_assist_min_rpm=<rpm> ]
 ```
 
+- **The channel is the running controller's alone.** A forged `mode=idle`
+  would stand the fans down under a cut, so the route takes a report from
+  one sender. It answers a loopback peer only, and a loopback peer is not
+  enough, since anything that runs on the machine is one: the supervisor
+  hands each controller it spawns a secret in its environment
+  (`GF_REPORT_SECRET`, 32 hex digits, new at every spawn, the way it hands
+  over the pulse device), the controller sends it with every report as the
+  header `X-ForgeFIRM-Report`, and the route refuses a report without it
+  (403). A reap ends the secret, so nothing reports for a controller that is
+  gone. Both clients read it once and take it out of their environment, so
+  nothing they start (the homing runner) inherits it, and neither puts a
+  value in a header that is not 32 hex digits. The secret is never logged.
 - **Level-triggered, repeated at ~1 Hz** while the controller runs, not
   edge-triggered events. A lost report self-heals on the next one.
 - `armed` = the laser is armed (fire possible). The engine forces the run

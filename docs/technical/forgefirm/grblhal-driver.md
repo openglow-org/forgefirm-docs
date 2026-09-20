@@ -495,7 +495,8 @@ the sole owner of the thermal hardware. The driver is a client of it over
 two channels ([The cooling engine](cooling-engine.md) owns both formats):
 
 - **Job-state reports.** The driver reports its job state to the engine
-  (`POST /cool/state`: mode and armed, level-triggered at about 1 Hz). GRBL
+  (`POST /cool/state`: mode and armed, level-triggered at about 1 Hz, each
+  with the secret the supervisor handed the controller at its spawn). GRBL
   mode omits the per-job fan duties, so the engine's configured run profile
   applies. It also publishes `grbl.state` and `grbl.settings` under
   `/run/forgefirm`, written atomically on change from the protocol thread;

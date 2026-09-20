@@ -254,7 +254,8 @@ offset diagnostic's Apply button.
 | `POST /restore/factory-return?confirm=1` | The setup's factory-return exit ([Setup](setup.md#go-back-to-the-factory-firmware)) |
 
 `POST /cool/state` is the active controller's job-state report to the cooling
-engine, not an operator route; it accepts loopback connections only.
+engine, not an operator route; it answers the running controller and nothing
+else ([The cooling engine](../technical/forgefirm/cooling-engine.md#job-state-reports)).
 
 Position in `/status` comes from the kernel step counters anchored at the last
 completed homing. The Grbl TCP socket is never queried, because a connection
