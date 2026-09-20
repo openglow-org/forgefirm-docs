@@ -143,6 +143,7 @@ costs one bounded error, never a pinned thread.
 | `GET /fuse-identity` | The machine's fuse identity ([Control panel](../../usage/control-panel.md)) |
 | `GET /grbl/settings` | The controller's `$$` view, verbatim; 404 with no live controller |
 | `POST /curve/record`, `GET /curve/status`, `POST /curve/stop`, `GET /curve/ladder.gcode` | The dose-curve recorder ([below](#the-dose-curve-recorder)) |
+| `POST /job`, `GET /job`, `POST /job/abort` | The job runner ([below](#the-job-runner)): a G-code program run with the daemon as the machine's one sender |
 | `GET /logs`, `GET /logs/tail`, `POST /logs/export` | The logging tree ([Logging](logging.md)) |
 | `GET /cam/stream`, `GET /cam/snapshot`, `GET /cam/status`, `GET /cam/h264`, the mjpg-streamer aliases | The camera service ([Video pipeline](video-pipeline.md)) |
 | `GET /slots`, `POST /boot`, `GET /update/release`, `POST /update/check`, `POST /update/dismiss`, `POST /update/download`, `POST /update/apply`, `POST /update/upload`, `GET /update/status`, `POST /restore/factory`, `POST /restore/factory-return?confirm=1`, `POST /system/reboot` | The update manager ([Install and update](install-and-update.md#the-update-manager)) |
@@ -425,26 +426,108 @@ atomically on change from the controller's protocol thread:
 Position stays out of these files by design: it changes per segment and is
 served from the homing-anchored kernel counters.
 
+### The job runner
+
+The job runner (`jobrun.c`, over the sender `jobstream.c`) runs one job at a
+time with the daemon as the machine's Grbl sender. It is the daemon's one use
+of the Grbl socket: local, ok-per-line flow control, the controller's RX ring
+half full at most. A job is a sender like any other. Every arm gate stands,
+the first laser-on line waits for the press on the machine, and there is no
+emission path here that a Grbl client does not have. While a job plays, the
+sender samples the emission witnesses (`pic/hv_current`,
+`head/beam_detect_analog`, `cnc/laser_on_sampled`, the lid IR quartet), and
+the job's record carries what they saw.
+
+Every run takes the [machine lease](#the-machine-lease) as a `sender`: it is
+refused while a Grbl client is connected and while anything else holds the
+machine, in the holder's words, and it gives the lease back on every way out.
+Three things run through it:
+
+| Run | Lease owner | Started by |
+|---|---|---|
+| The dose ladder | `recorder` | `POST /curve/record` ([below](#the-dose-curve-recorder)) |
+| A sheet card's program | `job:<wizard id>`, under the wizard's own hold | The sheet wizards ([Setup](../../usage/setup.md)) |
+| A posted program | `job:<name>` | `POST /job` |
+
+`POST /job` is a multipart form:
+
+| Part | What it is |
+|---|---|
+| `program` (file) | The G-code, at most 16 MiB, streamed to a staging file in the run directory as it arrives; the runner opens it and removes its name before the first line goes out |
+| `name` | Who sends the job, 1 to 32 of letters, digits, `.`, `_`, `-`. The job holds the machine as `job:<name>` |
+| `lit_within_s` | Optional, 0 to 3600. Above 0, the program must show a discharge within that long, the press included, or the job fails |
+| `timeout_s` | Optional, 0 to 86400. Above 0, the whole run's budget |
+| `unlock` | Optional. `1`: the runner sends `$X` itself ahead of the program's first line |
+
+The program is checked whole before a line of it goes out, and a failed check
+is a 400 that names the line: no `$` line (the controller's system commands
+are not a job's to send), no realtime character (`?`, `!`, `~`) outside a
+comment, no byte that is not printable ASCII, no line over 250 characters
+once its comments are gone. Comments (`(...)` and `;...`) are stripped as the
+lines go out. The runner ends the program with `M2` if the program does not:
+the controller acknowledges `M2` only once every buffered motion has played,
+so every line acknowledged means the planner is empty; the runner then
+waits for the pulse engine to play the last of its ring (`cnc/state` idle)
+before the record says `done`, so `done` means the head has stopped. The
+ladder's and the sheet's witnesses are sampled at 25 Hz, and so are a posted
+program's when it sets `lit_within_s`: it is judged by them, and at a lower
+rate a burn shorter than a sample period could read dark. Any other posted
+program is sampled at 5 Hz, since it may run for an hour and only the summary
+is read; `emission.samples` says how many samples the summary rests on.
+
+`GET /job` (read-only class) is the record of the job that plays, or of the
+last one, whoever started it:
+
+```json
+{"state": "running", "owner": "job:panel", "program": true, "lines": 412,
+ "sent": 96, "acked": 81, "elapsed_s": 14, "lit": true,
+ "emission": {"samples": 70, "hv_max": 431, "laser_on_samples": 118, "thermopile_delta": 2210, "lit_s": 9.6},
+ "reason": ""}
+```
+
+`state` is `idle`, `running`, `done`, or `failed`, with the reason in words
+(the controller's error with the line that drew it, a timeout, `aborted`).
+`program` says whether the run is a posted program's. `POST /job/abort`
+stops a posted program with a soft reset, a controlled stop with the latch
+relocked, and waits for the run to end; the ladder and a sheet card are
+stopped where they were started, and the route says so. `POST
+/controller/stop` remains the operator's stop under any holder. An aborted
+job leaves the controller in its alarm state, as a Stop from any sender
+does, and a program may not carry the `$X` that clears it: the caller asks
+for it with `unlock=1`. While the X and Y motors are released the controller
+refuses that `$X`, and the job ends at its first line.
+
+While anything holds the machine (a log export aside), `POST /motion/jog`,
+`/motion/release`, `/motion/energize`, and `/motion/home` are refused in the
+holder's name: a job's pauses are not the panel's to jog in.
+
+Host tests: `jobrun_test` (the program check and every offense with its line
+number, a program played as `job:<name>` with the lease held as a sender,
+what is refused beside it, the runner's `M2` and `$X`, the abort and its soft
+reset, a connected client's refusal with nothing sent, a run inside a
+wizard's hold, the ready and done hooks of a started run), `jobstream_test`
+for the sender, and the mock-parity test. On the bench, the release
+acceptance tests `motion.job` and `laser.recorder-dark`, and `setup.sheet`
+for the sheet wizards.
+
 ### The dose-curve recorder
 
 The dose-curve recorder (`curverec.c`) measures the tube's own dose curve
-from one panel press, with no new emission path. `POST /curve/record`
-refuses while the published state file shows a sender connected (the
-recorder becomes the machine's one Grbl connection for the run). It saves
+from one panel press, with no new emission path. `POST /curve/record` starts
+the ladder as a job of the [job runner](#the-job-runner)'s, so it is refused
+while a Grbl client is connected and while anything else holds the machine.
+Once the machine is the recorder's, it saves
 and clears `laser_floor_density` and `laser_dose_curve` (so the ladder
 measures the raw response; both are restored on every end path), streams the
-ladder job itself over the local Grbl socket with ok-per-line flow control
-(absolute from X0 Y0, one 100 mm line per rung, the operator's button press
-starting the fire with every arm gate standing), and samples
+ladder (absolute from X0 Y0, one 100 mm line per rung, the operator's button
+press starting the fire with every arm gate standing), and samples
 `pic/hv_current` and `head/beam_detect_analog` at 25 Hz, segmenting on the
 dark gaps when the ladder has played. `GET /curve/status` reports the state
 (`idle`, `waiting`, `recording`, `done`, `failed`), the fitted density:light
 points, and the ready `laser_dose_curve` value; `POST /curve/stop` ends or
 aborts; `GET /curve/ladder.gcode` serves the exact job the recorder streams,
 for inspection. The panel's Apply writes the fit through the ordinary
-settings path. This is the one sanctioned Grbl-socket use in the daemon:
-gated on the state file's sender flag, local only, the ring half full at most. The
-dose model itself is on [grblHAL driver](grblhal-driver.md).
+settings path. The dose model itself is on [grblHAL driver](grblhal-driver.md).
 
 ## Mode supervision
 
@@ -578,8 +661,8 @@ only when the machine is idle. The two modes side by side are on
 
 ## The machine lease
 
-Diagnostics, the setup wizards, update jobs, the dose-curve recorder, and the
-log export each know whether they themselves are running. The lease is where
+Diagnostics, the setup wizards, update jobs, the job runner, and the log
+export each know whether they themselves are running. The lease is where
 each of them asks about all the others. Whoever runs takes it; whoever wants
 to start while another holds it is refused with 409, and the refusal names
 the holder: `a diagnostic (flow-verify) holds the machine`. The routes that
@@ -592,6 +675,7 @@ An owner is a short name, `<what>:<which>`. A hold is one of four kinds:
 | `diag:<tool>` | `hardware` | A diagnostic: it stops the controller and drives the thermal hardware itself |
 | `wizard:<id>` | `hardware` | A setup wizard, for as long as its check runs |
 | `recorder` | `sender` | The dose-curve recorder, which is the Grbl sender for its own ladder |
+| `job:<name>` | `sender` | The [job runner](#the-job-runner), for a posted program (`job:<name>`) or a sheet card (`job:<wizard id>`, under the wizard) |
 | `update:<job>` | `system` | An update job: `download`, `apply`, `restore`, `factory-return` |
 | `logs.export` | `export` | A log export, from its staging to the end of the download. It only reads the machine at rest |
 
@@ -599,14 +683,14 @@ What asks the lease, and which holders refuse it:
 
 | Request | Refused while |
 |---|---|
-| A diagnostic, a wizard, a recording, an update job, a log export | Anybody else holds it |
+| A diagnostic, a wizard, a recording, a posted job, an update job, a log export | Anybody else holds it |
 | `POST /mode`, `POST /boot`, `POST /system/reboot`, `POST /update/upload`, `POST /restore/factory-return` | Anybody holds it |
-| `POST /settings`, `POST /controller/start`, `POST /cool/quiet` | Anybody but a log export holds it. An export only reads, and a settings write does not disturb it; an update job locks the controls like a diagnostic does |
+| `POST /settings`, `POST /controller/start`, `POST /cool/quiet`, `POST /motion/jog`, `/motion/release`, `/motion/energize`, `/motion/home` | Anybody but a log export holds it. An export only reads, and a settings write does not disturb it; an update job locks the controls like a diagnostic does |
 
 **One owner may run under a holder.** The cooling wizards run a diagnostic
-inside their own hold: the diagnostic names the wizard it runs under, the
-lease lets it in under that holder and no other, and it releases before the
-wizard does. The cloud wizard switches the controller mode inside its own
+inside their own hold, and the sheet wizards a job: the inner owner names the
+wizard it runs under, the lease lets it in under that holder and no other,
+and it releases before the wizard does. The cloud wizard switches the controller mode inside its own
 hold, which the mode switch allows for the holder and nobody else.
 
 **What the lease does not hold, it still reports.** A Grbl client holds TCP
