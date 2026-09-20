@@ -411,8 +411,10 @@ IPv6:
 ```
 chain output   type filter hook output priority filter; policy accept;
                meta skuid 800-831 jump pool
-chain pool     meta skuid vmap @allow
-               meta l4proto tcp counter reject with tcp reset
+chain pool     oifname "lo" jump refuse
+               meta skuid vmap @allow
+               jump refuse
+chain refuse   meta l4proto tcp counter reject with tcp reset
                counter drop
 map allow      uid : verdict
 ```
@@ -427,7 +429,12 @@ match the sending socket's uid on the output hook, which needs no connection
 tracking, so none is built, and a packet of the firmware's own costs one
 comparison. The way through is the `allow` map: a uid mapped to a chain that
 accepts that process's permitted destinations; what the chain does not accept
-returns to `pool` and is refused. Loading the file again replaces the table,
+returns to `pool` and is refused. **The machine itself is never a
+destination, whatever the map says:** everything a host sends to one of its
+own addresses, the LAN one included, leaves through `lo`, and `pool` refuses
+that before it looks at the map. An allowlist names addresses, and the
+machine's own address can change under it with a new DHCP lease; this rule
+does not depend on knowing the address. Loading the file again replaces the table,
 allowlists included: it fails closed. The kernel's `limit` expression is
 built for a transmit rate limit. nftables on the image is the `nft` binary
 and its library with JSON output (`nft -j`), no interactive shell and no
