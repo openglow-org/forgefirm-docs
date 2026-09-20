@@ -85,6 +85,7 @@ fingerprint as `tls_fingerprint`; the panel's Setup card and
 `GET /cert` show the same fingerprint. HTTP on port 80
 serves only the read-only routes to the LAN. Those are `GET /status`, the camera routes and the
 mjpg-streamer aliases, `/settings`, `/grbl/settings`, `/mode`,
+`/motion/state`,
 `/cool/status`, `/diag/status`, `/curve/status`, `/curve/ladder.gcode`,
 `/slots`, `/update/status`, `/wiz`, `/wiz/advisories/press`, and
 `/advisories/<id>`. A state-changing route over HTTP answers a loopback
@@ -123,12 +124,17 @@ costs one bounded error, never a pinned thread.
 | `GET /wiz/record?download=1`, `GET /wiz/record.html`, `POST /wiz/changed` (`what`) | The record as a download named after the sheet id; the printable summary (`recordhtml.c`: one page, no script, every value escaped, the steps in catalog order with the sentence, the settings written with their values before, and the numbers); a replaced part or a service mapped to the wizards to run again (`setup.c`: the table of changes, required for the wizards whose settings were measured on the old part, recommended for the ones that prove it; a required flag never drops to recommended, and a run clears it). The record routes take a login session or the token |
 | `POST /wiz/<id>/start`, `POST /wiz/<id>/answer` (`seq`, `value`), `POST /wiz/<id>/abort`, `POST /wiz/<id>/takeover`, `GET /wiz/dark`, `GET /wiz/shot?cam=lid\|head` | The checks (the dark wizards) and the sheet cards (the live wizards): one runs at a time on a worker thread; the status carries the phase, the progress, the time so far, the log, the open prompt with its sequence number and how long it waits (`timeout_s`, `since_s`), the result (a live card's carries a `summary` sentence), the settings the wizard wrote with their values before (`applied`), and the run's ownership (`owned`: a login session drives it; `mine`: the requester's); the login session that started a run answers and aborts it, another session is refused (409) until it takes the run over, and a requester with no session (a tool with the token) is never held back; the shot is the cameras check's last snapshot |
 | `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A sheet card's preview (the drawing the daemon streams, from the record's facts) and its program body; the live wizards stream their programs through the daemon's own sender (`jobstream.c`: lines in flight up to half the controller's RX ring, ok per line, a $ command, M102 and the program end sent alone as barriers, the emission witnesses sampled at 25 Hz) in loopback posture, with the lens referenced on its hall sensor first; the focus card homes the lens on its bottom stop to place the hall edge in the carriage's travel, and its result is the focus model in the lens's own half-steps ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)) |
-| `GET /status` | Machine operational status as JSON: state, position with `homed_axes` naming the axes that carry a reference, fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
+| `GET /status` | Machine operational status as JSON: state, position with `homed_axes` naming the axes that carry a reference and `home_source` naming what set it (`gfcloud`, `manual`, or `startup` for the lens reference alone), `motors_released` (the release marker stands, [Homing](homing.md#the-motor-release)), fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
 | `GET /settings` | Current settings as JSON, plus `machine_id` (the fuse-derived identity), the firmware version, `tls_fingerprint`, and the `gates` table: range, recommended band, off end, and state per gate setting |
 | `POST /settings?key=value&...` | Set any subset of known keys. An empty value clears a key to its built-in default. Refused (409) unless the machine is idle. `cloud_enabled=1` from 0 takes `phrase=I UNDERSTAND` (400 without it); `cloud_enabled=0` takes `homing_mode` to `none` and `controller_mode` to `grbl` when they point at the cloud |
 | `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `waiting` with `why` naming what is open, `motion-fault`, or `gated` with `why`), pid, motion verdict, and `why` behind an unverified or faulted verdict (the probe's own words) |
 | `POST /mode?controller=grbl` or `=cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever ([Mode supervision](#mode-supervision)) |
+| `GET /motion/state` | The GRBL controller's own state through [the controller port](controller-port.md): the Grbl state name, `sender`, `port_jog`, `released`, `mpos`, `homed`. 409 while no GRBL controller runs |
+| `POST /motion/jog?x=&y=&z=&feed=` | One relative jog in millimeters, with `feed` in mm/min (3000 when absent). Bounded per request, because the bound is what a client that vanishes leaves behind: X and Y 100 mm, Z 5 mm, feed 10 to 12000. It works with a Grbl client connected and never displaces it; the client goes first. 400 for a value that is not a number or is past a bound; 409 with the reason in words when the controller refuses (the client is sending, a program runs, an alarm, the motors are released, the soft limits); 503 when the port does not answer |
+| `POST /motion/cancel` | Cancels the jog in progress, if it is the port's |
+| `POST /motion/release`, `POST /motion/energize` | The X and Y motor release and its end (`$MD`, `$ME`, [Homing](homing.md#the-motor-release)). The panel's own: these and the next route are outside the operation set a jog client can reach ([The controller port](controller-port.md#two-operation-sets)) |
+| `POST /motion/home` | A manual home (`$H`), accepted only while `homing_mode = manual`, where it moves nothing. 409 under every other method: a homing session is a Grbl client's to start |
 | `POST /cool/state` | Controller job-state report, level-triggered at ~1 Hz ([Cooling engine](cooling-engine.md#job-state-reports)) |
 | `GET /cool/status` | Cooling-engine state: phase, verdict, `fire_ok`, `hold`, `resume_ok`, temps, report age, `gates_off`, the effective `limits`, `fan_gates`, `fire_watch`, `accel_watch`, `quiet_hold` |
 | `POST /cool/quiet?on=1` or `=0`, with `pump=1` | The quiet hold for a listening to the head accelerometer (the bench tools; the setup finder uses the same hold inside the daemon): every fan off, and with `pump=1` the coolant pump and the TEC too, the machine silent. Taken only from an idle machine with no diagnostic running; the engine releases it itself when a run session opens or after 600 s ([Cooling engine](cooling-engine.md#what-the-fans-do-and-when)) |
@@ -484,6 +490,15 @@ supervisor and remain only as manual emergency stops.
   state. A probe the machine cannot run for another reason (no head
   accelerometer) still lets the controller start, with `motion: unverified`
   and the reason in `why`.
+- **A motor release is not ended from here.** While the GRBL controller's
+  release marker stands (`motors.released` in the run directory,
+  [Homing](homing.md#the-motor-release)), the supervisor does not run the
+  probe, which would energize X and move the gantry under the operator's
+  hands: it writes nothing, reports `motion: unverified` with the reason, and
+  starts the controller, which takes the release over. `POST /mode` to
+  `cloud` is refused while the marker stands, because cloud homing moves the
+  head. The probe and that switch are the only two things the daemon
+  originates that energize X or Y.
 - **The engine's fail tiers end the controller.** On a lid IR fire signal or
   a head crash signal the cooling engine, after its own kernel writes, asks
   the supervisor to stop the controller the deliberate way (the safing pair

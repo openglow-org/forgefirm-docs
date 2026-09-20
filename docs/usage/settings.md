@@ -35,10 +35,11 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | Key | Meaning |
 |---|---|
 | `controller_mode` | `grbl` or `cloud`: the boot-time mode. `POST /mode` switches live and persists it ([Modes](modes.md)). `cloud` needs `cloud_enabled=1`. |
-| `homing_mode` | `$H` behavior: `gfcloud`, `switches` (planned, not available), or `none` ([Homing](homing.md)). `gfcloud` needs `cloud_enabled=1`. |
+| `homing_mode` | `$H` behavior: `gfcloud`, `manual`, `switches` (planned, not available), or `none` ([Homing](homing.md)). `gfcloud` needs `cloud_enabled=1`. |
 | `cloud_enabled` | `0` (default) or `1`: whether cloud mode exists. The setup's cloud step sets it ([Setup](setup.md#cloud-mode)). While 0, the GF Cloud tab, the Factory cloud button, and the gfcloud homing choice do not exist, `controller_mode=cloud` and `homing_mode=gfcloud` are refused, and nothing contacts the Glowforge service. Through `POST /settings`, `1` takes `phrase=I UNDERSTAND` as the step does, and `0` takes `homing_mode` to `none` and `controller_mode` to `grbl` when they point at the cloud. |
 | `panel_open_reads` | `1` (default) or `0`: whether the read-only routes answer any client on the network without a login. 0 closes them to logged-in sessions and the machine itself ([The control panel](control-panel.md#access)). |
-| `gfcloud_home_x/y/z` | Machine coordinates after a completed homing (mm). |
+| `gfcloud_home_x/y` | Machine coordinates after a completed camera homing (mm, may be negative). Used by camera homing alone ([Homing](homing.md)). |
+| `manual_home_x/y` | Machine coordinates the stop blocks stand for, which a manual home declares (mm, never negative). Used by manual homing alone ([Homing](homing.md#manual-homing)). |
 | `gfcloud_home_timeout_s` | Web-service homing session budget (30 to 3600 s). |
 | `gf_serial` | Cloud sign-in serial override (digits). |
 | `gf_password` | Cloud sign-in password override (64 hex; write-only: `GET` reports `gf_password_set`). |
@@ -55,8 +56,9 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | Setting | Default | Effect |
 |---|---|---|
 | `controller_mode` | `grbl` | Which controller runs: `grbl` or `cloud` (`cloud` needs `cloud_enabled=1`). |
-| `homing_mode` | unset (behaves as `none`) | What `$H` does: `gfcloud`, `switches`, `none`. Set `gfcloud` for camera homing (needs `cloud_enabled=1`). |
-| `gfcloud_home_x/y/z` | 0 / 0 / Z max | Coordinates assigned after a successful camera home. |
+| `homing_mode` | unset (behaves as `none`) | What `$H` does: `gfcloud`, `manual`, `switches`, `none`. Set `gfcloud` for camera homing (needs `cloud_enabled=1`). |
+| `gfcloud_home_x/y` | 0 / 0 | Coordinates assigned after a successful camera home. Held to the axis travel either side of the origin. |
+| `manual_home_x/y` | 0 / 0 | Coordinates a manual home declares: the stop blocks are the origin unless set. Held to 0 up to the axis travel; a negative value is refused. |
 | `gfcloud_home_timeout_s` | 300 | How long a homing session may take before it alarms. |
 | `lid_policy` | `cancel` | `cancel` = factory behavior; `hold` = stock Grbl door parking. |
 | `xy_microsteps` | `32` | The X and Y microstep mode: `8` (the factory's), `16` or `32` (the default). The GRBL controller reads it at its start and derives `$100`/`$101`, its machine tick (28160 Hz at 8, doubled at 16, quadrupled at 32) and the kernel stop ramp from it, so nothing else needs typing; `$100`/`$101` are derived, never typed. Saving a change restarts an idle GRBL controller. Cloud mode runs at the service's own 8. 32 asks four times the step rate of 8 and depends on the machine ([The motion hardware](../technical/machine/motion-hardware.md)). |

@@ -90,6 +90,26 @@ enable is the readback of the chain's HV_ENABLE output, on only while a run
 feeds the charge-pump watchdog with the lid closed
 ([The safing chain](../technical/machine/safing-chain.md)).
 
+**The Jog card.** While the GRBL controller runs, the Status tab carries a
+Jog card: four arrows, Z up and down for the lens, a square that stops a jog
+in progress, a step size, a speed, and the position, which reads out live
+while a jog runs. Each press moves the head one step. The steps are round
+numbers in the unit on display (0.1, 1, 10, 50 mm, or 0.005, 0.05, 0.5, 2
+in), and the speeds are 600, 3000, and 6000 mm/min. The arrows are as you
+stand at the front of the machine: up is toward the back (Y-), down is toward
+the front (Y+). The long steps are not offered to the lens, whose whole travel
+is a few millimeters. The page does not lock, and shows no busy banner, for
+a jog of its own.
+
+The jog goes through the controller beside your Grbl client, so LightBurn
+stays connected, and **the client goes first**: a line from it stops a jog in
+progress, and right after one a jog is refused. Its status polling does
+neither. A jog never fires the laser, whatever the client last commanded.
+The controller refuses a jog during a program, in an alarm, while the motors
+are released, and past the soft limits once the machine is homed; the panel
+shows the reason beside the pad for a few seconds. While the X and Y motors are released the Motion card says so in red
+([Homing](homing.md#manual-homing)).
+
 The Status tab shows a standing banner while any cooling gate is turned off
 ([Cooling and fans](cooling-and-fans.md)), and a compatibility warning when the
 Glowforge service has moved past the firmware version cloud mode is tested
@@ -102,7 +122,9 @@ and the button blinks amber ([Modes](modes.md#what-the-supervisor-does-for-you))
 ### Machine
 
 Shared settings: display units, the homing method and the post-homing position
-calibration, the lens, the stepper drive (the X and Y microstep mode,
+calibration, the X and Y motor release with the manual home beside it
+([Homing](homing.md#manual-homing); both shown while the GRBL controller
+runs), the lens, the stepper drive (the X and Y microstep mode,
 [Settings](settings.md#settings-that-affect-motion)), and the cooling
 tunables. The cooling cards are the coolant loop, flow verification, and the
 airflow gates ([Cooling and fans](cooling-and-fans.md)).
@@ -181,6 +203,7 @@ offset diagnostic's Apply button.
 | `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `waiting` with `why` naming what is open, `motion-fault`, or `gated` with `why`), pid, motion verdict |
 | `POST /mode?controller=grbl\|cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever: stop halts the active controller and holds supervision suspended; start resumes it ([Modes](modes.md)) |
+| `POST /motion/jog?x=&y=&z=&feed=`, `POST /motion/cancel`, `GET /motion/state` | A bounded jog beside the Grbl client, its cancel, and the controller's own state; `POST /motion/release`, `/motion/energize`, and `/motion/home` are the panel's motor release and manual home ([forgectrl](../technical/forgefirm/forgectrl.md#http-api)) |
 | `GET /cool/status` | Cooling-engine state: phase, verdict, temps, report age, `gates_off`, the effective `limits`, `fan_gates` |
 | `GET /grbl/settings` | The GRBL controller's `$$` view, while a GRBL controller runs |
 | `GET /login`, `POST /login`, `POST /logout` | The login page, the login (`name`, `password`), and the sign-out |

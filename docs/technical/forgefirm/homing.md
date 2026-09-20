@@ -21,9 +21,21 @@ Machine tab sets it, and the driver re-reads the file on every `$H`:
 
 - `gfcloud`: camera homing through the Glowforge web service, the same cycle
   the factory machine runs. A cycle takes roughly a minute.
-- `switches`: the planned limit-switch cycle, the grblHAL core's own homing
-  cycle (`$22` = 0).
+- `manual`: the operator puts the head against the stop blocks by hand and
+  `$H` declares that spot as `manual_home_x`, `manual_home_y`. Nothing moves
+  ([Manual homing](#manual-homing)).
+- `switches`: the planned limit-switch cycle. `$H` is refused (error 53).
 - `none`: `$H` is rejected (error 5).
+
+The methods are rows of one table in the driver, `homing_providers[]` in
+`glowforge_homing.c`: an id, a kind, and the function `$H` runs. The kind is
+a property of the code, never of configuration. A `builtin` provider is a
+function in the driver. A `runner-fd` provider hands the pulse device to a
+root process that moves the machine; it suspends and resumes the stream
+engine around its session, and it is refused while the motors are released.
+Every provider ends in the same completion code: the soft limits, the
+planner's position, the kernel counters cleared, the anchor written, the
+core's homing-completed event, and the idle state.
 
 ## Camera-referenced homing in GRBL mode
 
@@ -53,7 +65,7 @@ shadows the core's homing cycle. Under `gfcloud`:
 queues `ALARM:18`, like a failed core homing cycle; the budget is
 `gfcloud_home_timeout_s` (default 300 s, held to 10 to 3600 s: a value
 outside is clamped with a log line, as `gfcloud_home_x` and
-`gfcloud_home_y` are to the bed). The `ok` for `$H` is sent when the
+`gfcloud_home_y` are to the axis travel either side of the origin). The `ok` for `$H` is sent when the
 session ends, so a sender that waits for it waits the whole session while
 the status reports keep flowing.
 
@@ -108,7 +120,11 @@ homing session; there is no hunt outside one.
 ### The position after a home
 
 After a successful session the machine coordinates are set to
-`gfcloud_home_x` and `gfcloud_home_y` (defaults 0 and 0), and Z to the park
+`gfcloud_home_x` and `gfcloud_home_y` on the step grid (defaults 0 and 0;
+either may be negative, and then the work envelope reaches back to the home
+position on that axis, since the head stands there). Those two keys belong to
+this provider alone, as `manual_home_x` and `manual_home_y` belong to the
+manual one: no provider reads another's. Z is set to the park
 height: the runner leaves the lens on the hall's rising edge, whose focal
 height the focus card measured (`lens_hall_edge_z_mm`), then moves it the
 whole half-steps to `lens_park_z_mm` (default 3 mm), inside the window every
@@ -121,6 +137,72 @@ anchored, and the panel shows it normally. A successful home also turns the
 driver's X and Y soft limits on, with the bed as the envelope, whatever `$20`
 says; they go off with the anchor whenever the position is invalidated
 ([The grblHAL driver](grblhal-driver.md#the-lens-z)).
+
+## Manual homing
+
+The operator's procedure is [Homing, Manual homing](../../usage/homing.md#manual-homing).
+
+### The `manual` provider
+
+`$H` under `manual` is accepted in Idle or Alarm, as every provider is. It
+waits for the kernel to finish any decel tail, energizes X and Y if they are
+released, and then declares the position: `sys.position` X and Y to
+`manual_home_x` and `manual_home_y` on the step grid, X and Y added to the
+homed mask, the kernel counters cleared, and the anchor written with the
+source `manual`. The two keys belong to this provider alone. Unset, they are
+the origin: the stop blocks are X0 Y0. They are never negative (forgectrl
+refuses one, and the driver holds a hand-edited value to 0 up to the axis
+travel, with a log line). The stop blocks are a wall, so the work envelope
+starts at the declared position and ends at the axis travel. There is
+no stream suspend, no runner, and no pulse byte. Z is not touched: its
+position, its reference, and its envelope stay as they were, and since the
+counters are cleared for all three axes the anchor carries the height the
+lens stands at. There is no lid gate, because nothing moves and the lid is
+open while the head is being pushed.
+
+The sender gets a warning at every manual home, and the anchor names its
+source so a reader can tell a position a hand declared from one the machine
+found. The soft limits are exactly as true as the placement: a misplaced home
+shifts the whole envelope, so a move inside the limits can reach the frame.
+That is a mechanical matter and never an emission one. The crash watch is not
+a backstop for it, since it arms only inside the laser's armed window
+([The cooling engine](cooling-engine.md)).
+
+### The motor release
+
+`glowforge_release.c` registers two system commands, the way `$H` is
+registered.
+
+| Command | What it does |
+|---|---|
+| `$MD` | Waits up to 3 s for the kernel to finish a move's tail, then releases X and Y by taking their step currents (`pic/x_step_current`, `pic/y_step_current`) to 0. On the bench reference that lets the gantry and the head move freely by hand, with the steppers' detents still felt; the drivers stay enabled and the 40 V rail stays up. Accepted in Idle or Alarm with the kernel idle, and refused while a laser job is armed or arming. It drops the X and Y reference at once (homed bits, soft limits, their part of the anchor) and keeps Z's. |
+| `$ME` | Energizes X and Y: the hold currents. The position stays invalid until a home. The machine returns to the state it was in before the release, so an alarm that was already standing is not cleared. |
+
+**While released, every motion is refused, and nothing but `$ME` or a manual
+`$H` energizes the motors.** The operator's hands are on the gantry, and a
+stray jog from a sender, a pendant, or a bounced button must not snap the
+rotors to a detent under them. The lock is the core's own alarm state
+(ALARM:11), where the core refuses every g-code line and every jog with an
+error, whoever sent it. The driver makes the lock unpickable:
+
+- `$X` is shadowed and refused (error 9) while released.
+- A soft reset leaves the alarm standing, as the core does for any alarm.
+- A `runner-fd` homing provider is refused, since its session would energize
+  the motors and move the head.
+- The realtime poll puts the alarm back if anything else clears it.
+- The driver's current scheme writes 0 to X and Y, and nothing else, for as
+  long as the release is held, so neither the run nor the hold posture can
+  energize them.
+- The release leaves a marker, `motors.released`, in the state directory. A
+  controller that starts over it (the one before it died, or was restarted)
+  takes the release over before it writes its first current, and comes up
+  locked.
+- forgectrl reads the same marker: its motion probe is skipped and a switch
+  to cloud mode is refused while it stands
+  ([forgectrl](forgectrl.md#mode-supervision)).
+
+A refused line gets a `[MSG:]` that says the motors are released, at most one
+every two seconds.
 
 ## Homing in cloud mode
 
@@ -174,10 +256,12 @@ Position comes from the kernel step counters, anchored through
 `/run/grblhal.homed`, which the controller writes. forgectrl serves it from
 there and never queries the Grbl socket ([forgectrl](forgectrl.md)). The
 anchor names the axes it references, so the lens reference anchors Z alone
-and a completed home anchors all three.
+and a completed home anchors all three. Its last field names what set it:
+`gfcloud`, `manual`, or `startup` for the lens reference.
 
 Anything that invalidates position (an underrun, a stream fault) drops the
-anchor deliberately, so a stale origin cannot be reused
+anchor deliberately, so a stale origin cannot be reused. A motor release drops
+X and Y from it and keeps Z
 ([The grblHAL driver](grblhal-driver.md)). Z is never driven blind, homed or
 not: the lens carriage is referenced against the hall sensor's edge, low in
 its travel ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)).

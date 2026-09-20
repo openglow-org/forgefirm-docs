@@ -549,7 +549,21 @@ own check of it once a second is under [Faults](#faults).
 `$H` is a driver command that shadows the core's homing cycle. Under
 `homing_mode = gfcloud` it suspends the stream engine, runs a service-driven
 homing session in a child process that inherits the pulse device, and hands
-the machine back. The mechanism is on [Homing](homing.md).
+the machine back. Under `homing_mode = manual` it moves nothing and declares
+the spot the operator put the head in (against the stop blocks) as `manual_home_x`, `manual_home_y`. `$MD` and `$ME` release and
+energize the X and Y motors for that, and while they are released the driver
+holds the machine in the alarm state so that nothing moves. The mechanism is
+on [Homing](homing.md).
+
+## The controller port
+
+Beside the Grbl socket the driver serves a second, local channel,
+`/run/forgefirm/grbl.ctl`: forgectrl jogs and reads state through it without
+displacing the Grbl client, and the panel's motor release and manual home go
+through it. Its only motion is `$J=`, the one motion the stream ships dark
+whatever the modal laser state is. The wire format, the two operation sets,
+and the sender-goes-first rule are on
+[The controller port](controller-port.md).
 
 ## The lens (Z)
 
