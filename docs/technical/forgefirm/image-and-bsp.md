@@ -87,7 +87,9 @@ The release image installs, on top of the BSP base:
 The factory cloud client `gfui-client` is removed (it connects to
 Glowforge's servers; its role is filled locally by forgectrl and the
 controllers). The `python3` meta-package is removed; each Python recipe
-declares the standard-library module packages it imports. `nano` is trimmed
+declares the standard-library module packages it imports. `python3-asyncio`
+is installed on top of those: no ForgeFIRM program imports it, and it is there
+for extensions, which run on the image's interpreter. `nano` is trimmed
 from the release image (8.7 MB, mostly libmagic) and kept on the dev image.
 
 The release rootfs must fit a 200 MiB factory eMMC slot (409600 blocks).
