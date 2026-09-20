@@ -173,20 +173,34 @@ dialog behind it. [Updating](../install/updating.md),
 [Back to the factory firmware](../install/factory-restore.md), and
 [Recovery](../install/recovery.md) describe the update and restore tools.
 
-Three more cards. **Remote access** turns SSH on until the next reboot: SSH
+Four more cards. **Remote access** turns SSH on until the next reboot: SSH
 is off at every boot, and a development image keeps it on. It opens with
 the panel account's name and password; root has no password and works at
 the serial console only. The machine's SSH host keys are made at the first
 start and kept on `/data`, so its fingerprint stays the same across
-updates. **API tokens** is described [below](#api-tokens). **Setup** shows the state of the setup and
+updates. **Extensions** and **API tokens** are described below
+([Extensions](#extensions), [API tokens](#api-tokens)). **Setup** shows the state of the setup and
 the certificate fingerprint, with a link to run a step again, the printable
 summary of the record, and the record itself as a download
 ([Setup](setup.md#the-record)).
 
+#### Extensions
+
+An extension is a part of the machine you turn on. It has settings of its
+own, a place in the panel, and things it provides, such as a way to home or
+a controller mode. The card lists the ones that are part of the image, with
+whether each is on and which of the things it provides is selected.
+
+Glowforge cloud mode is one. It is turned on and off in the cloud step of
+the setup ([Setup](setup.md)), with the step's typed acknowledgment. While
+it is off, its tab is not shown and nothing it provides can be selected.
+Turning it off takes the homing method and the controller mode back to the
+machine's own.
+
 #### API tokens
 
-A token is a password for one program that is not a browser: a
-home-automation hub, a script, a pendant. It reaches only what you tick when
+A token is a password for one program that is not a browser, such as a script
+that tells you when a job ends. It reaches only what you tick when
 you make it (read the status, follow the events, see a camera, jog the head
 with the laser off, run jobs) and never the settings, the controller mode, an
 update, or another token. A job it runs still waits for the button on the
@@ -227,7 +241,7 @@ offset diagnostic's Apply button.
 | `POST /mode?controller=grbl\|cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever: stop halts the active controller and holds supervision suspended; start resumes it ([Modes](modes.md)) |
 | `POST /motion/jog?x=&y=&z=&feed=`, `POST /motion/cancel`, `GET /motion/state` | A bounded jog beside the Grbl client, its cancel, and the controller's own state; `POST /motion/release`, `/motion/energize`, and `/motion/home` are the panel's motor release and manual home ([forgectrl](../technical/forgefirm/forgectrl.md#http-api)) |
-| `GET /events` | The machine's events as a server-sent event stream, for a script or a home-automation hub: the lid, a job's arm, pause, and end, alarms, the cooling verdict ([forgectrl](../technical/forgefirm/forgectrl.md#the-event-stream)) |
+| `GET /events` | The machine's events as a server-sent event stream, for a script: the lid, a job's arm, pause, and end, alarms, the cooling verdict ([forgectrl](../technical/forgefirm/forgectrl.md#the-event-stream)) |
 | `GET /cool/status` | Cooling-engine state: phase, verdict, temps, report age, `gates_off`, the effective `limits`, `fan_gates` |
 | `GET /grbl/settings` | The GRBL controller's `$$` view, while a GRBL controller runs |
 | `GET /login`, `POST /login`, `POST /logout` | The login page, the login (`name`, `password`), and the sign-out |

@@ -4,8 +4,9 @@ title: The remote API
 
 # The remote API
 
-A program on the network that is not a browser (a home-automation hub, a
-script, a phone app, a pendant) reaches the machine with a **scoped token**:
+A program on the network that is not a browser (a script, such as the
+[notifier](#examples) that tells somebody a job has ended) reaches the
+machine with a **scoped token**:
 a credential the operator makes in the control panel, which reaches the
 routes it was granted and nothing else. It needs no login session. This page
 is for whoever writes that program. The routes themselves are documented on
@@ -121,6 +122,13 @@ A 1 mm jog toward +X, and its cancel:
 curl -k -X POST -H "Authorization: Bearer $TOKEN" "https://forgefirm-1a2b/motion/jog?x=1&feed=1200"
 curl -k -X POST -H "Authorization: Bearer $TOKEN" https://forgefirm-1a2b/motion/cancel
 ```
+
+A whole client, in Python's standard library:
+[`examples/remote/notify.py`](https://github.com/openglow-org/forgectrl/tree/main/examples/remote)
+in the forgectrl repository follows the event stream with an `events` token
+and tells somebody when the machine wants them, by a webhook or a command. It
+pins the machine's certificate by the fingerprint the panel shows before it
+sends the token, which is the way to talk to a self-signed machine.
 
 Running a program, then reading its record:
 

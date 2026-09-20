@@ -62,8 +62,9 @@ Every port jog puts `[MSG:Panel jog]` on the Grbl client's console, and
 
 ## Two operation sets
 
-`state`, `jog`, and `cancel` are the **package set**: what a jog pad, a
-pendant, or any other client of forgectrl's motion routes can reach.
+`state`, `jog`, and `cancel` are the **package set**: what the panel's Jog
+card, a scoped token, or any other client of forgectrl's motion routes can
+reach.
 `release`, `energize`, and `home` are the **panel set**: they belong to the
 operator's own control panel and to nothing else.
 

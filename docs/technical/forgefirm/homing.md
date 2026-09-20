@@ -180,7 +180,7 @@ registered.
 
 **While released, every motion is refused, and nothing but `$ME` or a manual
 `$H` energizes the motors.** The operator's hands are on the gantry, and a
-stray jog from a sender, a pendant, or a bounced button must not snap the
+stray jog from a sender, the panel, or a bounced button must not snap the
 rotors to a detent under them. The lock is the core's own alarm state
 (ALARM:11), where the core refuses every g-code line and every jog with an
 error, whoever sent it. The driver makes the lock unpickable:

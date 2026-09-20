@@ -144,6 +144,7 @@ costs one bounded error, never a pinned thread.
 | `GET /fuse-identity` | The machine's fuse identity ([Control panel](../../usage/control-panel.md)) |
 | `GET /grbl/settings` | The controller's `$$` view, verbatim; 404 with no live controller |
 | `POST /curve/record`, `GET /curve/status`, `POST /curve/stop`, `GET /curve/ladder.gcode` | The dose-curve recorder ([below](#the-dose-curve-recorder)) |
+| `GET /extensions` | The built-in extensions ([below](#built-in-extensions)): what each provides, whether it is on, and which of its providers is selected. Read-only class |
 | `GET /tokens`, `POST /tokens` (`name`, `caps`), `POST /tokens/revoke` (`id`) | Scoped tokens ([below](#scoped-tokens)): the list, a new token (answered once, as `{"id", "token"}`), a revoke. Write class; no scoped token reaches them |
 | `POST /job`, `GET /job`, `POST /job/abort` | The job runner ([below](#the-job-runner)): a G-code program run with the daemon as the machine's one sender |
 | `GET /logs`, `GET /logs/tail`, `POST /logs/export` | The logging tree ([Logging](logging.md)) |
@@ -235,6 +236,56 @@ token, the sink's silent form, closed reads), and the
 mock-parity test, which holds the mock's list and its route column to the C.
 On the bench, the release acceptance test `forgectrl.tokens`.
 
+### Built-in extensions
+
+An extension is a part of the machine the operator turns on: it has an
+enable, a consent, a place in the panel, settings of its own, and roles it
+provides. Cloud mode has always been one, with each of those in a different
+file. `builtin.c` says it in one table, and `GET /extensions` serves the
+table with the state:
+
+```json
+{"extensions": [{
+  "id": "cloud", "name": "Glowforge cloud mode", "summary": "...", "builtin": true, "enabled": true,
+  "enable_key": "cloud_enabled", "consent": "The cloud step of the setup, with its typed acknowledgment.",
+  "setup_step": "cloud", "tab": "gfcloud",
+  "settings": ["cloud_*", "gfcloud_*", "gf_serial", "gf_password", "log_gfcloud_*"],
+  "roles": [
+    {"role": "homing", "provider": "gfcloud", "kind": "runner-fd",
+     "select_key": "homing_mode", "fallback": "none", "active": true},
+    {"role": "controller", "provider": "cloud", "kind": "supervised",
+     "select_key": "controller_mode", "fallback": "grbl", "active": false}]}]}
+```
+
+A built-in is image content: compiled in, under release acceptance, its
+panel tab panel code. The table moves no behavior. The enable is the
+settings key the cloud step writes, the consent is that step's typed phrase,
+and the step and `POST /settings` both ask the table two things:
+
+- **A provider whose extension is off does not exist.** A request that
+  selects one (`homing_mode=gfcloud`, `controller_mode=cloud`) is refused
+  with 409 and the role's words. The request's own value of the enable
+  counts, so the pair in one request is judged as it would stand.
+- **An extension that goes off takes down what pointed at it**: each role
+  whose provider is the one selected falls back (`homing_mode` to `none`,
+  `controller_mode` to `grbl`), unless the request sets that key itself.
+  The fallback is never `manual`: a manual home asserts a position the
+  machine cannot verify, and only the operator chooses it.
+
+`active` says a role's provider is the one selected, and is never true for
+an extension that is off. A provider that belongs to no entry is core and
+always exists: homing `none` and `manual`, the `grbl` controller. The
+provider kinds (`runner-fd`: the driver forks a runner that inherits the
+pulse device; `supervised`: the supervisor's own controller) are
+compile-time words of the image.
+
+Host tests: `builtin_test` (the table over a real settings file: the cloud
+entry, each refusal in the words the route has always said, the request's
+own enable, the sweep and what it leaves alone, the list in each state) and
+the mock-parity test, which reads the table out of `builtin.c` and holds the
+mock's copy, its refusals, and its sweep to it. On the bench, the release
+acceptance test `setup.cloud-disabled-surface`.
+
 ### Setup and the gate
 
 The first run of the panel is the setup: the advisories, the account, the
@@ -277,7 +328,9 @@ choice do not exist. `controller_mode=cloud` and `homing_mode=gfcloud`
 are refused, and nothing contacts the Glowforge service. `POST /settings`
 takes `cloud_enabled=1` only with `phrase=I UNDERSTAND`, the step's typed
 acknowledgment, and `cloud_enabled=0` takes `homing_mode` and
-`controller_mode` off the cloud as the step does. The hardware
+`controller_mode` off the cloud as the step does. Which settings point at
+the cloud, the words of each refusal, and what each falls back to come from
+the table of [built-in extensions](#built-in-extensions). The hardware
 wizards are the checks (the dark validation) and the sheet (the live
 cards); a live card's laser keys (`laser_floor_density`,
 `laser_dose_curve`, `laser_corner_gamma`) may be overridden for its one
