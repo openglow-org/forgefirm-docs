@@ -104,7 +104,7 @@ warning: look at the loop before the next job.
 
 | You see | Why | What to do |
 |---|---|---|
-| Settings cannot be saved (409); the controls are disabled with a banner | The machine is not idle, or a diagnostic is running | Finish or stop the job, or wait for the diagnostic to end. |
+| Settings cannot be saved (409); the controls are disabled with a banner | The machine is not idle, or a diagnostic, a setup wizard, the dose-curve recorder, or an update job has the machine (the banner and the refusal name it) | Finish or stop the job, or wait for what holds the machine to end. |
 | The mode switch is refused | The switch is idle-gated: no job, no diagnostic | Wait for idle. |
 | A standing banner says a gate is off | A cooling gate setting sits at the off end of its range | Intended if you set it. Otherwise set the value back ([Cooling and fans](cooling-and-fans.md)). |
 | A field is flagged outside its recommended band | The value is legal but outside the band measured on the bench reference | Fine if your machine's loop or fans read that way. |

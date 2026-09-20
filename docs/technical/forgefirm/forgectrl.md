@@ -124,7 +124,7 @@ costs one bounded error, never a pinned thread.
 | `GET /wiz/record?download=1`, `GET /wiz/record.html`, `POST /wiz/changed` (`what`) | The record as a download named after the sheet id; the printable summary (`recordhtml.c`: one page, no script, every value escaped, the steps in catalog order with the sentence, the settings written with their values before, and the numbers); a replaced part or a service mapped to the wizards to run again (`setup.c`: the table of changes, required for the wizards whose settings were measured on the old part, recommended for the ones that prove it; a required flag never drops to recommended, and a run clears it). The record routes take a login session or the token |
 | `POST /wiz/<id>/start`, `POST /wiz/<id>/answer` (`seq`, `value`), `POST /wiz/<id>/abort`, `POST /wiz/<id>/takeover`, `GET /wiz/dark`, `GET /wiz/shot?cam=lid\|head` | The checks (the dark wizards) and the sheet cards (the live wizards): one runs at a time on a worker thread; the status carries the phase, the progress, the time so far, the log, the open prompt with its sequence number and how long it waits (`timeout_s`, `since_s`), the result (a live card's carries a `summary` sentence), the settings the wizard wrote with their values before (`applied`), and the run's ownership (`owned`: a login session drives it; `mine`: the requester's); the login session that started a run answers and aborts it, another session is refused (409) until it takes the run over, and a requester with no session (a tool with the token) is never held back; the shot is the cameras check's last snapshot |
 | `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A sheet card's preview (the drawing the daemon streams, from the record's facts) and its program body; the live wizards stream their programs through the daemon's own sender (`jobstream.c`: lines in flight up to half the controller's RX ring, ok per line, a $ command, M102 and the program end sent alone as barriers, the emission witnesses sampled at 25 Hz) in loopback posture, with the lens referenced on its hall sensor first; the focus card homes the lens on its bottom stop to place the hall edge in the carriage's travel, and its result is the focus model in the lens's own half-steps ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)) |
-| `GET /status` | Machine operational status as JSON: state, position with `homed_axes` naming the axes that carry a reference and `home_source` naming what set it (`gfcloud`, `manual`, or `startup` for the lens reference alone), `motors_released` (the release marker stands, [Homing](homing.md#the-motor-release)), fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
+| `GET /status` | Machine operational status as JSON: state, position with `homed_axes` naming the axes that carry a reference and `home_source` naming what set it (`gfcloud`, `manual`, or `startup` for the lens reference alone), `motors_released` (the release marker stands, [Homing](homing.md#the-motor-release)), `lease` (who has the machine, [The machine lease](#the-machine-lease)), fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
 | `GET /settings` | Current settings as JSON, plus `machine_id` (the fuse-derived identity), the firmware version, `tls_fingerprint`, and the `gates` table: range, recommended band, off end, and state per gate setting |
 | `POST /settings?key=value&...` | Set any subset of known keys. An empty value clears a key to its built-in default. Refused (409) unless the machine is idle. `cloud_enabled=1` from 0 takes `phrase=I UNDERSTAND` (400 without it); `cloud_enabled=0` takes `homing_mode` to `none` and `controller_mode` to `grbl` when they point at the cloud |
 | `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `waiting` with `why` naming what is open, `motion-fault`, or `gated` with `why`), pid, motion verdict, and `why` behind an unverified or faulted verdict (the probe's own words) |
@@ -373,6 +373,7 @@ every 5 s.
 | `alarm` | `code` | The GRBL controller raises an alarm |
 | `homing.started`, `homing.completed`, `homing.failed` | `source`, `axes` on completed | A homing session starts and ends. A manual home has no session, so it is a `homing.completed` alone |
 | `motors.released`, `motors.energized` | | The X and Y motor release and its end |
+| `lease.changed` | `owner`, or `null` | The machine lease's innermost holder changes ([The machine lease](#the-machine-lease)) |
 | `bye` | `reason`: `replaced` | This stream is ending because the same address opened a newer one |
 
 An edge detector reads state the daemon already holds (the supervisor, the
@@ -574,6 +575,75 @@ Switching modes is a live operation from the panel's Status tab, allowed
 only when the machine is idle. The two modes side by side are on
 [ForgeFIRM](index.md); the operator's view is on
 [Modes](../../usage/modes.md).
+
+## The machine lease
+
+Diagnostics, the setup wizards, update jobs, the dose-curve recorder, and the
+log export each know whether they themselves are running. The lease is where
+each of them asks about all the others. Whoever runs takes it; whoever wants
+to start while another holds it is refused with 409, and the refusal names
+the holder: `a diagnostic (flow-verify) holds the machine`. The routes that
+must not act under a holder ask it too.
+
+An owner is a short name, `<what>:<which>`. A hold is one of four kinds:
+
+| Owner | Kind | Taken by |
+|---|---|---|
+| `diag:<tool>` | `hardware` | A diagnostic: it stops the controller and drives the thermal hardware itself |
+| `wizard:<id>` | `hardware` | A setup wizard, for as long as its check runs |
+| `recorder` | `sender` | The dose-curve recorder, which is the Grbl sender for its own ladder |
+| `update:<job>` | `system` | An update job: `download`, `apply`, `restore`, `factory-return` |
+| `logs.export` | `export` | A log export, from its staging to the end of the download. It only reads the machine at rest |
+
+What asks the lease, and which holders refuse it:
+
+| Request | Refused while |
+|---|---|
+| A diagnostic, a wizard, a recording, an update job, a log export | Anybody else holds it |
+| `POST /mode`, `POST /boot`, `POST /system/reboot`, `POST /update/upload`, `POST /restore/factory-return` | Anybody holds it |
+| `POST /settings`, `POST /controller/start`, `POST /cool/quiet` | Anybody but a log export holds it. An export only reads, and a settings write does not disturb it; an update job locks the controls like a diagnostic does |
+
+**One owner may run under a holder.** The cooling wizards run a diagnostic
+inside their own hold: the diagnostic names the wizard it runs under, the
+lease lets it in under that holder and no other, and it releases before the
+wizard does. The cloud wizard switches the controller mode inside its own
+hold, which the mode switch allows for the holder and nobody else.
+
+**What the lease does not hold, it still reports.** A Grbl client holds TCP
+23 outside any grant and cannot be revoked, and the X and Y motors may be
+released; an operator asking why something will not start is asking about
+these too. A `sender` hold is refused while a client is connected. `/status`
+carries:
+
+```json
+"lease": {
+  "holder": {"owner": "diag:flow-calibrate", "kind": "hardware", "for_s": 41,
+             "words": "a diagnostic (flow-calibrate)", "under": "wizard:cooling.flow"},
+  "observed": {"sender": false, "motors_released": false}
+}
+```
+
+`holder` is `null` when the machine is nobody's, and `under` is present only
+for an owner that runs under another. The event stream reports a change of
+holder as `lease.changed`. The panel locks its controls, and says who has the
+machine, under every holder but a log export.
+
+**There is no timeout.** Every owner is a thread of the daemon, and each of
+its exit paths releases. Revoking a hold would not stop the thread that has
+the hardware, so a timeout would only make the lease say something untrue.
+
+Each activity keeps its own idle check (`cnc/state`), which is about the
+kernel and not about ownership: a wizard that has stopped the controller
+leaves the kernel idle, which is exactly the case the lease exists for.
+
+Host tests: `lease_test` (one holder and its refusal, an owner under a
+holder and under no other, release by the innermost owner alone, the sender
+kind beside a connected client, the `/status` document, sixteen threads
+asking at once with one winner), `super_test` case K (a mode switch refused
+by a holder, allowed for the holder itself, refused for a caller that names
+a hold it does not have), and the mock-parity test, which holds the panel
+mock's words, document, and refusals to `lease.c`. On the bench, the release
+acceptance test `forgectrl.lease`.
 
 ## Pulse-device ownership
 

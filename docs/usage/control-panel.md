@@ -64,7 +64,8 @@ or the page with unsaved changes asks first. Each card and field has a "?" that
 opens its help, with a link into this documentation site.
 
 All settings controls disable, with a banner, while the machine is not idle or
-while a diagnostic is running. The header identifies the machine by its factory
+while a diagnostic, a setup wizard, the dose-curve recorder, or an update job
+has the machine; the banner names it. The header identifies the machine by its factory
 identity (the factory hostname derived from the serial in the fuses), whatever
 cloud identity override is set.
 

@@ -21,7 +21,8 @@ changes apply without restarts. The cooling engine re-reads its keys at the
 start of every run.
 
 Settings can only be changed while the machine is idle. Writes are refused
-(409) otherwise, and while a diagnostic owns the hardware, because the
+(409) otherwise, and while a diagnostic, a setup wizard, the dose-curve
+recorder, or an update job has the machine (the refusal names it), because the
 controller and the homing runner both read this file mid-run. The panel's save
 bar posts every change in one request, and a multi-key save lands as one
 atomic replace.
