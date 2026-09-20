@@ -85,7 +85,7 @@ fingerprint as `tls_fingerprint`; the panel's Setup card and
 `GET /cert` show the same fingerprint. HTTP on port 80
 serves only the read-only routes to the LAN. Those are `GET /status`, the camera routes and the
 mjpg-streamer aliases, `/settings`, `/grbl/settings`, `/mode`,
-`/motion/state`,
+`/motion/state`, `/events`,
 `/cool/status`, `/diag/status`, `/curve/status`, `/curve/ladder.gcode`,
 `/slots`, `/update/status`, `/wiz`, `/wiz/advisories/press`, and
 `/advisories/<id>`. A state-changing route over HTTP answers a loopback
@@ -130,6 +130,7 @@ costs one bounded error, never a pinned thread.
 | `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `waiting` with `why` naming what is open, `motion-fault`, or `gated` with `why`), pid, motion verdict, and `why` behind an unverified or faulted verdict (the probe's own words) |
 | `POST /mode?controller=grbl` or `=cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever ([Mode supervision](#mode-supervision)) |
+| `GET /events` | The machine's events as server-sent events ([The event stream](#the-event-stream)). 503 with the reason when every stream is taken |
 | `GET /motion/state` | The GRBL controller's own state through [the controller port](controller-port.md): the Grbl state name, `sender`, `port_jog`, `released`, `mpos`, `homed`. 409 while no GRBL controller runs |
 | `POST /motion/jog?x=&y=&z=&feed=` | One relative jog in millimeters, with `feed` in mm/min (3000 when absent). Bounded per request, because the bound is what a client that vanishes leaves behind: X and Y 100 mm, Z 5 mm, feed 10 to 12000. It works with a Grbl client connected and never displaces it; the client goes first. 400 for a value that is not a number or is past a bound; 409 with the reason in words when the controller refuses (the client is sending, a program runs, an alarm, the motors are released, the soft limits); 503 when the port does not answer |
 | `POST /motion/cancel` | Cancels the jog in progress, if it is the port's |
@@ -346,6 +347,60 @@ and anything external. It carries:
   `mem_pct`, used percent from `MemTotal` against `MemAvailable`;
 - the sampled laser evidence, faults, HV, and lid IR values;
 - the switch map above.
+
+### The event stream
+
+`GET /events` is a server-sent event stream (`text/event-stream`): a line of
+state when something changes, in place of a client polling for it. It is in
+the read-only class, like `GET /status`. It reports changes only: a client
+reads `GET /status` for where things stand and the stream for what happens
+next. The first event is `hello`, with `max_streams`; each later event
+carries an `id` that counts up, and a comment line keeps an idle stream alive
+every 5 s.
+
+| Event | Data | When |
+|---|---|---|
+| `lid` | `closed` | The lid switches (both, in series) change |
+| `interlock` | `ok` | The remote interlock loop opens or closes |
+| `mode.changed` | `mode` | The selected controller mode changes |
+| `controller.started`, `controller.stopped` | `mode`, `state` | The supervised controller starts, or stops running; `state` is the `GET /mode` word (`stopped`, `standby`, `waiting`, `gated`, `motion-fault`), and a move between two of those is a `controller.stopped` as well |
+| `cooling.verdict` | `verdict`, `fire_ok` | The cooling engine's verdict changes |
+| `job.arming` | | The GRBL controller waits for the button |
+| `job.armed` | | The armed window opens (either mode: it is the controller's own report) |
+| `job.paused` | `reason`: `lid`, `cooling`, or `hold` | The GRBL controller enters Hold or Door inside the window |
+| `job.resumed` | | It leaves the hold and runs on |
+| `job.ended` | `result`: `ended` or `alarm` | The armed window closes |
+| `alarm` | `code` | The GRBL controller raises an alarm |
+| `homing.started`, `homing.completed`, `homing.failed` | `source`, `axes` on completed | A homing session starts and ends. A manual home has no session, so it is a `homing.completed` alone |
+| `motors.released`, `motors.energized` | | The X and Y motor release and its end |
+| `bye` | `reason`: `replaced` | This stream is ending because the same address opened a newer one |
+
+An edge detector reads state the daemon already holds (the supervisor, the
+cooling engine's last tick, the controller's report and the markers in the
+run directory, the switch word) five times a second, **and only while a
+stream is open**. It reads no sensor. The first listener after a quiet
+spell starts from a fresh baseline, so nothing that happened while nobody
+listened is replayed. A client that falls more than 64 events behind gets a
+comment line saying how many it lost, and then the oldest event still held.
+
+**The streams are capped: three in all, one per peer address**, counted
+apart from the camera streams. The daemon is thread-per-connection with a
+ceiling of 64 connections and 16 per address, and an event stream holds its
+thread for hours: without a cap, a few dashboard tabs beside a camera
+viewer could stall the settings, arm, and mode routes during a cut. A client
+past the total gets 503 and the reason. One per address is kept by
+replacement: a new stream from an address ends that address's older one,
+which gets `bye` and then the end of the response. A client that went away
+is only noticed at the daemon's next write to it, so refusing the newer
+stream would turn every page reload into an error, and a browser's
+`EventSource` does not retry an error status. A client that wants more than
+the cap allows reads one stream and fans it out off the machine. The control
+panel does not use the stream; it polls.
+
+The host test is `events_test` (the cap, every row of the table above as a
+state step, the stream over a scripted state, a slow reader, the idle
+sampler, the shutdown); on the bench, the release acceptance test
+`events.stream`.
 
 ### Controller state reports
 

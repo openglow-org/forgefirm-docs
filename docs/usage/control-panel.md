@@ -204,6 +204,7 @@ offset diagnostic's Apply button.
 | `POST /mode?controller=grbl\|cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever: stop halts the active controller and holds supervision suspended; start resumes it ([Modes](modes.md)) |
 | `POST /motion/jog?x=&y=&z=&feed=`, `POST /motion/cancel`, `GET /motion/state` | A bounded jog beside the Grbl client, its cancel, and the controller's own state; `POST /motion/release`, `/motion/energize`, and `/motion/home` are the panel's motor release and manual home ([forgectrl](../technical/forgefirm/forgectrl.md#http-api)) |
+| `GET /events` | The machine's events as a server-sent event stream, for a script or a home-automation hub: the lid, a job's arm, pause, and end, alarms, the cooling verdict ([forgectrl](../technical/forgefirm/forgectrl.md#the-event-stream)) |
 | `GET /cool/status` | Cooling-engine state: phase, verdict, temps, report age, `gates_off`, the effective `limits`, `fan_gates` |
 | `GET /grbl/settings` | The GRBL controller's `$$` view, while a GRBL controller runs |
 | `GET /login`, `POST /login`, `POST /logout` | The login page, the login (`name`, `password`), and the sign-out |
