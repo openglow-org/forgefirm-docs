@@ -107,7 +107,8 @@ writes with the token alone; so does any client on a development image. A
 client on the network needs the session too. The read-only routes answer any
 LAN client while `panel_open_reads` is 1 (the default); 0 closes them to
 sessions and loopback. Unsigned firmware installs and `GET /fuse-identity`
-additionally require the physical button held.
+additionally require the physical button held. A client with no browser and
+no session uses a scoped token ([below](#scoped-tokens)).
 
 The HTTP surface carries accept-side caps: 64 connections in total and 16
 per client address (`MHD_OPTION_CONNECTION_LIMIT` and the per-IP limit), so
@@ -143,6 +144,7 @@ costs one bounded error, never a pinned thread.
 | `GET /fuse-identity` | The machine's fuse identity ([Control panel](../../usage/control-panel.md)) |
 | `GET /grbl/settings` | The controller's `$$` view, verbatim; 404 with no live controller |
 | `POST /curve/record`, `GET /curve/status`, `POST /curve/stop`, `GET /curve/ladder.gcode` | The dose-curve recorder ([below](#the-dose-curve-recorder)) |
+| `GET /tokens`, `POST /tokens` (`name`, `caps`), `POST /tokens/revoke` (`id`) | Scoped tokens ([below](#scoped-tokens)): the list, a new token (answered once, as `{"id", "token"}`), a revoke. Write class; no scoped token reaches them |
 | `POST /job`, `GET /job`, `POST /job/abort` | The job runner ([below](#the-job-runner)): a G-code program run with the daemon as the machine's one sender |
 | `GET /logs`, `GET /logs/tail`, `POST /logs/export` | The logging tree ([Logging](logging.md)) |
 | `GET /cam/stream`, `GET /cam/snapshot`, `GET /cam/status`, `GET /cam/h264`, the mjpg-streamer aliases | The camera service ([Video pipeline](video-pipeline.md)) |
@@ -178,6 +180,60 @@ lens reference anchors Z alone and a completed home anchors all three; an
 anchor written without that field references all three. Controller-side facts reach forgectrl only
 through pushed state: the `/run` anchor files, the job-state reports, and
 the `grbl.state` file below.
+
+### Scoped tokens
+
+The panel token authorizes every write, and needs a session behind it. A
+scoped token (`tokens.c`) is the credential of a client that has neither a
+browser nor a session: the operator makes it in the panel with a name and a
+set of capabilities, sees it once, and can revoke it.
+[The remote API](remote-api.md) is the page for whoever writes such a client:
+the capabilities and the routes each reaches, how the token is sent, and
+what the machine answers.
+
+- **The token** is `fft_` and 32 hex digits, 128 bits from `/dev/urandom`;
+  the prefix keeps it apart from the panel token wherever either is read. The
+  store, `/data/forgefirm/tokens` (mode 0600, written whole through a
+  temporary file and a rename), holds each token's id, its SHA-256, its name,
+  its capabilities, and two wall-clock times for display. It never holds a
+  token. Sixteen at most.
+- **The capabilities are a closed list** in `tokens.c`, the ones a route
+  serves today. Nothing outside it can be granted, so no token exceeds what
+  an unprivileged package may hold.
+- **The capability of a route is a column of the route table** in `main.c`,
+  and most rows have none. Every route is called through a wrapper that
+  tells the guards which route the request is on (the capability, and
+  whether it came over plain HTTP) for the length of the route's callback,
+  on the request's thread. The `/job` file sink runs before any callback and
+  names its capability itself.
+- **A request that presents a scoped token is judged by it alone**, in
+  `auth_read_ok()` and `auth_write_ok()` before anything else: a live token
+  that holds the route's capability passes, with no session and past the
+  origin checks, which exist for browsers. Anything else is 403 with the
+  reason in words, and it never falls through to the rules for a request
+  with no token. A token is read from `Authorization: Bearer`, from
+  `X-ForgeFIRM-Token`, and on a camera route from `?key=`; never from
+  `?token=`. A token that arrives in a URL must hold camera capabilities and
+  nothing else: a URL ends up in histories and logs, and a token that can
+  move the head is never taken from one.
+- **HTTPS only.** The write routes already are, for anyone but this host. A
+  token presented on a read route over plain HTTP from another host is
+  refused, and the log names its id.
+- **Last used** is kept in memory and written at most every ten minutes, and
+  at a create, a revoke, and the daemon's exit: a client that polls with its
+  token must not wear the flash.
+
+Host tests: `tokens_test` (the closed list, the token's shape, a store that
+holds a hash and never a token, the judgment in every shape of wrong, the
+deferred last-used write, a reload, a revoke, sixteen at most, a damaged
+store), `auth_scoped_test` (the guards with real requests from a LAN peer on
+a machine with an account and no session: a held read and write, a
+capability not held, a route with none, the capability gone once the route's
+callback is over, plain HTTP from the LAN and from this host, the cameras,
+`?key=` from a camera-only token and from one that holds more, a stranger's
+token, the sink's silent form, closed reads), and the
+mock-parity test, which holds the mock's list and its route column to the C.
+On the bench, the release acceptance test `forgectrl.tokens`.
 
 ### Setup and the gate
 

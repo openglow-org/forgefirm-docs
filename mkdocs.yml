@@ -153,6 +153,7 @@ nav:
           - The grblHAL driver: technical/forgefirm/grblhal-driver.md
           - The controller port: technical/forgefirm/controller-port.md
           - forgectrl: technical/forgefirm/forgectrl.md
+          - The remote API: technical/forgefirm/remote-api.md
           - The cooling engine: technical/forgefirm/cooling-engine.md
           - The video pipeline: technical/forgefirm/video-pipeline.md
           - Cloud mode: technical/forgefirm/cloud-mode.md

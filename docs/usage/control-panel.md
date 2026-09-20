@@ -173,15 +173,37 @@ dialog behind it. [Updating](../install/updating.md),
 [Back to the factory firmware](../install/factory-restore.md), and
 [Recovery](../install/recovery.md) describe the update and restore tools.
 
-Two more cards. **Remote access** turns SSH on until the next reboot: SSH
+Three more cards. **Remote access** turns SSH on until the next reboot: SSH
 is off at every boot, and a development image keeps it on. It opens with
 the panel account's name and password; root has no password and works at
 the serial console only. The machine's SSH host keys are made at the first
 start and kept on `/data`, so its fingerprint stays the same across
-updates. **Setup** shows the state of the setup and
+updates. **API tokens** is described [below](#api-tokens). **Setup** shows the state of the setup and
 the certificate fingerprint, with a link to run a step again, the printable
 summary of the record, and the record itself as a download
 ([Setup](setup.md#the-record)).
+
+#### API tokens
+
+A token is a password for one program that is not a browser: a
+home-automation hub, a script, a pendant. It reaches only what you tick when
+you make it (read the status, follow the events, see a camera, jog the head
+with the laser off, run jobs) and never the settings, the controller mode, an
+update, or another token. A job it runs still waits for the button on the
+machine, like any job.
+
+Name the token after what will use it, tick what it needs, and press **Create
+token**. The token is shown once: copy it into the program then. The machine
+keeps only a fingerprint of it and cannot show it again. **Revoke** stops a
+token at once. Give each program its own, so one can be revoked without the
+others; the list shows when each was last used. A machine holds sixteen.
+
+The program sends the token over HTTPS. A token sent over plain HTTP is
+refused, and should be revoked: it has crossed the network in the clear. A
+camera viewer that cannot send a header takes a token in its URL instead, and
+that token must hold cameras and nothing else: make it one of its own.
+[The remote API](../technical/forgefirm/remote-api.md) is the page for
+whoever writes the program.
 
 The WiFi region (`wifi_country`) sets the radio's allowed channels and
 transmit power. Automatic follows the country the access point advertises,
