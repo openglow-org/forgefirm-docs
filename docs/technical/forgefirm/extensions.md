@@ -335,7 +335,8 @@ heartbeat, and the latch five times a second: frozen from 2 s in to the
 close with the heartbeat still, the freeze in place before the latch unlocks
 for the run, thawed within 3 s of the close, one process throughout.
 `exthost.package-routes` drives the operator's door against the host's
-own state. `setup.extensions-consent` proves the consent
+own state, and `exthost.panel-install` installs through it at each tier's
+consent, the button held included. `setup.extensions-consent` proves the consent
 ([Release acceptance](../../developers/acceptance.md)).
 
 ## The operator's door
@@ -358,7 +359,31 @@ kind, the account, and the manifest). `POST /ext/package` takes `id` and
 `action`: `enable` (which also lets a package out of quarantine),
 `disable` (its service stops and its hold goes: the way out of a hold it
 has on a job), `remove`, `remove-keep-data`, `hold-required`,
-`hold-advisory`. Installing a package is not among them.
+`hold-advisory`.
+
+### Installing through the panel
+
+Two requests. `POST /ext/upload` stages one archive (a second upload
+replaces it; `POST /ext/upload/discard` removes it) and asks the host what
+it is: the answer is the host's `inspect` (the tier, the manifest, what
+needs a grant, what is new against the installed version, whether it is a
+downgrade) with `consent` added. An archive the host will not take is
+refused in the host's words and not kept. `POST /ext/install` then names
+the grants and carries the consent, and forgectrl asks the host again what
+the staged file is, because the tier is never the request's to say:
+
+| Tier | Installing takes |
+|---|---|
+| Official | The login |
+| Community | The login and the typed phrase `I UNDERSTAND` |
+| Unverified | The login and the machine's button held while the request is made, as for unsigned firmware; the phrase is no substitute |
+
+forgectrl passes the host the consent it took (`--consent-community`,
+`--consent-unverified`) and the grants, each checked against the form of a
+capability name before it is an argument; which grants a package needs,
+and that no grant is given that it did not ask for, is the host's to
+enforce. The staged file goes with a successful install and stays after a
+refused one, for another try.
 
 ## The extension API
 
