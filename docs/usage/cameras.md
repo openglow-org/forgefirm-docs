@@ -73,6 +73,7 @@ browser supports it, MJPEG otherwise), and **Stop** returns to the snapshot.
 | `/cam/h264?cam=lid` | continuous H.264 as fragmented MP4: the same picture in a fraction of the bytes, for clients that decode video |
 | `/cam/snapshot?cam=lid` | one full-resolution JPEG |
 | `/cam/snapshot?cam=lid&res=half` | one half-resolution JPEG (much faster) |
+| `/cam/snapshot?cam=lid&background=1` | the same, but refused with 409 while somebody is watching a camera |
 | `/cam/snapshot?cam=lid&q=1..100` | a JPEG at the given quality |
 | `/cam/status` | JSON: which sensor, which camera, frame rate, frame sizes, whether the lid currently permits capture |
 | `/?action=stream` | the lid stream again, under the name mjpg-streamer clients expect |
