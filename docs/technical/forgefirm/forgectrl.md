@@ -330,7 +330,32 @@ takes `cloud_enabled=1` only with `phrase=I UNDERSTAND`, the step's typed
 acknowledgment, and `cloud_enabled=0` takes `homing_mode` and
 `controller_mode` off the cloud as the step does. Which settings point at
 the cloud, the words of each refusal, and what each falls back to come from
-the table of [built-in extensions](#built-in-extensions). The hardware
+the table of [built-in extensions](#built-in-extensions).
+
+### The Extensions advisory
+
+A fifth document, `extensions`, is on demand. It is no part of the first
+run: `GET /wiz` does not list it, `POST /wiz/advisories/accept` refuses it
+(400), and an owner who never turns extensions on is never asked about it.
+`GET /advisories/extensions` serves it like the others. `POST /settings`
+takes `ext_enabled=1` from 0 only with `advisory=<the document's current
+hash>` (409 without it or with a stale one: the text that was read is the
+text that is agreed to) and `phrase=I UNDERSTAND` (400). The acceptance is
+recorded in `setup.json` under `on_demand.extensions` with the hash, the
+time, and the method, once the whole request has been found good; it
+leaves the first-run documents and their press as they are. Sending 1
+while it stands, or 0, asks for nothing. `ext_enabled` is read by the
+[extension host](extensions.md#the-extension-host).
+
+A package's account walks through `/data/forgefirm` to its own files under
+`ext/`. With the acceptance, and at every start while `ext_enabled` is 1,
+forgectrl gives that directory the search bit for group and others when it
+lacks it (an installer that ran under a strict umask leaves it `0700`).
+Nothing is taken away and nothing in it becomes listable: what is private
+in it is closed file by file, and landlock keeps a service out of all of it
+but its own two directories.
+
+The hardware
 wizards are the checks (the dark validation) and the sheet (the live
 cards); a live card's laser keys (`laser_floor_density`,
 `laser_dose_curve`, `laser_corner_gamma`) may be overridden for its one

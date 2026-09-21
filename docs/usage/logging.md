@@ -28,6 +28,7 @@ the only file writer. It files each program under its own directory,
 | `grblhal` | The GRBL controller. |
 | `gfcloud` | The cloud-mode client. |
 | `gfhome` | The camera-referenced homing runner. |
+| `forgeext` | The extension host, and the output of every package's service under the package's id. |
 | `kernel` | The glowforge driver and the rest of the kernel. Its levels only filter what the kernel emits. |
 | `system` | Everything else: SSH, WiFi, time sync, the init scripts. |
 

@@ -200,6 +200,102 @@ none) is refused whole rather than guessed at.
 every listed file present with its hash and mode, and nothing else there. A
 changed file, a changed mode, an added file, or an added link fails it.
 
+## The extension host
+
+`forgeext run` is the extension host: the daemon that runs the services of
+the installed packages. The image starts it after forgectrl
+(`/etc/init.d/forgeext`) and it runs whether extensions are on or off, so
+turning them on or off never starts or stops a system service.
+
+**The master switch** is the setting `ext_enabled` (0 or 1, default 0),
+which the host reads from the settings file on every turn of its one-second
+loop. While it is 0, no service runs. forgectrl takes `ext_enabled=1` only
+over the Extensions advisory
+([forgectrl](forgectrl.md#the-extensions-advisory)). **Safe mode** is the
+file `/run/forgefirm/ext-safe`, made as root at the console: while it
+exists no service runs, whatever the setting says, and it is gone at the
+next reboot.
+
+**What the host knows about the machine** it reads and never writes: the
+armed window from `GET /cool/status`, the controller mode from `GET /mode`,
+a running diagnostic from `GET /status`, and a firmware flash from
+`GET /update/status`, all on forgectrl's read-only loopback port. What it
+cannot read it takes the careful side of: an armed window it cannot see is
+open, and a machine it cannot ask is not ready for a new process. A root
+that a package's account cannot walk to (a directory on the way to
+`/data/forgefirm/ext` without the search bit for others) is also a machine
+that is not ready: the host names the directory in `not_ready` and in its
+log and starts nothing, because a service started there would end at once
+and be quarantined for a fault that is not its own.
+
+**What a service runs inside.** The host forks, and before one instruction
+of the package runs, the new process:
+
+- is in the package's own cgroup under `/sys/fs/cgroup/ffx` (25 percent of
+  the core, 48 MiB, 32 processes);
+- is idle-class in every scheduler (`SCHED_IDLE`, nice 19, I/O class idle)
+  and first in line for the OOM killer (`oom_score_adj` 900);
+- holds no descriptor but `/dev/null` and its log pipe, with limits of no
+  core file, 256 descriptors, 64 processes, and 1 GiB of address space;
+- has the package's pool account (`ffx0` to `ffx31`) and no group but its
+  own, and can gain nothing by exec (`no_new_privs`);
+- sees of the file tree only the system's read-only parts, its package
+  (read and execute), and its data directory (landlock);
+- connects and binds only on the TCP ports it declared (landlock), and
+  sends only where its chain in the image's rule table allows, which is
+  never the machine itself
+  ([the extension sandbox](image-and-bsp.md#the-extension-sandbox));
+- cannot make the system calls a package has no business making, and can
+  open only UNIX, IPv4, and IPv6 sockets (seccomp).
+
+A step that cannot be taken is a failed start, never a looser sandbox. The
+environment is fixed: `PATH`, `LANG`, `HOME` (the data directory),
+`TMPDIR`, `FFX_ID`, `FFX_PKG`, `FFX_DATA`, `PYTHONDONTWRITEBYTECODE`, and
+`PYTHONUNBUFFERED`. A service's output goes
+to the `forgeext` logger under the package's id, at most 60 lines in 10
+seconds, with a count of what was dropped.
+
+**The rules of the supervisor:**
+
+| Rule | Value |
+|---|---|
+| A service starts only when | extensions are on, the controller is up, motion is verified, no diagnostic runs, and no firmware is being flashed; never inside an armed window |
+| Starts | one at a time, 5 s apart, at most 4 services running; of the services that are due, the one that has ended least lately goes first |
+| A service that ends | is started again after a backoff that doubles from 1 s to 30 s |
+| Healthy | after 60 s of running: the backoff starts over, and the package's previous version is removed |
+| Quarantine | at the fifth end inside 10 minutes without reaching healthy; remembered in `state.json` until the operator lifts it |
+| A service that should not run | (disabled, removed, quarantined, the wrong controller mode, extensions off) is stopped: its group is killed and removed, and its chain and map element are taken out of the rule table |
+
+**The armed window.** While the window is open, every service is frozen
+with its cgroup's `cgroup.freeze`, and it is thawed when the window closes.
+A package with the operator's `job_time.run` grant is not frozen: it runs
+on at 3 percent of the core. The freeze follows the `armed` field of
+`GET /cool/status`, read once a second. On the bench reference the services
+were frozen within a second of the field turning on, 4 s before the job ran,
+and thawed within a second of it turning off.
+
+**One host, and nothing it did not start.** The host holds a lock
+(`/run/forgefirm/ext/daemon.lock`) for its lifetime, and a second one is
+refused. A host that ended without stopping its services would leave them
+running with nobody to freeze them, so the init wrapper kills every group
+of the pool the moment the host ends abnormally, and a starting host
+removes every group and every allowlist chain it finds before it starts
+anything.
+
+**The status file** `/run/forgefirm/ext/status.json` is rewritten when it
+changes: `pid` (the host that wrote it; the file outlives a host that was
+killed, and a pid that is not a running host marks it as a dead one's),
+`enabled`, `off_reason`, `armed` (null when it cannot be read),
+`not_ready`, and per service `id`, `state` (`stopped`, `running`,
+`waiting`, `quarantined`), `account`, `pid`, `frozen`, `job_limited`,
+`healthy`, and `reason`.
+
+The acceptance test `exthost.service` proves the host on the image with a
+reference package it builds and signs on the board: the confinement seen
+from inside the service, safe mode, a killed host, and the master switch.
+`setup.extensions-consent` proves the consent
+([Release acceptance](../../developers/acceptance.md)).
+
 ## The command line
 
 `forgeext` answers every command with one JSON object and exits 0 when
@@ -213,3 +309,4 @@ changed file, a changed mode, an added file, or an added link fails it.
 | `check [<id>]` | The integrity check |
 | `remove <id> [--keep-data]` | Removes the package and, unless told otherwise, its data |
 | `caps` | The capability list and the API version |
+| `run` | The extension host, above |

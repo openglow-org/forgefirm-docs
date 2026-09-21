@@ -51,6 +51,7 @@ output flows through a fifo relay in its init script.
 | `grblhal` | `programname == grblhal` | fflog (plus relay) |
 | `gfcloud` | `programname == gfcloud` | SysLogHandler (plus relay) |
 | `gfhome` | `programname == gfhome` | SysLogHandler; stray output rides the grblhal relay (it is the controller's child) |
+| `forgeext` | `programname == forgeext` | fflog (plus the fifo relay); a service's output arrives through the host's log pipe as `ext <id>: <line>` |
 | `kernel` | facility `kern` (imklog) | printk; levels only filter |
 | `system` | everything else | sshd, ntpd, wpa_supplicant, init scripts via `logger` |
 
