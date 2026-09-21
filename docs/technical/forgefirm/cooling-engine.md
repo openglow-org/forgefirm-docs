@@ -373,6 +373,55 @@ and it clears on its own.
 | `FIRE` | The fire watch's fail tier: motion stopped, latch locked, the controller stopped and started again, hold until the next run session. |
 | `BUMP` | The crash watch's pause tier: hold, fire blocked; released once the head sits quiet. |
 | `CRASH` | The crash watch's fail tier: motion stopped, latch locked, the controller stopped and started again, hold for the rest of the run session. |
+| `EXT` | An extension package's hold stands ([An extension's hold](#an-extensions-hold)): fire blocked, hold; released at the tick after the hold clears. The reason names the package and carries its words. |
+
+### An extension's hold
+
+A package with the operator's `hold` grant may withhold fire and never
+permit it. Its hold joins the pause tier under every verdict of the
+engine's own: `EXT` is the name only when nothing else is, so a hold can
+neither hide a verdict nor outrank one, and a fail tier under a hold is
+still a fail tier. It is never a fail tier itself.
+
+The [extension host](extensions.md#the-extension-host) owns the holds,
+and a package that is frozen for the job changes nothing about them. The
+host keeps one file per package under `/run/forgefirm/holds/`,
+`<id>.json`, and rewrites it with a fresh monotonic timestamp for as long
+as it runs:
+
+```json
+{"id": "org.example.badge", "required": true, "raised": false,
+ "reason": "no badge presented", "ts_mono": 1234.567}
+```
+
+The engine reads the directory once a tick:
+
+| A hold file that is | Means |
+|---|---|
+| fresh (`ts_mono` within 2 s, the rule the controllers apply to the verdict) and `raised` | The hold stands, with the reason `<id>: <reason>` |
+| fresh and not `raised` | Nothing |
+| stale and `required` | The hold stands whatever the file last said, with the reason `<id>: the extension host is not answering` |
+| stale and not `required` (advisory) | Dropped, and logged once |
+| missing, for a package named under `/data/forgefirm/ext/required-holds/` | The hold stands, with the same reason: the files are on a tmpfs and gone with a reboot, and a host that never came up wrote none. The host keeps one empty file there per required hold; only the names are read |
+| not readable as a hold file, or one of more than 32 | The hold stands: what it meant is not known |
+
+The first hold that stands, by file name, gives the reason. A package's
+words are cut to printable ASCII without the quote and the backslash
+before they go into the verdict. The rising edge, a change of the standing
+hold, and the clearing are logged.
+
+**The operator's exits do not depend on the host.** The engine looks at the
+holds only while `ext_enabled` is 1 and the safe-mode file
+`/run/forgefirm/ext-safe` does not exist. Turning extensions off, or
+entering safe mode, ends every hold at the next tick, whatever has become
+of the host that wrote it.
+
+The two controllers treat the pause as they treat every pause: the GRBL
+controller holds the job, keeps the armed window, and resumes lit when the
+hold clears; the cloud client locks the latch under any armed
+`fire_ok=false`, so after a hold clears in cloud mode the operator presses
+the button to resume, and a hold that outlasts `cloud_hold_max_s` cancels
+the print.
 
 ## Over-temperature
 
@@ -722,12 +771,12 @@ plus rename) at ~1 Hz and on every verdict change:
   session open. A controller waits for it at the arm rather than firing, and
   refuses the job if it does not arrive.
 - `verdict` is one of `OK`, `SUSPECT`, `FAULT`, `OVERTEMP`, `COLD`,
-  `WARMUP`, `CRITICAL`, `SENSOR`, `AIRFLOW`, `FLAME`, `FIRE`, `BUMP`, `CRASH`
-  ([What the verdicts do](#what-the-verdicts-do)). `hold=true` asks the
+  `WARMUP`, `CRITICAL`, `SENSOR`, `AIRFLOW`, `FLAME`, `FIRE`, `BUMP`, `CRASH`,
+  `EXT` ([What the verdicts do](#what-the-verdicts-do)). `hold=true` asks the
   active controller for a feed hold, and for it again if the job is
   resumed under it; `resume_ok=true` signals recovery (auto-resume is the
   controller's call). `OVERTEMP`, `COLD`, `WARMUP`,
-  `SENSOR`, `FLAME`, and `BUMP` are pause tiers. `CRITICAL`, `AIRFLOW`, `CRASH`, and
+  `SENSOR`, `FLAME`, `BUMP`, and `EXT` are pause tiers. `CRITICAL`, `AIRFLOW`, `CRASH`, and
   `FIRE` are the fail tier: they hold for the rest of the run session and
   never offer a resume in it; `CRITICAL`, `AIRFLOW`, and `CRASH` end with
   the session (the ceiling's pause tier keeps holding while the loop is

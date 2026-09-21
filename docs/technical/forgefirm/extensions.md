@@ -275,6 +275,37 @@ on at 3 percent of the core. The freeze follows the `armed` field of
 on, 5 s before the latch unlocked for the run, and thawed 0.6 s after it
 turned off.
 
+**Holds.** A package with the operator's `hold` grant may withhold fire
+and never permit it ([An extension's hold](cooling-engine.md#an-extensions-hold)
+has the engine's side: the verdict `EXT`, the pause tier, and the
+operator's exits). The host owns the hold, not the package, so a package
+that is frozen for the job changes nothing about it. For every enabled
+package with the grant that runs in the controller mode in force, the host
+keeps `/run/forgefirm/holds/<id>.json`. A thread that does nothing else
+rewrites the files twice a second, and only while the main loop has spoken
+within 15 s: a turn that takes a few seconds pauses nobody's job, and a
+loop that hangs lets every hold go stale, which is what it is.
+
+The operator marks a granted hold **required** or **advisory**
+(`forgeext hold <id> required|advisory`; advisory until marked), and the
+package is then named under `<root>/required-holds/` for the engine:
+
+| The package | Advisory | Required |
+|---|---|---|
+| runs, and has run healthy | Clear | Clear |
+| has started and not yet run healthy | Clear | Raised by the host: "the extension has only just started". A package that ends at every start reads as running for a moment each time, and a required hold does not flicker clear with it |
+| should run and does not (ended, waiting, quarantined, the machine not ready) | Dropped, and logged once | Raised by the host: "the extension is not running" |
+| the host itself gone, however it went | Dropped by the engine | Stands in the engine, on the stale file or on the name alone |
+
+A running package's hold reads clear: the call by which a package raises
+and clears its own hold belongs to the extension API, which the host does
+not serve yet, so the holds that stand are the ones the host raises.
+Extensions off and safe mode take every file away, and the engine does not
+look at the names then; a package that is disabled or removed loses its
+file and its name. Those are the operator's exits. A clean stop of the
+host removes the advisory files and leaves the required ones to go stale.
+`status.json` and `forgeext list` say which hold is which.
+
 **One host, and nothing it did not start.** The host holds a lock
 (`/run/forgefirm/ext/daemon.lock`) for its lifetime, and a second one is
 refused. A host that ended without stopping its services would leave them
@@ -294,6 +325,8 @@ killed, and a pid that is not a running host marks it as a dead one's),
 The acceptance test `exthost.service` proves the host on the image with a
 reference package it builds and signs on the board: the confinement seen
 from inside the service, safe mode, a killed host, and the master switch.
+`exthost.hold-pause-tier` takes a required hold from the grant to the
+engine's verdict and out through each of the operator's exits.
 `exthost.armed-freeze` opens a real armed window over it with a dark cloud
 print and samples the engine's flag, the group's state, the service's
 heartbeat, and the latch five times a second: frozen from 2 s in to the
@@ -314,5 +347,6 @@ for the run, thawed within 3 s of the close, one process throughout.
 | `list` | What is installed |
 | `check [<id>]` | The integrity check |
 | `remove <id> [--keep-data]` | Removes the package and, unless told otherwise, its data |
+| `hold <id> required\|advisory` | What the package's hold does when the package cannot speak for itself: stand, or drop |
 | `caps` | The capability list and the API version |
 | `run` | The extension host, above |
