@@ -348,12 +348,14 @@ while it stands, or 0, asks for nothing. `ext_enabled` is read by the
 [extension host](extensions.md#the-extension-host).
 
 A package's account walks through `/data/forgefirm` to its own files under
-`ext/`. With the acceptance, and at every start while `ext_enabled` is 1,
-forgectrl gives that directory the search bit for group and others when it
-lacks it (an installer that ran under a strict umask leaves it `0700`).
-Nothing is taken away and nothing in it becomes listable: what is private
-in it is closed file by file, and landlock keeps a service out of all of it
-but its own two directories.
+`ext/`, as an operator account walks through it to its home. The directory
+has the search bit for group and others from `forgefirm-users`, at every
+render of the accounts
+([Image and BSP](image-and-bsp.md#the-read-only-root-filesystem)); with the
+acceptance, and at every start while `ext_enabled` is 1, forgectrl puts it
+there too if it is missing. Nothing is taken away and nothing in the
+directory becomes listable: what is private in it is closed file by file,
+and landlock keeps a service out of all of it but its own two directories.
 
 The hardware
 wizards are the checks (the dark validation) and the sheet (the live
