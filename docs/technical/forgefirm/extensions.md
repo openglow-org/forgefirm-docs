@@ -334,8 +334,31 @@ print and samples the engine's flag, the group's state, the service's
 heartbeat, and the latch five times a second: frozen from 2 s in to the
 close with the heartbeat still, the freeze in place before the latch unlocks
 for the run, thawed within 3 s of the close, one process throughout.
-`setup.extensions-consent` proves the consent
+`exthost.package-routes` drives the operator's door against the host's
+own state. `setup.extensions-consent` proves the consent
 ([Release acceptance](../../developers/acceptance.md)).
+
+## The operator's door
+
+forgectrl is the machine's one front door, and the extension host is the
+only program that reads what a package brought, so the panel's package
+routes are a relay: forgectrl runs the host's command line (below), which
+answers in JSON, takes the host's lock around every change, and is what
+root at the console runs too. The host's daemon picks a change up on its
+next turn. Nothing of a request reaches a shell: the command is an argument
+vector, a package id is checked against the form of one before it is an
+argument, the actions are a closed list, and the child inherits none of
+forgectrl's descriptors (it holds the pulse device).
+
+`GET /ext/status` answers `enabled` (the master switch), `safe_mode`,
+`host` (the host's own status file with `running: true`, or `running:
+false` alone when no host is alive behind it), and `packages` (the host's
+`list`: id, version, tier, key, enabled, quarantined, grants, the hold's
+kind, the account, and the manifest). `POST /ext/package` takes `id` and
+`action`: `enable` (which also lets a package out of quarantine),
+`disable` (its service stops and its hold goes: the way out of a hold it
+has on a job), `remove`, `remove-keep-data`, `hold-required`,
+`hold-advisory`. Installing a package is not among them.
 
 ## The extension API
 
@@ -392,6 +415,7 @@ arrived in 5 s is `408`.
 | `list` | What is installed |
 | `check [<id>]` | The integrity check |
 | `remove <id> [--keep-data]` | Removes the package and, unless told otherwise, its data |
+| `enable <id>`, `disable <id>` | The operator's switch for one package. Disabled, it keeps its files, its data, its grants, and its account, and its service and its hold are gone; enabling it also lets it out of quarantine |
 | `hold <id> required\|advisory` | What the package's hold does when the package cannot speak for itself: stand, or drop |
 | `caps` | The capability list and the API version |
 | `run` | The extension host, above |
