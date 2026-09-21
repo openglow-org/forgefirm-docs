@@ -137,7 +137,7 @@ see.
 | `name`, `author`, `license` | Required text. `description` and `homepage` are optional |
 | `version` | `MAJOR.MINOR.PATCH` with an optional `-prerelease`. The archive's own `meta-version` must say the same |
 | `api` | The extension API the package was built for, `MAJOR.MINOR`. This firmware serves **0.1**. A 0.x API carries no stability promise, so the minor must match exactly |
-| `core` | Optional `min` and `max` firmware versions |
+| `core` | Optional `min` and `max` firmware versions. **Checked against each other and nothing else:** this firmware does not refuse a package whose `core.min` is above its own version |
 | `runtime` | `data` (nothing executes), `ui` (runs in the operator's browser), `shell`, `native` (a static ARMv7 hard-float binary), or `python` (inside the release image's module list) |
 | `service` | `exec`, a path inside the package, and optional `args`. Required for `shell`, `native`, and `python`; refused for `data` and `ui`. The entry point must be a file of the package, and executable for `native` |
 | `modes` | `grbl`, `cloud`, or both (the default) |
@@ -151,24 +151,40 @@ is refused, and nothing a manifest can spell reaches a privileged role or a
 provider kind: `role:homing` and `role:controller` are refused by name,
 because both are part of the firmware, and no other role exists.
 
-| Capability | Grants | The operator's own grant |
-|---|---|---|
-| `machine.read` | The machine's status, cooling status, mode, and position | |
-| `events` | The event stream | |
-| `settings.own` | The package's own settings | |
-| `camera.lid`, `camera.head` | Pictures from that camera, under the privacy gate | |
-| `motion.jog` | Dark jogs inside the jog bounds | |
-| `motion.job` | Running a program as the machine's one sender, under every arm gate | required |
-| `hold` | Holding a job until the package clears the hold (pause tier only) | required |
-| `job_time.run` | Not being frozen while a job is armed | required |
-| `ui` | Its own tab or cards in the control panel | |
-| `net.outbound:<host>:<port>` | One named destination: a lowercase DNS name, an IPv4 address, or an IPv6 address in brackets. Never the machine itself | |
-| `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port | |
-| `storage:<MiB>` | A data directory, 1 to 256 MiB | |
+**Served** means the extension API has a route for it today
+([The extension API](#the-extension-api)). A capability that is not served
+can still be asked for, granted, and shown to the operator, and it reaches
+nothing: the vocabulary is settled ahead of the routes so that a package's
+manifest and the operator's consent do not change shape as each one lands.
 
-`motion.offsets`, `wizard`, and `mcode:<n>` are known names that this API
-version does not serve; a manifest that asks for one is refused in those
-words.
+| Capability | Grants | Served | The operator's own grant |
+|---|---|---|---|
+| `machine.read` | The machine's status, cooling status, and mode | yes | |
+| `events` | The machine's events | yes | |
+| `hold` | Holding a job until the package clears the hold (pause tier only) | yes | required |
+| `settings.own` | The package's own settings | no | |
+| `camera.lid`, `camera.head` | Pictures from that camera, under the privacy gate | no | |
+| `motion.jog` | Dark jogs inside the jog bounds | no | |
+| `motion.job` | Running a program as the machine's one sender, under every arm gate | no | required |
+| `job_time.run` | Not being frozen while a job is armed | yes, as a limit the host applies | required |
+| `ui` | Its own tab or cards in the control panel | no | |
+| `net.outbound:<host>:<port>` | One named destination: a lowercase DNS name, an IPv4 address, or an IPv6 address in brackets. Never the machine itself | yes, as a rule the host installs | |
+| `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port | yes, as a rule the host installs | |
+| `storage:<MiB>` | Names the data directory a service wants, in MiB | declared only: **no quota is enforced**, and every service has a data directory whether it asks or not | |
+
+`motion.offsets`, `wizard`, and `mcode:<n>` are not in the vocabulary at
+all: a manifest that asks for one is refused in those words.
+
+**A `ui` package installs and does nothing.** The runtime is accepted and
+the capability is granted, and no part of this firmware serves a package's
+own pages yet. Until it does, a package's operator-facing surface is the
+Extension packages card.
+
+At most **15** outbound destinations take effect for one service, whatever
+the manifest declares: the host's rule chain and the sandbox's port list
+each hold 16, one of which a DNS lookup may take. A manifest naming more is
+installed, and the ones past the fifteenth are dropped when the service
+starts.
 
 Three rules tie capabilities to the runtime. A `data` package holds none.
 `hold`, `job_time.run`, `net.outbound`, `net.listen`, and `storage` belong
@@ -189,6 +205,8 @@ The extension root is `/data/forgefirm/ext`:
 | `data/<id>/` | A service's own data, mode 0700, owned by its account |
 | `keys/` | Public keys the owner added |
 | `tmp/` | Staging, the host's alone |
+| `required-holds/` | One empty file per package whose hold the operator marked required, so a hold fails closed across a reboot before the host has read anything |
+| `lock` | The host's lock, taken around every change to the root |
 | `state.json` | What no package can say about itself: the tier and the key that signed it, its account of the pool (`ffx0` to `ffx31`, the lowest free one), the operator's grants, enabled, quarantined |
 
 An update keeps the version it replaces; the one before that is removed. `state.json` is written whole and renamed into
@@ -244,7 +262,11 @@ of the package runs, the new process:
 - connects and binds only on the TCP ports it declared (landlock), and
   sends only where its chain in the image's rule table allows, which is
   never the machine itself
-  ([the extension sandbox](image-and-bsp.md#the-extension-sandbox));
+  ([the extension sandbox](image-and-bsp.md#the-extension-sandbox)). A
+  package that named a destination by DNS name rather than by address is
+  given port 53 as well, to the resolvers of `/etc/resolv.conf` and over
+  UDP and TCP, and that file is handed in as one more read-only path: a
+  name it cannot look up is a destination it cannot reach;
 - cannot make the system calls a package has no business making, and can
   open only UNIX, IPv4, and IPv6 sockets (seccomp).
 
@@ -318,9 +340,11 @@ anything.
 changes: `pid` (the host that wrote it; the file outlives a host that was
 killed, and a pid that is not a running host marks it as a dead one's),
 `enabled`, `off_reason`, `armed` (null when it cannot be read),
-`not_ready`, and per service `id`, `state` (`stopped`, `running`,
-`waiting`, `quarantined`), `account`, `pid`, `frozen`, `job_limited`,
-`healthy`, and `reason`.
+`not_ready`, `events` (`connected`, and `wanted`: the running services
+that hold the `events` capability), and per service `id`, `state`
+(`stopped`, `running`, `waiting`, `quarantined`), `account`, `pid`,
+`frozen`, `job_limited`, `healthy`, `hold` (`required` or `advisory`, when
+it has one), and `reason`.
 
 The acceptance test `exthost.service` proves the host on the image with a
 reference package it builds and signs on the board: the confinement seen
@@ -336,7 +360,10 @@ close with the heartbeat still, the freeze in place before the latch unlocks
 for the run, thawed within 3 s of the close, one process throughout.
 `exthost.package-routes` drives the operator's door against the host's
 own state, and `exthost.panel-install` installs through it at each tier's
-consent, the button held included. `setup.extensions-consent` proves the consent
+consent, the button held included. `exthost.events` proves the one
+subscription and the poll a package reads it with. `exthost.platform`
+proves the image holds the sandbox ready before any of it runs.
+`setup.extensions-consent` proves the consent
 ([Release acceptance](../../developers/acceptance.md)).
 
 ## The operator's door
@@ -396,7 +423,7 @@ written to a file and handed to the host as a path, never as an argument,
 and the host parses it as an Ed25519 public key (fwup's base64, or 32 raw
 bytes) before it lands: what cannot be read as a key never becomes a trust
 anchor. A name is letters, digits, dash, underscore, and dot, at most 48
-bytes, and it is the file's name under `keys/`.
+bytes, and the file under `keys/` is that name with `.pub` after it.
 
 `POST /ext/key/remove` takes one away. A package installed under a key
 that is then removed stays as it was: the key decides what an **archive**
@@ -487,7 +514,12 @@ as it was written.
 ## The command line
 
 `forgeext` answers every command with one JSON object and exits 0 when
-`"ok"` is true.
+`"ok"` is true. A command it does not know, or one missing an argument, is
+the exception: that is a usage error, printed as plain text on standard
+error with exit 2. `key-add <name> -` reads the key from standard input.
+`forgeext --help` prints the whole of it, the global options (`--root`,
+`--fwup`, `--official-key`, `--firmware-key`, `--nft`, `--budget-mib`,
+`--no-reserve`) and `run`'s own included.
 
 | Command | Does |
 |---|---|
@@ -500,4 +532,7 @@ as it was written.
 | `hold <id> required\|advisory` | What the package's hold does when the package cannot speak for itself: stand, or drop |
 | `keys`, `key-add <name> <file.pub>`, `key-remove <name>` | The owner's keys. `key-add` parses the file as an Ed25519 public key before it is written |
 | `caps` | The capability list and the API version |
+| `net-check` | Whether the image's deny table is loaded |
+| `net-allow <uid> [--listen <port>] [--dns] [<host>:<port>]...` | A service's chain in the deny table, as the host installs it when a service starts |
+| `net-revoke <uid>` | Takes that chain away again |
 | `run` | The extension host, above |

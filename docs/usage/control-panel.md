@@ -264,6 +264,13 @@ offset diagnostic's Apply button.
 | `POST /settings?key=value&...` | Set any subset of known keys ([Settings](settings.md)) |
 | `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `waiting` with `why` naming what is open, `motion-fault`, or `gated` with `why`), pid, motion verdict |
 | `POST /mode?controller=grbl\|cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
+| `GET /extensions` | The Extension packages page |
+| `GET /ext/status` | What is installed, what is running, and the keys you trust ([Extensions](extensions.md)) |
+| `POST /ext/package` | Enable, disable, remove, remove and keep data, or mark one package's hold required or advisory |
+| `POST /ext/upload` | Stage an archive and read back what it is: its tier, what it asks for, and what consent it takes |
+| `POST /ext/install` | Install the staged archive, with the grants and the consent its tier takes |
+| `POST /ext/upload/discard` | Throw the staged archive away |
+| `POST /ext/key`, `POST /ext/key/remove` | Add or remove a key you trust; adding one takes the machine's button held |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever: stop halts the active controller and holds supervision suspended; start resumes it ([Modes](modes.md)) |
 | `POST /motion/jog?x=&y=&z=&feed=`, `POST /motion/cancel`, `GET /motion/state` | A bounded jog beside the Grbl client, its cancel, and the controller's own state; `POST /motion/release`, `/motion/energize`, and `/motion/home` are the panel's motor release and manual home ([forgectrl](../technical/forgefirm/forgectrl.md#http-api)) |
 | `GET /events` | The machine's events as a server-sent event stream, for a script: the lid, a job's arm, pause, and end, alarms, the cooling verdict ([forgectrl](../technical/forgefirm/forgectrl.md#the-event-stream)) |
