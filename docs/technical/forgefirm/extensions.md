@@ -270,9 +270,10 @@ seconds, with a count of what was dropped.
 with its cgroup's `cgroup.freeze`, and it is thawed when the window closes.
 A package with the operator's `job_time.run` grant is not frozen: it runs
 on at 3 percent of the core. The freeze follows the `armed` field of
-`GET /cool/status`, read once a second. On the bench reference the services
-were frozen within a second of the field turning on, 4 s before the job ran,
-and thawed within a second of it turning off.
+`GET /cool/status`, read once a second. On the bench reference, across a
+37.5 s window, the service's group read frozen 0.4 s after the field turned
+on, 5 s before the latch unlocked for the run, and thawed 0.6 s after it
+turned off.
 
 **One host, and nothing it did not start.** The host holds a lock
 (`/run/forgefirm/ext/daemon.lock`) for its lifetime, and a second one is
@@ -293,6 +294,11 @@ killed, and a pid that is not a running host marks it as a dead one's),
 The acceptance test `exthost.service` proves the host on the image with a
 reference package it builds and signs on the board: the confinement seen
 from inside the service, safe mode, a killed host, and the master switch.
+`exthost.armed-freeze` opens a real armed window over it with a dark cloud
+print and samples the engine's flag, the group's state, the service's
+heartbeat, and the latch five times a second: frozen from 2 s in to the
+close with the heartbeat still, the freeze in place before the latch unlocks
+for the run, thawed within 3 s of the close, one process throughout.
 `setup.extensions-consent` proves the consent
 ([Release acceptance](../../developers/acceptance.md)).
 
