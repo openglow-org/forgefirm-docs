@@ -179,7 +179,8 @@ the panel account's name and password; root has no password and works at
 the serial console only. The machine's SSH host keys are made at the first
 start and kept on `/data`, so its fingerprint stays the same across
 updates. **Extensions** and **API tokens** are described below
-([Extensions](#extensions), [API tokens](#api-tokens)). **Setup** shows the state of the setup and
+([Extensions](#extensions), [Extension packages](#extension-packages),
+[API tokens](#api-tokens)). **Setup** shows the state of the setup and
 the certificate fingerprint, with a link to run a step again, the printable
 summary of the record, and the record itself as a download
 ([Setup](setup.md#the-record)).
@@ -196,6 +197,23 @@ the setup ([Setup](setup.md)), with the step's typed acknowledgment. While
 it is off, its tab is not shown and nothing it provides can be selected.
 Turning it off takes the homing method and the controller mode back to the
 machine's own.
+
+#### Extension packages
+
+The card below it is for packages, which are not part of the image: whether
+extensions are on at all, what is installed, and the upload that installs
+one. Each package shows who signed it, what it says it does, what it may do
+(and which of that you granted), and how it is doing right now: running,
+frozen while a job is armed, turned off, or set aside after it kept ending.
+The buttons turn one package off or on and remove it, and where a package
+has a hold, a menu says whether that hold is dropped or stands when the
+package cannot speak for itself.
+
+Turning extensions on shows you the Extensions advisory and takes the typed
+phrase. Installing takes the consent of the package's tier: the login for
+an official package, the typed phrase for a community one, and the
+machine's button held for an unverified one. [Extensions](extensions.md) is
+the page for all of it.
 
 #### API tokens
 
