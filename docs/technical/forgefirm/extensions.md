@@ -162,7 +162,7 @@ manifest and the operator's consent do not change shape as each one lands.
 | `machine.read` | The machine's status, cooling status, and mode | yes | |
 | `events` | The machine's events | yes | |
 | `hold` | Holding a job until the package clears the hold (pause tier only) | yes | required |
-| `settings.own` | The package's own settings | no | |
+| `settings.own` | The package's own settings, declared in its manifest ([A package's own settings](#a-packages-own-settings)) | yes | |
 | `camera.lid`, `camera.head` | Pictures from that camera, under the privacy gate | no | |
 | `motion.jog` | Dark jogs inside the jog bounds | no | |
 | `motion.job` | Running a program as the machine's one sender, under every arm gate | no | required |
@@ -206,6 +206,7 @@ The extension root is `/data/forgefirm/ext`:
 | `keys/` | Public keys the owner added |
 | `tmp/` | Staging, the host's alone |
 | `required-holds/` | One empty file per package whose hold the operator marked required, so a hold fails closed across a reboot before the host has read anything |
+| `settings/<id>.json` | A package's own settings, root's alone at 0600 |
 | `lock` | The host's lock, taken around every change to the root |
 | `state.json` | What no package can say about itself: the tier and the key that signed it, its account of the pool (`ffx0` to `ffx31`, the lowest free one), the operator's grants, enabled, quarantined |
 
@@ -462,6 +463,8 @@ What does not fit is refused with a status and a sentence
 | `GET /v0/machine/status` | `machine.read` | forgectrl's `GET /status` |
 | `GET /v0/machine/cool` | `machine.read` | forgectrl's `GET /cool/status` |
 | `GET /v0/machine/mode` | `machine.read` | forgectrl's `GET /mode` |
+| `GET /v0/settings` | `settings.own` | `settings` (every declared key with its value) and `schema` |
+| `POST /v0/settings` | `settings.own` | A patch of settings, applied whole or not at all; the same answer |
 | `GET /v0/hold` | `hold`, granted | `{"raised": bool, "reason": "..."}` |
 | `POST /v0/hold` | `hold`, granted | The body `{"raised": bool, "reason": "..."}` (those two keys and no other; the reason at most 95 bytes of printable ASCII without the quote and the backslash) raises or clears the package's hold; the new state |
 | `POST /v0/events` | `events` | The body `{"since": n, "wait": s}` (those two keys and no other, both optional) asks for the machine's events after `n`, waiting up to `s` seconds for one; `{"next": n, "dropped": n, "connected": bool, "events": [{"seq": n, "event": "...", "data": {...}}]}`. See [The events a package reads](#the-events-a-package-reads) |
@@ -474,6 +477,54 @@ delays other packages' requests and never the supervisor's turn. Each
 package has 20 requests a second (`429` beyond that, after the request has
 been read) and 4 of the broker's 16 connections; a request that has not
 arrived in 5 s is `408`.
+
+### A package's own settings
+
+A package's data directory is its own and it could keep a file there
+without asking anybody. These are the settings that are **not only its own
+business**: the ones the operator is shown and may change, and the ones
+that must outlive the package being updated or reinstalled. They are never
+keys of `forgefirm.conf`, and a package can reach no key but the ones its
+own manifest declares.
+
+The manifest is the schema. A `settings` object names at most 16 of them;
+each key is lower-case letters, digits and `_`, starting with a letter, at
+most 32 bytes:
+
+```json
+"settings": {
+  "webhook":   { "type": "string", "default": "", "max": 128, "label": "Where to post" },
+  "threshold": { "type": "number", "default": 40, "min": 0, "max": 100 },
+  "loud":      { "type": "bool",   "default": false },
+  "when":      { "type": "choice", "default": "end", "choices": ["start", "end", "never"] }
+}
+```
+
+| Type | Takes | Also |
+|---|---|---|
+| `string` | Printable text with no control characters, at most `max` bytes (128 unless it says otherwise, and never more) | |
+| `number` | A number, within `min` and `max` when either is given | |
+| `bool` | `true` or `false` | |
+| `choice` | One of `choices`: 2 to 6 short tokens | `choices` is required |
+
+`default` is required and is held to the setting's own rule, so a package
+cannot declare a default its schema would refuse. `label` is what the
+operator is shown, and is the key's name when it says nothing. Anything
+else in a setting, a type there is none of, a `min` on a string, or
+`choices` on anything but a choice is a manifest refused with words.
+
+The values live in one file per package under the extension root, owned by
+root at 0600. **The package never touches that file**: it reads and writes
+through its API socket, so it cannot put in what its own schema refuses.
+A write is **all or nothing** - a patch naming one key the schema does not
+declare, or one value that does not fit, changes none of them, because
+half an applied patch is a state the package never asked for. A patch
+leaves alone every key it does not name.
+
+The schema is read from the installed manifest each time, so an update
+that changes it changes what the settings are from that moment. A value
+the new schema no longer takes reads as its default, and a key it no
+longer declares is gone. Removing a package removes its settings.
 
 ### The events a package reads
 
