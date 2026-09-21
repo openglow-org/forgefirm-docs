@@ -163,7 +163,7 @@ manifest and the operator's consent do not change shape as each one lands.
 | `events` | The machine's events | yes | |
 | `hold` | Holding a job until the package clears the hold (pause tier only) | yes | required |
 | `settings.own` | The package's own settings, declared in its manifest ([A package's own settings](#a-packages-own-settings)) | yes | |
-| `camera.lid`, `camera.head` | Pictures from that camera, under the privacy gate | no | |
+| `camera.lid`, `camera.head` | One frame from that camera, under the privacy gate ([A package's camera](#a-packages-camera)) | yes | |
 | `motion.jog` | Dark jogs inside the jog bounds | no | |
 | `motion.job` | Running a program as the machine's one sender, under every arm gate | no | required |
 | `job_time.run` | Not being frozen while a job is armed | yes, as a limit the host applies | required |
@@ -465,6 +465,7 @@ What does not fit is refused with a status and a sentence
 | `GET /v0/machine/mode` | `machine.read` | forgectrl's `GET /mode` |
 | `GET /v0/settings` | `settings.own` | `settings` (every declared key with its value) and `schema` |
 | `POST /v0/settings` | `settings.own` | A patch of settings, applied whole or not at all; the same answer |
+| `POST /v0/camera` | `camera.lid` or `camera.head`, for the one it asks for | The body `{"camera": "lid"\|"head", "resolution": "full"\|"half", "quality": 1-100}` (the camera required, the rest optional, and no other key); **the answer is a JPEG**, not JSON |
 | `GET /v0/hold` | `hold`, granted | `{"raised": bool, "reason": "..."}` |
 | `POST /v0/hold` | `hold`, granted | The body `{"raised": bool, "reason": "..."}` (those two keys and no other; the reason at most 95 bytes of printable ASCII without the quote and the backslash) raises or clears the package's hold; the new state |
 | `POST /v0/events` | `events` | The body `{"since": n, "wait": s}` (those two keys and no other, both optional) asks for the machine's events after `n`, waiting up to `s` seconds for one; `{"next": n, "dropped": n, "connected": bool, "events": [{"seq": n, "event": "...", "data": {...}}]}`. See [The events a package reads](#the-events-a-package-reads) |
@@ -477,6 +478,38 @@ delays other packages' requests and never the supervisor's turn. Each
 package has 20 requests a second (`429` beyond that, after the request has
 been read) and 4 of the broker's 16 connections; a request that has not
 arrived in 5 s is `408`.
+
+### A package's camera
+
+`camera.lid` and `camera.head` are separate capabilities, and the one a
+package asks for is the one it must hold: a package granted the lid's
+camera is refused the head's in words.
+
+**The answer is a frame, not JSON.** `POST /v0/camera` comes back as
+`image/jpeg` with the bytes, or as a JSON error with a status. It is a
+`POST` for the same reason the other calls are: the request reader
+refuses a query string on purpose, so the body carries the parameters.
+
+The privacy gate stands exactly as it does for anyone else: **no camera
+captures while the lid is open**, and a package is told so in the
+machine's own words.
+
+**A package's capture always yields to somebody watching.** A capture
+borrows the camera mux for a frame and stutters a running stream while it
+does, which is a fair price when a person asked for the picture and none
+worth paying when a program did. Every capture a package makes is marked
+as one nobody is waiting for, so while a stream has a client the package
+is refused (`409`, again in the machine's words) and the operator's own
+viewing is untouched. The package retries when they stop.
+
+**One capture runs at a time**, on a thread of its own. A capture takes
+seconds, and the host's broker also carries holds and event polls that
+cannot wait behind it; a second package asking while one is under way is
+told so (`503`) rather than queued behind it. A capture that never comes
+back frees its connection after 25 s.
+
+Captures are request-driven: a package gets a frame because it asked for
+one.
 
 ### The firmware a package needs
 

@@ -81,8 +81,9 @@ A package runs as its own account, with limits on processor time, memory,
 and the number of its processes. It sees its own files and the read-only
 parts of the system, and nothing else on the machine. It reaches the
 machine only through the extension host, which answers from what you
-granted: the status, the cooling status, the mode, the machine's events, and
-its own hold. It can
+granted: the status, the cooling status, the mode, the machine's events, a
+picture from a camera, and its own hold. A package's picture never
+interrupts you: while you are watching a camera, its capture waits. It can
 send to the network only where its capabilities say, and never to the
 machine itself.
 
