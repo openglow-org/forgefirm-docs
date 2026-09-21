@@ -385,6 +385,25 @@ and that no grant is given that it did not ask for, is the host's to
 enforce. The staged file goes with a successful install and stays after a
 refused one, for another try.
 
+### The owner's keys
+
+A package is judged by who signed it: the OpenGlow extension key makes it
+official, a key under `<root>/keys/*.pub` makes it community, and anything
+else is unverified. Those keys are the owner's, and the trust anchor is
+theirs to replace, so `POST /ext/key` takes one only with the machine's
+button held, the way unsigned firmware is installed. The key itself is
+written to a file and handed to the host as a path, never as an argument,
+and the host parses it as an Ed25519 public key (fwup's base64, or 32 raw
+bytes) before it lands: what cannot be read as a key never becomes a trust
+anchor. A name is letters, digits, dash, underscore, and dot, at most 48
+bytes, and it is the file's name under `keys/`.
+
+`POST /ext/key/remove` takes one away. A package installed under a key
+that is then removed stays as it was: the key decides what an **archive**
+reads as at the moment it is inspected, not what an installed package is.
+`GET /ext/status` lists the keys with each one's id, the same id a
+package's `key` names.
+
 ## The extension API
 
 A package reaches the machine through the host or not at all: no listener
@@ -442,5 +461,6 @@ arrived in 5 s is `408`.
 | `remove <id> [--keep-data]` | Removes the package and, unless told otherwise, its data |
 | `enable <id>`, `disable <id>` | The operator's switch for one package. Disabled, it keeps its files, its data, its grants, and its account, and its service and its hold are gone; enabling it also lets it out of quarantine |
 | `hold <id> required\|advisory` | What the package's hold does when the package cannot speak for itself: stand, or drop |
+| `keys`, `key-add <name> <file.pub>`, `key-remove <name>` | The owner's keys. `key-add` parses the file as an Ed25519 public key before it is written |
 | `caps` | The capability list and the API version |
 | `run` | The extension host, above |

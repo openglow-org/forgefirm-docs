@@ -58,6 +58,23 @@ is new.
 **Discard** removes an uploaded package without installing it. The upload
 and the install are refused while a job runs.
 
+## Keys you trust
+
+The machine trusts the OpenGlow extension key, and whatever key you add
+yourself. A package signed with a key you added reads as **Community**
+instead of Unverified, so it installs with the typed phrase instead of the
+button.
+
+The **Keys you trust** card takes a name and the public key as its author
+published it (what `fwup -g` writes). **Hold the button on the machine**
+while you add one: a key you add is what this machine will trust from then
+on, so it is the same act as installing unsigned firmware. A key that
+cannot be read as one is refused and nothing is kept.
+
+Removing a key does not touch a package that was installed with it. The
+key decides how an archive reads when you upload it, not what an installed
+package is.
+
 ## What a package may do, and what it may not
 
 A package runs as its own account, with limits on processor time, memory,

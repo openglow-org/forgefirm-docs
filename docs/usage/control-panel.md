@@ -215,6 +215,13 @@ an official package, the typed phrase for a community one, and the
 machine's button held for an unverified one. [Extensions](extensions.md) is
 the page for all of it.
 
+#### Keys you trust
+
+Below it, the keys this machine trusts besides OpenGlow's own. A package
+signed with one of them reads as Community instead of Unverified. Adding a
+key takes the machine's button held, because what you add is what the
+machine will trust from then on ([Extensions](extensions.md#keys-you-trust)).
+
 #### API tokens
 
 A token is a password for one program that is not a browser, such as a script
