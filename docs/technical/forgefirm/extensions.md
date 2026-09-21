@@ -250,7 +250,8 @@ of the package runs, the new process:
 
 A step that cannot be taken is a failed start, never a looser sandbox. The
 environment is fixed: `PATH`, `LANG`, `HOME` (the data directory),
-`TMPDIR`, `FFX_ID`, `FFX_PKG`, `FFX_DATA`, `PYTHONDONTWRITEBYTECODE`, and
+`TMPDIR`, `FFX_ID`, `FFX_PKG`, `FFX_DATA`, `FFX_API` (its
+[API socket](#the-extension-api)), `PYTHONDONTWRITEBYTECODE`, and
 `PYTHONUNBUFFERED`. A service's output goes
 to the `forgeext` logger under the package's id, at most 60 lines in 10
 seconds, with a count of what was dropped.
@@ -292,15 +293,14 @@ package is then named under `<root>/required-holds/` for the engine:
 
 | The package | Advisory | Required |
 |---|---|---|
-| runs, and has run healthy | Clear | Clear |
-| has started and not yet run healthy | Clear | Raised by the host: "the extension has only just started". A package that ends at every start reads as running for a moment each time, and a required hold does not flicker clear with it |
+| runs, and has run healthy | What it last said | What it last said |
+| has started and not yet run healthy | What it last said | Raised by the host: "the extension has only just started". A package that ends at every start reads as running for a moment each time, and a required hold does not flicker clear with it |
 | should run and does not (ended, waiting, quarantined, the machine not ready) | Dropped, and logged once | Raised by the host: "the extension is not running" |
 | the host itself gone, however it went | Dropped by the engine | Stands in the engine, on the stale file or on the name alone |
 
-A running package's hold reads clear: the call by which a package raises
-and clears its own hold belongs to the extension API, which the host does
-not serve yet, so the holds that stand are the ones the host raises.
-Extensions off and safe mode take every file away, and the engine does not
+A running package raises and clears its own hold over its
+[API socket](#the-extension-api) (`POST /v0/hold`); its word starts clear
+with every start of its service. Extensions off and safe mode take every file away, and the engine does not
 look at the names then; a package that is disabled or removed loses its
 file and its name. Those are the operator's exits. A clean stop of the
 host removes the advisory files and leaves the required ones to go stale.
@@ -324,9 +324,11 @@ killed, and a pid that is not a running host marks it as a dead one's),
 
 The acceptance test `exthost.service` proves the host on the image with a
 reference package it builds and signs on the board: the confinement seen
-from inside the service, safe mode, a killed host, and the master switch.
+from inside the service (its API socket included), safe mode, a killed
+host, and the master switch.
 `exthost.hold-pause-tier` takes a required hold from the grant to the
-engine's verdict and out through each of the operator's exits.
+engine's verdict and out through each of the operator's exits, the
+package's own raise and clear over its API socket included.
 `exthost.armed-freeze` opens a real armed window over it with a dark cloud
 print and samples the engine's flag, the group's state, the service's
 heartbeat, and the latch five times a second: frozen from 2 s in to the
@@ -334,6 +336,49 @@ close with the heartbeat still, the freeze in place before the latch unlocks
 for the run, thawed within 3 s of the close, one process throughout.
 `setup.extensions-consent` proves the consent
 ([Release acceptance](../../developers/acceptance.md)).
+
+## The extension API
+
+A package reaches the machine through the host or not at all: no listener
+of the machine answers a pool account
+([the extension sandbox](image-and-bsp.md#the-extension-sandbox)). Every
+running service has one Unix stream socket, `/run/forgefirm/ext/api/<id>.sock`,
+owned by root and the package's account at mode `0660`, and named in its
+environment as `FFX_API`. The account is the only one that can connect, the
+socket says which package is calling, and the host checks the caller's
+credentials against it anyway. The socket exists before the service starts
+and goes when it ends.
+
+The API is version `0.1` and carries no stability promise. One request per
+connection, HTTP/1.0 or 1.1 in a closed form, JSON both ways:
+
+- the request line is `GET` or `POST`, one space, an origin-form path of
+  letters, digits, `/`, `.`, `-`, and `_` (no query, no escape, no `..`), one
+  space, the version;
+- lines end in CRLF; no continuation lines, no transfer coding, one
+  `Content-Length`, nothing after the body;
+- the head is at most 4096 bytes and the body at most 4096.
+
+What does not fit is refused with a status and a sentence
+(`{"error": "..."}`), never guessed at.
+
+| Request | Needs | Answers |
+|---|---|---|
+| `GET /v0/self` | | `id`, `version`, `api`, and `capabilities`: the ones the package may use (those that need no grant, and its grants) |
+| `GET /v0/machine/status` | `machine.read` | forgectrl's `GET /status` |
+| `GET /v0/machine/cool` | `machine.read` | forgectrl's `GET /cool/status` |
+| `GET /v0/machine/mode` | `machine.read` | forgectrl's `GET /mode` |
+| `GET /v0/hold` | `hold`, granted | `{"raised": bool, "reason": "..."}` |
+| `POST /v0/hold` | `hold`, granted | The body `{"raised": bool, "reason": "..."}` (those two keys and no other; the reason at most 95 bytes of printable ASCII without the quote and the backslash) raises or clears the package's hold; the new state |
+
+A capability the package does not hold is `403` in words, a path the API
+does not have is `404`, and the machine routes are relayed only as JSON
+objects (`502` when forgectrl does not answer, or answers anything else).
+The broker runs on a thread of its own, so a slow answer from forgectrl
+delays other packages' requests and never the supervisor's turn. Each
+package has 20 requests a second (`429` beyond that, after the request has
+been read) and 4 of the broker's 16 connections; a request that has not
+arrived in 5 s is `408`.
 
 ## The command line
 
