@@ -164,7 +164,7 @@ manifest and the operator's consent do not change shape as each one lands.
 | `hold` | Holding a job until the package clears the hold (pause tier only) | yes | required |
 | `settings.own` | The package's own settings, declared in its manifest ([A package's own settings](#a-packages-own-settings)) | yes | |
 | `camera.lid`, `camera.head` | One frame from that camera, under the privacy gate ([A package's camera](#a-packages-camera)) | yes | |
-| `motion.jog` | Dark jogs inside the jog bounds | no | |
+| `motion.jog` | Dark jogs inside the jog bounds, and cancelling one ([A package's jog](#a-packages-jog)) | yes | |
 | `motion.job` | Running a program as the machine's one sender, under every arm gate | no | required |
 | `job_time.run` | Not being frozen while a job is armed | yes, as a limit the host applies | required |
 | `ui` | Its own tab or cards in the control panel | no | |
@@ -466,6 +466,8 @@ What does not fit is refused with a status and a sentence
 | `GET /v0/settings` | `settings.own` | `settings` (every declared key with its value) and `schema` |
 | `POST /v0/settings` | `settings.own` | A patch of settings, applied whole or not at all; the same answer |
 | `POST /v0/camera` | `camera.lid` or `camera.head`, for the one it asks for | The body `{"camera": "lid"\|"head", "resolution": "full"\|"half", "quality": 1-100}` (the camera required, the rest optional, and no other key); **the answer is a JPEG**, not JSON |
+| `POST /v0/motion/jog` | `motion.jog` | The body `{"x":, "y":, "z":, "feed":}` in millimetres and mm/min, each a number and no other key, at least one axis moving; the machine's answer |
+| `POST /v0/motion/cancel` | `motion.jog` | Ends a jog; the machine's answer |
 | `GET /v0/hold` | `hold`, granted | `{"raised": bool, "reason": "..."}` |
 | `POST /v0/hold` | `hold`, granted | The body `{"raised": bool, "reason": "..."}` (those two keys and no other; the reason at most 95 bytes of printable ASCII without the quote and the backslash) raises or clears the package's hold; the new state |
 | `POST /v0/events` | `events` | The body `{"since": n, "wait": s}` (those two keys and no other, both optional) asks for the machine's events after `n`, waiting up to `s` seconds for one; `{"next": n, "dropped": n, "connected": bool, "events": [{"seq": n, "event": "...", "data": {...}}]}`. See [The events a package reads](#the-events-a-package-reads) |
@@ -478,6 +480,50 @@ delays other packages' requests and never the supervisor's turn. Each
 package has 20 requests a second (`429` beyond that, after the request has
 been read) and 4 of the broker's 16 connections; a request that has not
 arrived in 5 s is `408`.
+
+### A package's jog
+
+A jog is the one call in this API that **moves the machine**, and it is
+the only motion a package reaches: there is no arbitrary G-code here, and
+a jog is the one motion that ships dark whatever the laser's modal state
+is.
+
+It is bounded **twice**. The host refuses a jog past the bounds without
+asking the machine, and the machine refuses it again: the machine owns
+them and is the only thing that can enforce them, and the host keeping to
+the same numbers means a package's mistake never becomes a line the
+machine has to turn away.
+
+| | At most |
+|---|---|
+| X and Y, one jog | 100 mm |
+| Z, one jog | 5 mm |
+| Feed | 10 to 12000 mm/min |
+
+Everything the machine already enforces still stands and is the machine's
+to enforce: GRBL mode only, the machine lease, and the rule that **a
+sender at the controller port always wins** - a line from LightBurn
+cancels a package's jog.
+
+**The lid being open does not stop a jog**, and a jog is motion the
+operator did not ask for. That is said plainly in the Extensions advisory,
+because it is the one thing a package does that an operator can be
+standing inside.
+
+#### How the host is allowed to ask
+
+A jog is a write, and the machine grants a write to nobody without a
+credential. The host has one of its own: forgectrl mints it fresh every
+time the daemon starts, it holds **only** what the host may relay, it is
+never in the store and never in the operator's list of tokens (it is not
+theirs to manage, and revoking it by accident would stop extensions), and
+it dies with the daemon. It is written to `/run/forgefirm/ext-host.token`
+at mode 0600, which an extension account cannot read - and could not use
+if it could, since a pool account cannot reach a loopback listener at all.
+forgectrl takes it **from a loopback peer only**.
+
+The panel token is deliberately not used for this: it reaches every route,
+so a flaw in the host or its broker would reach every route too.
 
 ### A package's camera
 
