@@ -364,6 +364,16 @@ the test asked for. The persisted `controller_mode` setting is never
 written back as a bare setting; only the switch keeps it in step with the
 live mode.
 
+A campaign's machine is extension-free. What a test made and left behind
+(a package under the `org.forgetest.` prefix, the owner key
+`forgetest-*.pub` it was signed with) is removed by the baseline, and the
+[extension host](../technical/forgefirm/extensions.md#the-extension-host)
+stops its service on its next turn. A process that still runs under a pool
+account after that belongs to the operator's own packages: it is reported
+and never touched, and since it is found after every run it fails every
+run, so extensions are turned off (or safe mode entered) before a campaign.
+`image.health` refuses a machine with any package installed.
+
 Deviations are **leftovers**. They are logged in the run pane, kept in the
 `evidence` of the result (`baseline.pre`, `baseline.post`), and shown in
 the message line of the page. A leftover found before a run belongs to the
