@@ -437,6 +437,7 @@ What does not fit is refused with a status and a sentence
 | `GET /v0/machine/mode` | `machine.read` | forgectrl's `GET /mode` |
 | `GET /v0/hold` | `hold`, granted | `{"raised": bool, "reason": "..."}` |
 | `POST /v0/hold` | `hold`, granted | The body `{"raised": bool, "reason": "..."}` (those two keys and no other; the reason at most 95 bytes of printable ASCII without the quote and the backslash) raises or clears the package's hold; the new state |
+| `POST /v0/events` | `events` | The body `{"since": n, "wait": s}` (those two keys and no other, both optional) asks for the machine's events after `n`, waiting up to `s` seconds for one; `{"next": n, "dropped": n, "connected": bool, "events": [{"seq": n, "event": "...", "data": {...}}]}`. See [The events a package reads](#the-events-a-package-reads) |
 
 A capability the package does not hold is `403` in words, a path the API
 does not have is `404`, and the machine routes are relayed only as JSON
@@ -446,6 +447,42 @@ delays other packages' requests and never the supervisor's turn. Each
 package has 20 requests a second (`429` beyond that, after the request has
 been read) and 4 of the broker's 16 connections; a request that has not
 arrived in 5 s is `408`.
+
+### The events a package reads
+
+forgectrl publishes the machine's edges as a stream and caps the streams,
+because each one holds a thread of the daemon for hours
+([The event stream](forgectrl.md#the-event-stream)). The host takes **one**
+subscription, in the slot forgectrl keeps for it, and every package reads
+from the ring it fills: a machine with ten packages still costs forgectrl one
+stream. The host holds that subscription only while some running service
+holds `events`, because forgectrl's sampler sleeps when nobody listens.
+
+A package reads the ring with `POST /v0/events`, which is a poll and not a
+stream. It says the sequence number it has and is answered with what came
+after it. It is a `POST` because the request reader above refuses a query
+string on purpose and a poll needs its numbers; the body carries them
+instead.
+
+| The body | Asks for |
+|---|---|
+| `{}` or `{"wait": s}` | Where the present is: the answer is `next` at the head, no events. A package that does not want the past starts here |
+| `{"since": n}` | What came after `n`, at once |
+| `{"since": n, "wait": s}` | The same, but when `n` is the head the answer waits up to `s` seconds (at most 30) for an event, and comes back with an empty list if none comes |
+
+`since: 0` is the beginning of what the host still holds, which is a
+different question from asking where the present is: a package that started
+before the first event stands at 0, and it has to be able to be told of the
+events it was there for. A `since` past the head is a feed that started over
+under the reader (the host was restarted): the answer comes at once with
+`next` back at the head, and a reader that compares the two sees the rewind.
+
+At most 32 events come back at a time and the rest waits for the next call.
+The host holds the last 64; a reader that falls a whole ring behind is told
+how many it lost in `dropped` and handed the oldest still held, never a stale
+event as if it were new. `connected` says whether the host has the machine's
+stream at that moment. Each event's `data` is forgectrl's own JSON, passed on
+as it was written.
 
 ## The command line
 

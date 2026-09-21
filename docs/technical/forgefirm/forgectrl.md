@@ -524,8 +524,8 @@ spell starts from a fresh baseline, so nothing that happened while nobody
 listened is replayed. A client that falls more than 64 events behind gets a
 comment line saying how many it lost, and then the oldest event still held.
 
-**The streams are capped: three in all, one per peer address**, counted
-apart from the camera streams. The daemon is thread-per-connection with a
+**The streams are capped: three in all, one per peer address**, plus one
+slot kept for the extension host, counted apart from the camera streams. The daemon is thread-per-connection with a
 ceiling of 64 connections and 16 per address, and an event stream holds its
 thread for hours: without a cap, a few dashboard tabs beside a camera
 viewer could stall the settings, arm, and mode routes during a cut. A client
@@ -538,10 +538,25 @@ stream would turn every page reload into an error, and a browser's
 the cap allows reads one stream and fans it out off the machine. The control
 panel does not use the stream; it polls.
 
+The extension host's subscription is the slot beside those three. It is one
+stream that fans out to every package that holds `events`
+([the extension API](extensions.md#the-extension-api)), so without a slot of
+its own each such package would want one of the three, and one `curl` on the
+machine would blind them all at once. A client claims it by asking for it by
+name, with the header `X-ForgeFIRM-Client: extension-host`, **and only from a
+loopback peer**: a pool account cannot reach a loopback address at all
+([the extension sandbox](image-and-bsp.md#the-extension-sandbox) refuses
+everything it sends through `lo` before any allowlist is read), so a loopback
+claim is this firmware's own software or somebody who is already root on the
+machine. A LAN client that asks for it is admitted, or refused, as any other
+client. A second host stream replaces the first, which is what a restarted
+host is, and the host's slot is never given to an ordinary client when it
+lets go.
+
 The host test is `events_test` (the cap, every row of the table above as a
 state step, the stream over a scripted state, a slow reader, the idle
-sampler, the shutdown); on the bench, the release acceptance test
-`events.stream`.
+sampler, the shutdown, and the extension host's own slot); on the bench, the
+release acceptance tests `events.stream` and `exthost.events`.
 
 ### Controller state reports
 
