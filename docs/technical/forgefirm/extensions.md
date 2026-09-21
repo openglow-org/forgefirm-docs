@@ -137,7 +137,7 @@ see.
 | `name`, `author`, `license` | Required text. `description` and `homepage` are optional |
 | `version` | `MAJOR.MINOR.PATCH` with an optional `-prerelease`. The archive's own `meta-version` must say the same |
 | `api` | The extension API the package was built for, `MAJOR.MINOR`. This firmware serves **0.1**. A 0.x API carries no stability promise, so the minor must match exactly |
-| `core` | Optional `min` and `max` firmware versions. **Checked against each other and nothing else:** this firmware does not refuse a package whose `core.min` is above its own version |
+| `core` | Optional `min` and `max` firmware versions. A package outside the range is refused at inspect and at install, when this firmware has a version to judge by ([The firmware a package needs](#the-firmware-a-package-needs)) |
 | `runtime` | `data` (nothing executes), `ui` (runs in the operator's browser), `shell`, `native` (a static ARMv7 hard-float binary), or `python` (inside the release image's module list) |
 | `service` | `exec`, a path inside the package, and optional `args`. Required for `shell`, `native`, and `python`; refused for `data` and `ui`. The entry point must be a file of the package, and executable for `native` |
 | `modes` | `grbl`, `cloud`, or both (the default) |
@@ -170,7 +170,7 @@ manifest and the operator's consent do not change shape as each one lands.
 | `ui` | Its own tab or cards in the control panel | no | |
 | `net.outbound:<host>:<port>` | One named destination: a lowercase DNS name, an IPv4 address, or an IPv6 address in brackets. Never the machine itself | yes, as a rule the host installs | |
 | `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port | yes, as a rule the host installs | |
-| `storage:<MiB>` | Names the data directory a service wants, in MiB | declared only: **no quota is enforced**, and every service has a data directory whether it asks or not | |
+| `storage:<MiB>` | How much its data directory may hold, 1 to 256 MiB. Every service has a data directory; this says how large it may grow ([The storage quota](#the-storage-quota)) | yes, as a limit the host enforces | |
 
 `motion.offsets`, `wizard`, and `mcode:<n>` are not in the vocabulary at
 all: a manifest that asks for one is refused in those words.
@@ -477,6 +477,38 @@ delays other packages' requests and never the supervisor's turn. Each
 package has 20 requests a second (`429` beyond that, after the request has
 been read) and 4 of the broker's 16 connections; a request that has not
 arrived in 5 s is `408`.
+
+### The firmware a package needs
+
+A manifest's `core` names the firmware versions the package works on, and
+a package outside that range is refused - at inspect, so the operator is
+told before they consent, and at install, so nothing installs behind the
+refusal.
+
+The range is judged only when this firmware **has** a version to judge it
+by. A release image writes one (`0.0.7`); a **dev image writes its build
+stamp**, which is no version at all, and then there is nothing to compare
+against and the range is not judged. The answer says which of the two
+happened, in `core_checked`, so that nobody is left guessing whether the
+range was honored.
+
+### The storage quota
+
+Every service has a data directory, and `storage:<MiB>` says how large it
+may grow. A service that declares no `storage` gets 16 MiB.
+
+The host measures each running service's data directory every 30 s, by the
+blocks the filesystem gave the files rather than by their apparent sizes:
+a package that makes one enormous sparse file has taken nothing, and a
+package that makes ten thousand small ones has taken more than their
+bytes. A symbolic link is counted as a link and never followed, so a link
+out of the directory adds nothing.
+
+A service over its quota is **quarantined**: stopped, remembered as
+stopped across restarts, and shown with the reason in the panel. The host
+does not delete a package's data - that is the operator's, and there are
+two ways out: remove the package, which takes its data with it, or clear
+the data and enable the package again.
 
 ### A package's own settings
 
