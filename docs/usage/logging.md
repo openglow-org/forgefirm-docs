@@ -69,7 +69,12 @@ The Logs tab's viewer shows the tail of one logger. **Follow** keeps it moving;
 firmware version, kernel ring buffer, uptime, memory, disk, processes, effective
 log levels, and the settings with secrets masked. It also carries the log the
 installer kept of each of its runs, when the machine has one
-([Logging](../technical/forgefirm/logging.md#loggers-and-the-tree)).
+([Logging](../technical/forgefirm/logging.md#loggers-and-the-tree)), and
+`system/extensions.json`: what
+[extension packages](extensions.md) are installed, each one's version and
+tier, whether it is enabled, and what you granted it. A problem on a machine
+running extensions reads differently from the same problem without them, and
+that is the file that says which it is.
 
 The bundle is **sanitized by default**, for attaching to a public issue report.
 Known identifiers (serial, hostname, cloud credentials, panel token, camera
@@ -77,8 +82,10 @@ key, WiFi network) and pattern classes (network addresses, e-mail addresses, bea
 basic credentials, JWTs, key=value secrets, long hex and base64 blobs) become
 placeholders. A placeholder keeps the same number for the same value within the
 bundle, so hosts can still be told apart. The sanitizer removes what it knows
-and what it can recognize: skim the bundle before posting it. Untick the option
-to keep everything for your own use.
+and what it can recognize: skim the bundle before posting it. It knows this
+machine's own secrets and not an extension package's - what a package logs,
+and what it keeps in its own settings, is its author's to keep clean. Untick
+the option to keep everything for your own use.
 
 ## The routes
 
