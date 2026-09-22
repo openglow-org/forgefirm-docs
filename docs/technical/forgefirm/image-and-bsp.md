@@ -434,8 +434,20 @@ destination, whatever the map says:** everything a host sends to one of its
 own addresses, the LAN one included, leaves through `lo`, and `pool` refuses
 that before it looks at the map. An allowlist names addresses, and the
 machine's own address can change under it with a new DHCP lease; this rule
-does not depend on knowing the address. Loading the file again replaces the table,
-allowlists included: it fails closed. The kernel's `limit` expression is
+does not depend on knowing the address.
+
+**A listening port is answered from, never dialed out of.** A package with
+`net.listen` gets a rule for its port in that chain, and the rule matches the
+*source* port, so on its own it would let the process reach any destination at
+all by binding a connection to that port - the declared destinations undone by
+a capability that has nothing to do with them. The TCP flags tell the two
+apart without connection tracking: a lone `syn` is a connection the process is
+opening and is refused, and every other segment - the `syn`+`ack` that answers
+a caller, and the rest of that conversation - is its listener speaking and is
+let out.
+
+Loading the file again replaces the table, allowlists included: it fails
+closed. The kernel's `limit` expression is
 built for a transmit rate limit. nftables on the image is the `nft` binary
 and its library with JSON output (`nft -j`), no interactive shell and no
 Python binding.

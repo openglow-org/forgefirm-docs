@@ -169,7 +169,7 @@ consent do not change shape as each one lands.
 | `job_time.run` | Not being frozen while a job is armed | yes, as a limit the host applies | required |
 | `ui` | A page of its own in the control panel, in a sandboxed frame ([A package's own page](#a-packages-own-page)) | yes | |
 | `net.outbound:<host>:<port>` | One named destination: a lowercase DNS name, an IPv4 address, or an IPv6 address in brackets. Never the machine itself | yes, as a rule the host installs | |
-| `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port | yes, as a rule the host installs | |
+| `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port. It answers callers and is no way out ([the deny rules](image-and-bsp.md#the-extension-sandbox)) | yes, as a rule the host installs | |
 | `storage:<MiB>` | How much its data directory may hold, 1 to 256 MiB. Every service has a data directory; this says how large it may grow ([The storage quota](#the-storage-quota)) | yes, as a limit the host enforces | |
 
 `motion.offsets`, `wizard`, and `mcode:<n>` are named in the list but are
