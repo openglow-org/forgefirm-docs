@@ -167,18 +167,13 @@ manifest and the operator's consent do not change shape as each one lands.
 | `motion.jog` | Dark jogs inside the jog bounds, and cancelling one ([A package's jog](#a-packages-jog)) | yes | |
 | `motion.job` | Running a program as the machine's one sender, under every arm gate | no | required |
 | `job_time.run` | Not being frozen while a job is armed | yes, as a limit the host applies | required |
-| `ui` | Its own tab or cards in the control panel | no | |
+| `ui` | A page of its own in the control panel, in a sandboxed frame ([A package's own page](#a-packages-own-page)) | yes | |
 | `net.outbound:<host>:<port>` | One named destination: a lowercase DNS name, an IPv4 address, or an IPv6 address in brackets. Never the machine itself | yes, as a rule the host installs | |
 | `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port | yes, as a rule the host installs | |
 | `storage:<MiB>` | How much its data directory may hold, 1 to 256 MiB. Every service has a data directory; this says how large it may grow ([The storage quota](#the-storage-quota)) | yes, as a limit the host enforces | |
 
 `motion.offsets`, `wizard`, and `mcode:<n>` are not in the vocabulary at
 all: a manifest that asks for one is refused in those words.
-
-**A `ui` package installs and does nothing.** The runtime is accepted and
-the capability is granted, and no part of this firmware serves a package's
-own pages yet. Until it does, a package's operator-facing surface is the
-Extension packages card.
 
 At most **15** outbound destinations take effect for one service, whatever
 the manifest declares: the host's rule chain and the sandbox's port list
@@ -480,6 +475,73 @@ delays other packages' requests and never the supervisor's turn. Each
 package has 20 requests a second (`429` beyond that, after the request has
 been read) and 4 of the broker's 16 connections; a request that has not
 arrived in 5 s is `408`.
+
+### A package's own page
+
+A package that asks for `ui` ships **one** self-contained HTML file at
+`ui/index.html`, at most 512 KiB. Asking for `ui` without the file is
+refused at install, and shipping the file without asking for `ui` is
+refused too. It is one file because the frame it renders in can fetch
+nothing: there would be nothing to load a second file with.
+
+`GET /ext/ui` hands the page to the panel **as a JSON string**. The daemon
+composes no markup out of a package's file; the panel is what builds the
+frame.
+
+**The frame holds nothing.** It is sandboxed **without
+`allow-same-origin`** - with it, the page would hold the operator's
+session and the panel token, and every other measure here would be
+decoration. Without it the page is its own opaque origin: it cannot read
+the panel's cookies, reach the panel's window, or navigate the top window.
+
+The sandbox attribute alone does not stop a page reaching the network, so
+the policy travels **in the document, as its first element**:
+
+```
+default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline';
+img-src blob: data:; connect-src 'none'; form-action 'none'; base-uri 'none';
+webrtc 'block'
+```
+
+A package may add its own policy after that one and only make it stricter.
+
+**WebRTC is a documented leak.** It is outside the Content Security Policy
+in both browsers this project tests, and connection hints get past it at
+low bandwidth. A package with a page can therefore send a little data out
+of the operator's browser. That is named here and where the operator
+installs, and a package without a page cannot do it at all.
+
+**The label above the frame is the panel's**, outside the frame: the name
+and the trust tier are what the panel knows of the package, never what the
+package claims. When the panel knows neither, the label says the id and
+nothing more.
+
+#### The bridge
+
+The page reaches the machine only by asking the panel, over `postMessage`.
+Three rules govern it:
+
+- **A frame is known by `event.source`, never by `event.origin`.** Every
+  sandboxed frame reports the origin `null`, so two open packages are
+  indistinguishable by origin; identifying by origin would let either
+  speak for the other.
+- **The capability checked is the one the panel holds for that package**,
+  read from the machine's own list. What a frame claims about itself is
+  never an input.
+- **No credential ever enters a message.** The panel makes each call under
+  its own session. A camera frame is fetched by the panel and handed over
+  as bytes, so the camera key stays where it is.
+
+| The page asks for | It needs | It gets |
+|---|---|---|
+| `self` | | its id, version, tier, and the capabilities it holds |
+| `machine.status`, `machine.cool`, `machine.mode` | `machine.read` | the machine's own answer |
+| `settings.get`, `settings.set` | `settings.own` | its settings and their schema |
+| `camera.frame` | `camera.lid` or `camera.head` | the frame as bytes, taken as a background capture, so it yields to a viewer |
+| `motion.jog` | `motion.jog` | the machine's answer, under every bound the jog already has |
+
+Anything else is refused by name, and a capability the package does not
+hold is refused in those words.
 
 ### A package's jog
 
