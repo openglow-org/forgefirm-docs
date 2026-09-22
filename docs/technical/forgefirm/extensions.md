@@ -391,7 +391,11 @@ forgectrl's descriptors (it holds the pulse device).
 `host` (the host's own status file with `running: true`, or `running:
 false` alone when no host is alive behind it), and `packages` (the host's
 `list`: id, version, tier, key, enabled, quarantined, grants, the hold's
-kind, the account, and the manifest). `POST /ext/package` takes `id` and
+kind, the account, the manifest, and `effective` - the capabilities the
+package may use, which is what needs no grant together with what the
+operator granted. That last one is the list anything deciding what a
+package may do reads, the panel's bridge included: the manifest's own
+list is what was *asked for*, which is a different question). `POST /ext/package` takes `id` and
 `action`: `enable` (which also lets a package out of quarantine),
 `disable` (its service stops and its hold goes: the way out of a hold it
 has on a job), `remove`, `remove-keep-data`, `hold-required`,
@@ -548,16 +552,22 @@ Three rules govern it:
   sandboxed frame reports the origin `null`, so two open packages are
   indistinguishable by origin; identifying by origin would let either
   speak for the other.
-- **The capability checked is the one the panel holds for that package**,
-  read from the machine's own list. What a frame claims about itself is
-  never an input.
+- **The capability checked is the one the machine says the package may
+  use**: the `effective` list of `GET /ext/status`, which is the same
+  answer the package's own API socket gives a service at `GET /v0/self`.
+  The manifest's list is what was asked for and is never the test. What a
+  frame claims about itself is never an input either.
+- **A package the operator disabled holds nothing.** Disabling is the way
+  out of everything a package does: its page stops being served, and a
+  frame already open is closed at the panel's next refresh rather than
+  left talking to the bridge.
 - **No credential ever enters a message.** The panel makes each call under
   its own session. A camera frame is fetched by the panel and handed over
   as bytes, so the camera key stays where it is.
 
 | The page asks for | It needs | It gets |
 |---|---|---|
-| `self` | | its id, version, tier, and the capabilities it holds |
+| `self` | | its id, version, tier, and the capabilities it may use (the same list `GET /v0/self` gives its service) |
 | `machine.status`, `machine.cool`, `machine.mode` | `machine.read` | the machine's own answer |
 | `settings.get`, `settings.set` | `settings.own` | its settings and their schema |
 | `camera.frame` | `camera.lid` or `camera.head` | the frame as bytes, taken as a background capture, so it yields to a viewer and is refused while a job is armed |
