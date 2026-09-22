@@ -165,7 +165,7 @@ manifest and the operator's consent do not change shape as each one lands.
 | `settings.own` | The package's own settings, declared in its manifest ([A package's own settings](#a-packages-own-settings)) | yes | |
 | `camera.lid`, `camera.head` | One frame from that camera, under the privacy gate ([A package's camera](#a-packages-camera)) | yes | |
 | `motion.jog` | Dark jogs inside the jog bounds, and cancelling one ([A package's jog](#a-packages-jog)) | yes | |
-| `motion.job` | Running a program as the machine's one sender, under every arm gate | no | required |
+| `motion.job` | Running a program as the machine's one sender, under every arm gate ([A package's job](#a-packages-job)) | yes | required |
 | `job_time.run` | Not being frozen while a job is armed | yes, as a limit the host applies | required |
 | `ui` | A page of its own in the control panel, in a sandboxed frame ([A package's own page](#a-packages-own-page)) | yes | |
 | `net.outbound:<host>:<port>` | One named destination: a lowercase DNS name, an IPv4 address, or an IPv6 address in brackets. Never the machine itself | yes, as a rule the host installs | |
@@ -463,6 +463,8 @@ What does not fit is refused with a status and a sentence
 | `POST /v0/camera` | `camera.lid` or `camera.head`, for the one it asks for | The body `{"camera": "lid"\|"head", "resolution": "full"\|"half", "quality": 1-100}` (the camera required, the rest optional, and no other key); **the answer is a JPEG**, not JSON |
 | `POST /v0/motion/jog` | `motion.jog` | The body `{"x":, "y":, "z":, "feed":}` in millimetres and mm/min, each a number and no other key, at least one axis moving; the machine's answer |
 | `POST /v0/motion/cancel` | `motion.jog` | Ends a jog; the machine's answer |
+| `POST /v0/motion/job` | `motion.job`, granted | The body `{"program": "<a file of its own data>", "lit_within_s":, "timeout_s":}`; the machine's answer |
+| `POST /v0/motion/job/abort` | `motion.job`, granted | Ends the running job |
 | `GET /v0/hold` | `hold`, granted | `{"raised": bool, "reason": "..."}` |
 | `POST /v0/hold` | `hold`, granted | The body `{"raised": bool, "reason": "..."}` (those two keys and no other; the reason at most 95 bytes of printable ASCII without the quote and the backslash) raises or clears the package's hold; the new state |
 | `POST /v0/events` | `events` | The body `{"since": n, "wait": s}` (those two keys and no other, both optional) asks for the machine's events after `n`, waiting up to `s` seconds for one; `{"next": n, "dropped": n, "connected": bool, "events": [{"seq": n, "event": "...", "data": {...}}]}`. See [The events a package reads](#the-events-a-package-reads) |
@@ -586,6 +588,31 @@ forgectrl takes it **from a loopback peer only**.
 
 The panel token is deliberately not used for this: it reaches every route,
 so a flaw in the host or its broker would reach every route too.
+
+### A package's job
+
+`motion.job` is the widest capability a package can hold, and it is one
+of the four the **operator grants by hand**, whatever the package's tier.
+
+**A program is named, not sent.** The request reader takes 4 KiB of body
+and a program is not that, so a package writes its program into its own
+data directory and names the file. The name is a file name with **no
+directory in it**, and the host resolves it and checks the result is
+really inside that package's data directory - a link or a `..` out of it
+is not a program the host will read. The program is at most 2 MiB, which
+is also what the package's storage quota has to hold.
+
+**Who the job is from is the host's word, not the package's.** The job
+carries the package's id as its sender. A package that could name the
+sender could make a job look as though it came from somewhere else.
+
+Everything the machine already does to a sender it does to this one, and
+those are the machine's to enforce: the job runs **under the machine
+lease**, it is **refused while a sender is connected** (LightBurn holds
+TCP 23 outside the lease), and **every arm gate and the button press
+stand**. A program that commands no laser never opens an armed window,
+so there is nothing for a press to arm; the gates are in force and are
+simply never reached.
 
 ### A package's camera
 

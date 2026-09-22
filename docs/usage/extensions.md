@@ -86,7 +86,9 @@ picture from a camera, a bounded jog, and its own hold. A package's picture
 never interrupts you: while you are watching a camera, its capture waits.
 **A package that can jog can move the head while you have your hands in the
 machine** - the jog is bounded and never fires the laser, and it is still
-motion you did not ask for. It can
+motion you did not ask for. A package you granted `motion.job` can start a
+job, which then waits for the button and stands under every gate your own
+jobs do. It can
 send to the network only where its capabilities say, and never to the
 machine itself.
 
