@@ -296,6 +296,17 @@ on at 3 percent of the core. The freeze follows the `armed` field of
 on, 5 s before the latch unlocked for the run, and thawed 0.6 s after it
 turned off.
 
+A service that does not freeze is not left running. The host waits 300 ms
+for the kernel's `frozen` flag and asks again at its next turn; after three
+turns the service is quarantined, with "it could not be frozen for the armed
+window" as the reason, and the operator's enable is what lets it out. The
+freeze is what keeps a package off the step stream, so a group that will not
+take it is a defect and not a passing condition. Job-time limits that will
+not take fall back to the freeze the `job_time.run` grant lifted, and the
+service is quarantined only when neither takes. A thaw that fails costs
+nobody but the package itself: it is logged and tried again at the next
+turn.
+
 **Holds.** A package with the operator's `hold` grant may withhold fire
 and never permit it ([An extension's hold](cooling-engine.md#an-extensions-hold)
 has the engine's side: the verdict `EXT`, the pause tier, and the
