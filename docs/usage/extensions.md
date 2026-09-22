@@ -82,7 +82,9 @@ and the number of its processes. It sees its own files and the read-only
 parts of the system, and nothing else on the machine. It reaches the
 machine only through the extension host, which answers from what you
 granted: the status, the cooling status, the mode, the machine's events, a
-picture from a camera, a bounded jog, and its own hold. A package's picture
+picture from a camera, a bounded jog, settings of its own, and its own
+hold. Its settings are kept by the machine and outlive the package being
+updated; they are its own keys and never the machine's. A package's picture
 never interrupts you: while you are watching a camera, its capture waits.
 **A package that can jog can move the head while you have your hands in the
 machine** - the jog is bounded and never fires the laser, and it is still
@@ -93,12 +95,38 @@ send to the network only where its capabilities say, and never to the
 machine itself.
 
 No package reaches the laser, the motion hardware, the cooling hardware,
-the cameras, the settings, the firmware, or your login directly. **While a
-job is armed every package is frozen**, unless you granted one the right to
-keep running, and that one runs under tighter limits for the length of the
-job. The lid, the interlock, the armed window and its button, the cooling
-gates, and the limits on motion work the same with extensions on: the most
-a package can do to a job is hold it.
+the cameras, the machine's settings, the firmware, or your login directly.
+**While a job is armed every package is frozen**, unless you granted one
+the right to keep running, and that one runs under tighter limits for the
+length of the job. The lid, the interlock, the armed window and its
+button, the cooling gates, and the limits on motion work the same with
+extensions on: the most a package can do to a job is hold it.
+
+## A package's own page
+
+A package may bring a page of its own, and the card opens it when you ask
+for it. It is where a package that has something to set or to show puts
+it: the settings it declared, a view, a button of its own. Above the page
+the panel writes the package's name, its trust tier and its id, and a
+Close button - those are the machine's own words about the package, never
+the package's.
+
+The page is held at arm's length. It cannot read your session, reach the
+rest of the panel, or open anything of its own on the network; when it
+wants something from the machine it has to ask the panel, and the panel
+answers only what you granted that package. A camera frame is fetched by
+the panel and handed over as a picture, so nothing of your login is ever
+in the page's hands.
+
+!!! warning "A page can send a little data out of your browser"
+
+    One way out of a browser, WebRTC, is not something a page can be shut
+    out of by the means above - it is outside them in both browsers this
+    project tests, and it works at low bandwidth even when a page is
+    otherwise cut off. So a package with a page of its own can get a small
+    amount of data out through the browser you are viewing it in. A package
+    without a page cannot do this at all, and nothing about it reaches the
+    machine.
 
 ## Holds
 

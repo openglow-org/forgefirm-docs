@@ -152,10 +152,10 @@ provider kind: `role:homing` and `role:controller` are refused by name,
 because both are part of the firmware, and no other role exists.
 
 **Served** means the extension API has a route for it today
-([The extension API](#the-extension-api)). A capability that is not served
-can still be asked for, granted, and shown to the operator, and it reaches
-nothing: the vocabulary is settled ahead of the routes so that a package's
-manifest and the operator's consent do not change shape as each one lands.
+([The extension API](#the-extension-api)). Every capability this firmware
+offers is served; the column stays because the vocabulary is settled
+ahead of the routes, so that a package's manifest and the operator's
+consent do not change shape as each one lands.
 
 | Capability | Grants | Served | The operator's own grant |
 |---|---|---|---|
@@ -164,7 +164,7 @@ manifest and the operator's consent do not change shape as each one lands.
 | `hold` | Holding a job until the package clears the hold (pause tier only) | yes | required |
 | `settings.own` | The package's own settings, declared in its manifest ([A package's own settings](#a-packages-own-settings)) | yes | |
 | `camera.lid`, `camera.head` | One frame from that camera, under the privacy gate ([A package's camera](#a-packages-camera)) | yes | |
-| `motion.jog` | Dark jogs inside the jog bounds, and cancelling one ([A package's jog](#a-packages-jog)) | yes | |
+| `motion.jog` | Dark jogs inside the jog bounds, and canceling one ([A package's jog](#a-packages-jog)) | yes | |
 | `motion.job` | Running a program as the machine's one sender, under every arm gate ([A package's job](#a-packages-job)) | yes | required |
 | `job_time.run` | Not being frozen while a job is armed | yes, as a limit the host applies | required |
 | `ui` | A page of its own in the control panel, in a sandboxed frame ([A package's own page](#a-packages-own-page)) | yes | |
@@ -172,8 +172,10 @@ manifest and the operator's consent do not change shape as each one lands.
 | `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port | yes, as a rule the host installs | |
 | `storage:<MiB>` | How much its data directory may hold, 1 to 256 MiB. Every service has a data directory; this says how large it may grow ([The storage quota](#the-storage-quota)) | yes, as a limit the host enforces | |
 
-`motion.offsets`, `wizard`, and `mcode:<n>` are not in the vocabulary at
-all: a manifest that asks for one is refused in those words.
+`motion.offsets`, `wizard`, and `mcode:<n>` are named in the list but are
+**not offered**: a manifest that asks for one is refused in those words,
+which is a different refusal from the one a name the list does not hold
+gets. Nothing this firmware serves is reached by any of the three.
 
 At most **15** outbound destinations take effect for one service, whatever
 the manifest declares: the host's rule chain and the sandbox's port list
@@ -384,6 +386,13 @@ kind, the account, and the manifest). `POST /ext/package` takes `id` and
 has on a job), `remove`, `remove-keep-data`, `hold-required`,
 `hold-advisory`.
 
+Two more routes are the panel's alone, and both refuse while extensions
+are off: `GET /ext/ui` hands over a package's own page
+([A package's own page](#a-packages-own-page)), and `GET` and
+`POST /ext/settings` read and patch a package's own settings
+([A package's own settings](#a-packages-own-settings)). They are what the
+frame's bridge calls reach, never the frame itself.
+
 ### Installing through the panel
 
 Two requests. `POST /ext/upload` stages one archive (a second upload
@@ -510,8 +519,9 @@ A package may add its own policy after that one and only make it stricter.
 **WebRTC is a documented leak.** It is outside the Content Security Policy
 in both browsers this project tests, and connection hints get past it at
 low bandwidth. A package with a page can therefore send a little data out
-of the operator's browser. That is named here and where the operator
-installs, and a package without a page cannot do it at all.
+of the operator's browser. That is named here and on the operator's own
+page ([Extensions](../../usage/extensions.md#a-packages-own-page)), and a
+package without a page cannot do it at all.
 
 **The label above the frame is the panel's**, outside the frame: the name
 and the trust tier are what the panel knows of the package, never what the
@@ -592,7 +602,7 @@ so a flaw in the host or its broker would reach every route too.
 ### A package's job
 
 `motion.job` is the widest capability a package can hold, and it is one
-of the four the **operator grants by hand**, whatever the package's tier.
+of the three the **operator grants by hand**, whatever the package's tier.
 
 **A program is named, not sent.** The request reader takes 4 KiB of body
 and a program is not that, so a package writes its program into its own
@@ -654,11 +664,13 @@ told before they consent, and at install, so nothing installs behind the
 refusal.
 
 The range is judged only when this firmware **has** a version to judge it
-by. A release image writes one (`0.0.7`); a **dev image writes its build
-stamp**, which is no version at all, and then there is nothing to compare
-against and the range is not judged. The answer says which of the two
-happened, in `core_checked`, so that nobody is left guessing whether the
-range was honored.
+by. The host reads `/etc/forgefirm-version`, the file the image build
+writes, and takes its first word: a release image writes the release
+(`v0.0.6`, the leading `v` being the file's form and not part of the
+version), and a **dev image writes its build stamp**, which is no version
+at all, and then there is nothing to compare against and the range is not
+judged. The answer says which of the two happened, in `core_checked`, so
+that nobody is left guessing whether the range was honored.
 
 ### The storage quota
 
@@ -682,10 +694,15 @@ the data and enable the package again.
 
 A package's data directory is its own and it could keep a file there
 without asking anybody. These are the settings that are **not only its own
-business**: the ones the operator is shown and may change, and the ones
-that must outlive the package being updated or reinstalled. They are never
-keys of `forgefirm.conf`, and a package can reach no key but the ones its
-own manifest declares.
+business**: the ones that must outlive the package being updated or
+reinstalled, and the ones something other than the package may read and
+change. They are never keys of `forgefirm.conf`, and a package can reach
+no key but the ones its own manifest declares.
+
+Two things reach them besides the package: `forgeext settings <id>` at the
+console, and the panel's `/ext/settings`, which today serves a package's
+own page through the bridge. The panel has no editor of its own for them,
+so a package that wants the operator to set something ships a page.
 
 The manifest is the schema. A `settings` object names at most 16 of them;
 each key is lower-case letters, digits and `_`, starting with a letter, at
@@ -759,8 +776,15 @@ At most 32 events come back at a time and the rest waits for the next call.
 The host holds the last 64; a reader that falls a whole ring behind is told
 how many it lost in `dropped` and handed the oldest still held, never a stale
 event as if it were new. `connected` says whether the host has the machine's
-stream at that moment. Each event's `data` is forgectrl's own JSON, passed on
-as it was written.
+stream at that moment.
+
+Each event's `data` is forgectrl's own JSON, passed on as it was written,
+within what the ring holds: a name is kept to 31 bytes and `data` to 223.
+Neither is the binding limit, because forgectrl writes a whole event into
+256 bytes before it leaves the daemon, so nothing it publishes reaches
+either. Should one ever be cut, what no longer reads as JSON is passed on
+as a **string** rather than dropped, so that one odd event never costs a
+package the rest of them.
 
 ## The command line
 
@@ -770,7 +794,7 @@ the exception: that is a usage error, printed as plain text on standard
 error with exit 2. `key-add <name> -` reads the key from standard input.
 `forgeext --help` prints the whole of it, the global options (`--root`,
 `--fwup`, `--official-key`, `--firmware-key`, `--nft`, `--budget-mib`,
-`--no-reserve`) and `run`'s own included.
+`--core-version`, `--no-reserve`) and `run`'s own included.
 
 | Command | Does |
 |---|---|
@@ -782,6 +806,8 @@ error with exit 2. `key-add <name> -` reads the key from standard input.
 | `enable <id>`, `disable <id>` | The operator's switch for one package. Disabled, it keeps its files, its data, its grants, and its account, and its service and its hold are gone; enabling it also lets it out of quarantine |
 | `hold <id> required\|advisory` | What the package's hold does when the package cannot speak for itself: stand, or drop |
 | `keys`, `key-add <name> <file.pub>`, `key-remove <name>` | The owner's keys. `key-add` parses the file as an Ed25519 public key before it is written |
+| `ui <id>` | The package's own page, as a JSON string ([A package's own page](#a-packages-own-page)) |
+| `settings <id> [<json>]` | The package's own settings and their schema; with a patch, applied whole or not at all ([A package's own settings](#a-packages-own-settings)) |
 | `caps` | The capability list and the API version |
 | `net-check` | Whether the image's deny table is loaded |
 | `net-allow <uid> [--listen <port>] [--dns] [<host>:<port>]...` | A service's chain in the deny table, as the host installs it when a service starts |
