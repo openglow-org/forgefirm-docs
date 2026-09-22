@@ -163,7 +163,7 @@ consent do not change shape as each one lands.
 | `events` | The machine's events | yes | |
 | `hold` | Holding a job until the package clears the hold (pause tier only) | yes | required |
 | `settings.own` | The package's own settings, declared in its manifest ([A package's own settings](#a-packages-own-settings)) | yes | |
-| `camera.lid`, `camera.head` | One frame from that camera, under the privacy gate ([A package's camera](#a-packages-camera)) | yes | |
+| `camera.lid`, `camera.head` | One frame from that camera, under the privacy gate, and never while a job is armed ([A package's camera](#a-packages-camera)) | yes | |
 | `motion.jog` | Dark jogs inside the jog bounds, and canceling one ([A package's jog](#a-packages-jog)) | yes | |
 | `motion.job` | Running a program as the machine's one sender, under every arm gate ([A package's job](#a-packages-job)) | yes | required |
 | `job_time.run` | Not being frozen while a job is armed | yes, as a limit the host applies | required |
@@ -560,7 +560,7 @@ Three rules govern it:
 | `self` | | its id, version, tier, and the capabilities it holds |
 | `machine.status`, `machine.cool`, `machine.mode` | `machine.read` | the machine's own answer |
 | `settings.get`, `settings.set` | `settings.own` | its settings and their schema |
-| `camera.frame` | `camera.lid` or `camera.head` | the frame as bytes, taken as a background capture, so it yields to a viewer |
+| `camera.frame` | `camera.lid` or `camera.head` | the frame as bytes, taken as a background capture, so it yields to a viewer and is refused while a job is armed |
 | `motion.jog` | `motion.jog` | the machine's answer, under every bound the jog already has |
 
 Anything else is refused by name, and a capability the package does not
@@ -657,6 +657,16 @@ worth paying when a program did. Every capture a package makes is marked
 as one nobody is waiting for, so while a stream has a client the package
 is refused (`409`, again in the machine's words) and the operator's own
 viewing is untouched. The package retries when they stop.
+
+**No package takes a picture during a cut.** A capture costs kernel-side
+work beside the step stream that a thread priority does not cover, which
+is the same reason a service is frozen for the window. So a capture
+marked as one nobody is waiting for - which is every capture a package
+makes, through its API socket or through the panel's bridge - is refused
+with `409` while a job is armed, and served again once the window closes.
+The operator's own snapshot is unmarked and is not refused: they are
+standing at the machine. The refusal follows the `armed` field of
+`GET /cool/status`, the same flag the freeze follows.
 
 **One capture runs at a time**, on a thread of its own. A capture takes
 seconds, and the host's broker also carries holds and event polls that
