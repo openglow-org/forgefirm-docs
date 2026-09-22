@@ -447,10 +447,12 @@ a caller, and the rest of that conversation - is its listener speaking and is
 let out.
 
 Loading the file again replaces the table, allowlists included: it fails
-closed. The kernel's `limit` expression is
-built for a transmit rate limit. nftables on the image is the `nft` binary
-and its library with JSON output (`nft -j`), no interactive shell and no
-Python binding.
+closed. The kernel's `limit` expression is built and **is not in use**: no
+rule the host writes carries a rate, and the number a transmit rate limit
+would carry has not been measured on the bench reference. It is kept ready
+because it is the expression such a limit would need. nftables on the image
+is the `nft` binary and its library with JSON output (`nft -j`), no
+interactive shell and no Python binding.
 
 **What a process does to itself.** seccomp filters (from the defconfig) and
 landlock (`CONFIG_SECURITY_LANDLOCK`, first in the defconfig's `CONFIG_LSM`
