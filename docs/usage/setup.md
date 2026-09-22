@@ -362,6 +362,16 @@ Hold the machine's button while you turn the machine on. Keep it held for
 ten seconds, until the button blinks amber. The setup then asks for a new
 account.
 
+**The extension packages, when there are any.** The account step offers to
+remove every [extension package](extensions.md) on the machine, its data,
+and every signing key the last owner added, and the offer is ticked. Take
+it when the machine is changing hands: a package can hold the last owner's
+tokens and credentials, and a key of theirs would go on making their
+packages install as trusted rather than as unverified. Clear it when you
+are the owner and only forgot the password. The account is made either way:
+if the packages cannot be removed, the step says so and the new account
+stands.
+
 ## The routes
 
 | Endpoint | Purpose |
@@ -373,7 +383,7 @@ account.
 | `GET /advisories/<id>` | The text of one advisory; the `ETag` is its hash |
 | `POST /wiz/advisories/accept` | Confirm one document (`doc`, `hash`, `phrase`) |
 | `POST /wiz/advisories/press`, `GET /wiz/advisories/press`, `POST /wiz/advisories/press/cancel` | Ask for the button press, poll it, withdraw it |
-| `POST /wiz/account` | Create the account (`name`, `password`) |
+| `POST /wiz/account` | Create the account (`name`, `password`; `wipe_extensions=1` after a reset also removes every extension package, its data, and the owner's keys) |
 | `POST /wiz/preferences` | `ui_units`, `wifi_country`, `clock` |
 | `POST /wiz/machine` | `model`, `tec` |
 | `POST /wiz/cloud` | `enabled`, `phrase`, `homing_mode`, `gfcloud_home_timeout_s`, `gf_serial`, `gf_password` |

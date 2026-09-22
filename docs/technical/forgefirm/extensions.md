@@ -451,6 +451,26 @@ reads as at the moment it is inspected, not what an installed package is.
 `GET /ext/status` lists the keys with each one's id, the same id a
 package's `key` names.
 
+### A change of owner
+
+The forgotten-password reset ([Setup](../../usage/setup.md#a-forgotten-password))
+is where a machine changes hands, and the account step offers to take the
+extension tree with it: every package, everything under `data/`, and every
+key the last owner added. A package can hold that owner's tokens and
+credentials, and a key of theirs would go on making their packages install
+as community rather than as unverified. The offer is made only when there
+is something to take and is ticked by default; the account is made either
+way, and a wipe that fails is reported rather than refusing the account.
+
+Everything under `data/` goes, not only the directories the state names: a
+package removed with its data kept leaves one behind, and it holds exactly
+what the wipe is for. The root's own directories stay, and the supervisor
+stops whatever was running when it next reads the state.
+
+`forgeext wipe` is the command behind it. It is the reset's alone - no
+route and no panel action reaches it, because an operator who wants one
+package gone removes that package.
+
 ## The extension API
 
 A package reaches the machine through the host or not at all: no listener
@@ -834,6 +854,7 @@ error with exit 2. `key-add <name> -` reads the key from standard input.
 | `list` | What is installed |
 | `check [<id>]` | The integrity check |
 | `remove <id> [--keep-data]` | Removes the package and, unless told otherwise, its data |
+| `wipe` | Every package, everything under `data/`, and the owner's keys: [a change of owner](#a-change-of-owner), and nothing an operator reaches |
 | `enable <id>`, `disable <id>` | The operator's switch for one package. Disabled, it keeps its files, its data, its grants, and its account, and its service and its hold are gone; enabling it also lets it out of quarantine |
 | `hold <id> required\|advisory` | What the package's hold does when the package cannot speak for itself: stand, or drop |
 | `keys`, `key-add <name> <file.pub>`, `key-remove <name>` | The owner's keys. `key-add` parses the file as an Ed25519 public key before it is written |
