@@ -504,7 +504,7 @@ What does not fit is refused with a status and a sentence
 | `GET /v0/machine/mode` | `machine.read` | forgectrl's `GET /mode` |
 | `GET /v0/settings` | `settings.own` | `settings` (every declared key with its value) and `schema` |
 | `POST /v0/settings` | `settings.own` | A patch of settings, applied whole or not at all; the same answer |
-| `POST /v0/camera` | `camera.lid` or `camera.head`, for the one it asks for | The body `{"camera": "lid"\|"head", "resolution": "full"\|"half", "quality": 1-100}` (the camera required, the rest optional, and no other key); **the answer is a JPEG**, not JSON |
+| `POST /v0/camera` | `camera.lid` or `camera.head`, for the one it asks for | The body `{"camera": "lid"\|"head", "resolution": "full"\|"half", "quality": 1-100, "lamp": 0-1023}` (the camera required, the rest optional, and no other key); **the answer is a JPEG**, not JSON |
 | `POST /v0/motion/jog` | `motion.jog` | The body `{"x":, "y":, "z":, "feed":}` in millimetres and mm/min, each a number and no other key, at least one axis moving; the machine's answer |
 | `POST /v0/motion/cancel` | `motion.jog` | Ends a jog; the machine's answer |
 | `POST /v0/motion/job` | `motion.job`, granted | The body `{"program": "<a file of its own data>", "lit_within_s":, "timeout_s":}`; the machine's answer |
@@ -605,7 +605,7 @@ Three rules govern it:
 | `self` | | its id, version, tier, and the capabilities it may use (the same list `GET /v0/self` gives its service) |
 | `machine.status`, `machine.cool`, `machine.mode` | `machine.read` | the machine's own answer |
 | `settings.get`, `settings.set` | `settings.own` | its settings and their schema |
-| `camera.frame` | `camera.lid` or `camera.head` | the frame as bytes, taken as a background capture, so it yields to a viewer and is refused while a job is armed |
+| `camera.frame` | `camera.lid` or `camera.head` | the frame as bytes, taken as a background capture, so it yields to a viewer and is refused while a job is armed. It takes `camera`, and optionally `resolution` (`full` or `half`, the default), `quality` (1 to 100), and `lamp` (0 to 1023); a value outside those is refused by name, and nothing else in the message is carried |
 | `motion.jog` | `motion.jog` | the machine's answer, under every bound the jog already has |
 
 Anything else is refused by name, and a capability the package does not
@@ -694,6 +694,13 @@ refuses a query string on purpose, so the body carries the parameters.
 The privacy gate stands exactly as it does for anyone else: **no camera
 captures while the lid is open**, and a package is told so in the
 machine's own words.
+
+**The lamp is the camera's own light, for one frame.** `lamp` sets the
+head camera's LED, or the lid camera's lamp, for the capture it is asked
+with, and the machine puts its level back after it. A head-camera picture
+of light wood wants little light and a dark material a lot, so the level
+is the package's to choose; without it, the lamp stays where the machine
+has it.
 
 **A package's capture always yields to somebody watching.** A capture
 borrows the camera mux for a frame and stutters a running stream while it
