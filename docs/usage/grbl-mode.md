@@ -141,6 +141,18 @@ disagree about whether the machine is armed.
 The controller clamps any feed faster than its limits: travels run up to
 200 mm/s (`$110`/`$111` = 12000 mm/min).
 
+## M-codes an extension answers
+
+M160 to M179 belong to extension packages. When a package you installed
+answers one, a job may name it, as `M160 P1`, and the job waits there, the
+head still and the laser dark, until the package answers: the console shows
+`[MSG:M160 waits for its extension]` and then `[MSG:M160: done]`. When the
+package says it could not do its part, or does not answer in 30 s, the job
+is held with a message that says why: resume it to go on without what the
+M-code was for, or stop it. A job that names one no package answers stops
+at that line with `error:20`, as for any unsupported command. See
+[Extensions](extensions.md).
+
 ## Lid, interlock, and button
 
 ForgeFIRM reproduces the factory machine's behavior:

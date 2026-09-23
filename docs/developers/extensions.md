@@ -132,6 +132,33 @@ is at most 64 KiB, and a service frozen for an armed window is not asked at
 all: the page is told so. The form a call takes, and what refuses one, are
 in [A page and its own service](../technical/forgefirm/extensions.md#a-page-and-its-own-service).
 
+### An M-code in a job
+
+A package can answer one of M160 to M179 in the operator's own jobs: ask
+for `mcode:<n>` and `job_time.run` (the operator grants the second). The
+job waits at the M-code, the head still and the laser dark, and your
+service is asked on the same socket a page's calls use, page or no page:
+
+```python
+import ffx
+
+def handle(method, path, body):
+    if path == "/mcode":                 # {"code": 160, "words": {"P": 1}}
+        if not exhaust_on():
+            raise ffx.CallError(409, "the exhaust did not start")   # the job is held, with these words
+        return {"message": "exhaust on"}                             # the job goes on
+    raise ffx.CallError(404, "there is no " + path)
+
+ffx.serve(handle)
+```
+
+A 2xx lets the job go on, and its `message` goes to the sender's console.
+Anything else holds the job with your words, for the operator to resume or
+stop, and so does taking longer than 20 s. Each number is one package's:
+the machine refuses a second package that asks for one already taken. What
+the controller does meanwhile is in
+[A package's M-code](../technical/forgefirm/extensions.md#a-packages-m-code).
+
 ## Test it without a machine
 
 The panel's dev server in the `forgectrl` repository installs a package

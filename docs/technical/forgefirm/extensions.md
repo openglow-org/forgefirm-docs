@@ -227,11 +227,12 @@ consent do not change shape as each one lands.
 | `net.outbound.operator` | The destinations the operator names for it, and no others ([The operator's destinations](#the-operators-destinations)) | yes, as a rule the host installs | |
 | `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port. It answers callers and is no way out ([the deny rules](image-and-bsp.md#the-extension-sandbox)) | yes, as a rule the host installs | |
 | `storage:<MiB>` | How much its data directory may hold, 1 to 256 MiB. Every service has a data directory; this says how large it may grow ([The storage quota](#the-storage-quota)) | yes, as a limit the host enforces | |
+| `mcode:<n>` | Answering `M<n>` in a job, one of M160 to M179: the job waits at it until the service answers ([A package's M-code](#a-packages-m-code)). One package per number, and a package that asks for one asks for `job_time.run` too | yes | (`job_time.run`'s) |
 
-`motion.offsets`, `wizard`, and `mcode:<n>` are named in the list but are
-**not offered**: a manifest that asks for one is refused in those words,
-which is a different refusal from the one a name the list does not hold
-gets. Nothing this firmware serves is reached by any of the three.
+`motion.offsets` and `wizard` are named in the list but are **not
+offered**: a manifest that asks for one is refused in those words, which is
+a different refusal from the one a name the list does not hold gets.
+Nothing this firmware serves is reached by either.
 
 At most **15** outbound destinations take effect for one service, the
 manifest's and the operator's together: the host's rule chain and the
@@ -852,6 +853,66 @@ stand**. A program that commands no laser never opens an armed window,
 so there is nothing for a press to arm; the gates are in force and are
 simply never reached.
 
+### A package's M-code
+
+M160 to M179 belong to packages. A package that holds `mcode:<n>` answers
+`M<n>` in a job: the exhaust confirmed on, the air assist's pressure, a
+door, a count. Each number is one package's (an install that asks for a
+number another installed package holds is refused in words), and the
+package asks for `job_time.run` as well, which the operator grants: the
+M-code is answered in the middle of a job, while the armed window freezes
+every other service.
+
+**Nothing answers it: the job stops where the line is parsed.** The GRBL
+controller takes one of these numbers only while forgectrl says something
+answers it now, and every other one is the core's `error:20`, as for any
+unsupported command, before the job's motion reaches it. forgectrl tells
+the controller the numbers the host's running services answer, from the
+host's status file, whenever they change and every 2 s (so a controller
+that restarted learns them again).
+
+**Something answers it: the job waits there.** The M-code is a
+synchronized barrier. The core drains the planner before it runs it, which
+means every step is the stream's, not that the head has stopped: the kernel
+is still playing the last move's tail out of its ring. So the controller
+waits for the kernel to go idle (at most 5 s, or the job is held) before it
+announces the M-code, and from then on the head is still and the stream
+carries no fire: the laser is dark for as long as the job waits, by the
+stream's own rule for a starved planner. The controller puts the M-code in
+its port's state with its `P`, `Q`, and `R` words ([The controller port](controller-port.md)) and pumps the protocol as
+a dwell does, so status reports, a feed hold, the door, and a soft reset all
+work, and a reset or an alarm ends the wait at once. forgectrl's relay sees
+it, and asks the host (`forgeext mcode`), which asks the service on its call
+socket, the one a page's calls use:
+
+```
+POST /mcode
+{"code": 160, "words": {"P": 1}}
+```
+
+A package that answers M-codes has the socket (`FFX_CALL_FD`) whether or
+not it has a page. A 2xx answer lets the job go on, and its `message`, if it
+has one, goes to the sender as `[MSG:M160: done: <message>]`. Any other
+answer, the host's refusal of the call (the package disabled, frozen, or
+never granted `job_time.run`), or **no answer in 30 s** holds the job with a
+`[MSG:]` that says why: the operator resumes it, and it goes on without what
+the M-code was for, or stops it. The host gives the service 20 s, so its
+answer, or its silence, comes back inside the controller's 30. The 30 s
+stays under `laser_disarm_s`'s default of 60, so a job waiting at an M-code
+keeps its armed window. A port jog is refused while a job waits
+(`busy:mcode`): the job is Idle there, and it is still the job.
+
+The driver's `mcode_test.py` harness proves the controller's side on the
+null-sink build: the table and its refusals, `error:20` for a number
+nothing answers, the wait with the head still and a port jog refused, the
+answer's words, a refusal and a timeout each holding the job, a reset
+ending the wait, and **a wait under an open armed window with `M3 S500`
+shipping no FIRE tick**. forgectrl's `mcode_test` and forgeext's `sdk_test`
+and `install_test` prove the relay and the host. On the machine,
+`exthost.mcode` runs dark jobs through a package that answers M160: the
+job waits with the head still and goes on after the answer, a job naming
+M161 stops at it with nothing moved, and a refusal holds the job.
+
 ### A package's camera
 
 `camera.lid` and `camera.head` are separate capabilities, and the one a
@@ -1064,6 +1125,7 @@ error with exit 2. `key-add <name> -` reads the key from standard input.
 | `ui <id>` | The package's own page, as a JSON string ([A package's own page](#a-packages-own-page)) |
 | `settings <id> [<json>]` | The package's own settings and their schema; with a patch, applied whole or not at all ([A package's own settings](#a-packages-own-settings)) |
 | `call <id> GET\|POST <path> [<json>] [--call-dir <dir>] [--cg-parent <dir>]` | One call from the package's page to its own service; `status` and `body`, the service's answer ([A page and its own service](#a-page-and-its-own-service)) |
+| `mcode <n> [<json>]` | `M<n>` of a job, with its words (an object of `P`, `Q`, and `R`), to the service that answers it: its status and body ([A package's M-code](#a-packages-m-code)) |
 | `index-verify <file.ffi>` | Verifies the [signed index](#the-signed-index) and keeps it in place of the last; `version` and the number of `packages` |
 | `index` | The index this host keeps, or `null` |
 | `caps` | The capability list and the API version |

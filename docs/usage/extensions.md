@@ -114,7 +114,11 @@ never interrupts you: while you are watching a camera, its capture waits.
 machine** - the jog is bounded and never fires the laser, and it is still
 motion you did not ask for. A package you granted `motion.job` can start a
 job, which then waits for the button and stands under every gate your own
-jobs do. It can
+jobs do. A package that answers an M-code (one of M160 to M179, which you
+put in your own job) holds that job at the M-code until it answers, with the
+head still and the laser dark; if it does not answer, or says it could not
+do its part, the job is held for you to resume or stop
+([GRBL mode](grbl-mode.md#m-codes-an-extension-answers)). It can
 send to the network only where its capabilities say, and never to the
 machine itself.
 

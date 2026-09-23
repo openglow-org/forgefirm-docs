@@ -40,12 +40,14 @@ the requests.
 
 | Request | Reply | What it does |
 |---|---|---|
-| `state` | One JSON object | `state` (the Grbl state name), `sender` (a Grbl client is connected), `port_jog` (the jog in progress is the port's), `released` (the X and Y motors are released), `mpos` (machine position, mm), `homed` (the homed-axes mask) |
+| `state` | One JSON object | `state` (the Grbl state name), `sender` (a Grbl client is connected), `port_jog` (the jog in progress is the port's), `released` (the X and Y motors are released), `mpos` (machine position, mm), `homed` (the homed-axes mask), `mcode` (the M-code a job waits at, `{"seq", "code", "words"}`, or `null`) |
 | `jog <words>` | `ok`, `error:<n>`, or `busy:<why>` | Runs `$J=<words>`. `<words>` is held to the characters a jog needs (capital letters, digits, `.`, `-`, `+`, and spaces); anything else answers `error:invalid` |
 | `cancel` | `ok` | Cancels a port jog in progress. It does nothing to a sender's own jog |
 | `release` | `ok`, `error:<n>`, or `busy:<why>` | `$MD`: releases the X and Y motors |
 | `energize` | `ok`, `error:<n>`, or `busy:<why>` | `$ME`: energizes them |
 | `home` | `ok`, `error:<n>`, `error:mode`, or `busy:<why>` | `$H`, only while `homing_mode = manual`, where it moves nothing. Under every other method it answers `error:mode`: a homing session is a Grbl client's to start |
+| `mcodes <list>` | `ok` or `error:invalid` | The M-codes packages answer now: `-` for none, or numbers from 160 to 179, each once, comma separated. A list with any other form leaves the table as it was ([A package's M-code](extensions.md#a-packages-m-code)) |
+| `mcode_result <seq> ok\|fail [<words>]` | `ok`, `error:stale`, or `error:invalid` | The answer to the M-code `state` names under `seq`. The words are printable, with no brackets, at most 96 bytes; they go to the Grbl client in a `[MSG:]`. An answer under another `seq`, or a second one, is stale |
 
 `error:<n>` is the core's own status for the injected line (`error:15` for a
 jog past the soft limits, `error:9` in an alarm). `error:aborted` means the
@@ -56,17 +58,20 @@ controller was reset before the line's status came back. The `busy` reasons:
 | `busy:released` | The X and Y motors are released. The core would refuse the jog as well (the release holds the alarm state); this reply says why |
 | `busy:state` | A jog needs Idle, or a port jog already in progress. `release`, `energize`, and `home` need Idle or Alarm |
 | `busy:sender` | The Grbl client sent a line with something in it within the last 0.3 s, has such a line waiting, or is in the middle of one |
+| `busy:mcode` | A job waits at an M-code a package answers: it is Idle there, and it is still the job |
 
 Every port jog puts `[MSG:Panel jog]` on the Grbl client's console, and
 `$MD`, `$ME`, and `$H` report there as they do when the client sends them.
 
-## Two operation sets
+## Three operation sets
 
 `state`, `jog`, and `cancel` are the **package set**: what the panel's Jog
 card, a scoped token, or any other client of forgectrl's motion routes can
 reach.
 `release`, `energize`, and `home` are the **panel set**: they belong to the
 operator's own control panel and to nothing else.
+`mcodes` and `mcode_result` are the **daemon set**: forgectrl's own M-code
+relay says them, and no route reaches them.
 
 The port itself does not tell the sets apart, since it has one client.
 forgectrl does, in one place (`grblport.c`): each route names the set it
@@ -123,10 +128,14 @@ Host tests on the null-sink controller build, in the driver's CI:
   open armed window with `M3` modal and `S500` ships no FIRE tick**.
 - `manual_home_test.py`: the panel set's `release`, `energize`, and `home`,
   with each energize written exactly once.
+- `mcode_test.py`: the daemon set's `mcodes` and `mcode_result`, and the
+  wait at an M-code a package answers
+  ([A package's M-code](extensions.md#a-packages-m-code)).
 
-forgectrl's side is `grblport_test` in forgectrl's CI: the two sets, a
+forgectrl's side is `grblport_test` in forgectrl's CI: the sets, a
 refused operation leaving the socket untouched, one kept connection, a
-controller restart, and a port that never answers.
+controller restart, and a port that never answers; `mcode_test` holds the
+daemon set to its one caller.
 
 On the bench, three release acceptance tests
 ([Release acceptance](../../developers/acceptance.md)): `motion.port-jog`
