@@ -129,6 +129,7 @@ nav:
       - Cameras: usage/cameras.md
       - Cooling and fans: usage/cooling-and-fans.md
       - Extensions: usage/extensions.md
+      - Visual alignment: usage/alignment.md
       - Settings: usage/settings.md
       - Logging: usage/logging.md
       - Diagnostics: usage/diagnostics.md

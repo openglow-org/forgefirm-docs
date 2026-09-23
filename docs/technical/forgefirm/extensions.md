@@ -607,6 +607,10 @@ Three rules govern it:
 | `settings.get`, `settings.set` | `settings.own` | its settings and their schema |
 | `camera.frame` | `camera.lid` or `camera.head` | the frame as bytes, taken as a background capture, so it yields to a viewer and is refused while a job is armed. It takes `camera`, and optionally `resolution` (`full` or `half`, the default), `quality` (1 to 100), and `lamp` (0 to 1023); a value outside those is refused by name, and nothing else in the message is carried |
 | `motion.jog` | `motion.jog` | the machine's answer, under every bound the jog already has |
+| `motion.cancel` | `motion.jog` | ends a jog |
+| `motion.job` | `motion.job`, granted | a program the page wrote (`program`, at most 2 MiB, with the optional `lit_within_s` and `timeout_s`) run as the machine's one sender; **who the job is from is the panel's word, the package's id**, never a name the page chose |
+| `motion.job.state`, `motion.job.abort` | `motion.job`, granted | the job's record, and ending the running job |
+| `frame.height` | | the page's own frame made `px` tall, inside 200 to 1400 pixels; the label and the panel around the frame do not move |
 
 Anything else is refused by name, and a capability the package does not
 hold is refused in those words.
