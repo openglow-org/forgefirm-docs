@@ -170,6 +170,7 @@ nav:
       - Release flow: developers/release-flow.md
       - Acceptance: developers/acceptance.md
       - Test: developers/testing.md
+      - Write an extension package: developers/extensions.md
       - The bench: developers/bench.md
       - Contribute: developers/contributing.md
       - This site: developers/docs.md
