@@ -138,7 +138,7 @@ see.
 | `version` | `MAJOR.MINOR.PATCH` with an optional `-prerelease`. The archive's own `meta-version` must say the same |
 | `api` | The extension API the package was built for, `MAJOR.MINOR`. This firmware serves **0.1**. A 0.x API carries no stability promise, so the minor must match exactly |
 | `core` | Optional `min` and `max` firmware versions. A package outside the range is refused at inspect and at install, when this firmware has a version to judge by ([The firmware a package needs](#the-firmware-a-package-needs)) |
-| `runtime` | `data` (nothing executes), `ui` (runs in the operator's browser), `shell`, `native` (a static ARMv7 hard-float binary), or `python` (inside the release image's module list) |
+| `runtime` | `data` (nothing executes), `ui` (runs in the operator's browser), `shell`, `native` (an ARMv7 hard-float binary, static or linked against the C library alone: `libc.so.6` and `libm.so.6`, with no symbol newer than the image's glibc 2.39), or `python` (inside the release image's module list) |
 | `service` | `exec`, a path inside the package, and optional `args`. Required for `shell`, `native`, and `python`; refused for `data` and `ui`. The entry point must be a file of the package, and executable for `native` |
 | `modes` | `grbl`, `cloud`, or both (the default) |
 | `capabilities` | Required, and may be empty. See below |

@@ -46,10 +46,13 @@ inside a page).
 | `ui` | a page | in the operator's browser, in the panel's sandboxed frame |
 | `python` | a service | on the machine, Python 3.12, only the modules in `sdk/python/modules.txt`. Vendor anything else, pure Python only |
 | `shell` | a service | on the machine, busybox `sh` |
-| `native` | a service | on the machine, one static ARMv7 hard-float binary |
+| `native` | a service | on the machine, one ARMv7 hard-float binary: static, or linked against the C library alone (`libc.so.6`, `libm.so.6`) with no symbol newer than the machine's glibc 2.39 |
 
 A native service is built on the author's computer and packed as a
-binary. The template's source says how; on Debian and Ubuntu:
+binary. A static one needs nothing of the machine's; one that looks up a
+name (`getaddrinfo`) is better linked against the C library, which then
+reads the machine's own resolver configuration. The template's source says
+how; on Debian and Ubuntu:
 
 ```sh
 apt install gcc-arm-linux-gnueabihf
@@ -160,7 +163,11 @@ tools/ffx pack mypackage --key me.priv
 `lint` judges the package the way the machine will, in the machine's
 words, and stops where the machine would: the manifest, the capabilities,
 the page, the service's entry point, the limits of a payload, and every
-import of a Python service against `sdk/python/modules.txt`. `pack` lints
+import of a Python service against `sdk/python/modules.txt`. It also reads a
+native service's binary, which the machine does not: its architecture, its
+float ABI, the libraries it is linked against, and the newest C library
+symbol it needs, so that a binary the machine's loader would refuse is
+refused here first. `pack` lints
 first and packs nothing it refuses; the payload is the same bytes every
 time for the same files.
 
