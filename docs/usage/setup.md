@@ -371,6 +371,11 @@ service ([Settings](settings.md)). A tool that writes the key through
 `POST /settings` gives the same typed phrase to turn it on, and turning it
 off there takes the cloud homing and the cloud boot mode down with it.
 
+Turning cloud mode on also asks how the machine homes in GRBL mode: with the
+service's cameras, by hand, or not at all ([Homing](homing.md)). A home by
+hand that is already set is where the question starts, so turning cloud mode
+on keeps it unless you choose otherwise.
+
 To change the decision later, open the setup from the panel's
 Setup card and choose **Cloud mode** in the rail on the left. The
 step starts from the current choice. The preferences and the machine
@@ -416,7 +421,7 @@ stands.
 | `POST /wiz/account` | Create the account (`name`, `password`; `wipe_extensions=1` after a reset also removes every extension package, its data, and the owner's keys) |
 | `POST /wiz/preferences` | `ui_units`, `wifi_country`, `clock` |
 | `POST /wiz/machine` | `model`, `tec` |
-| `POST /wiz/cloud` | `enabled`, `phrase`, `homing_mode`, `gfcloud_home_timeout_s`, `gf_serial`, `gf_password` |
+| `POST /wiz/cloud` | `enabled`, `phrase`, `homing_mode` (`gfcloud`, `manual`, or `none`; `gfcloud` when absent), `gfcloud_home_timeout_s`, `gf_serial`, `gf_password` |
 | `POST /wiz/<id>/start`, `POST /wiz/<id>/answer`, `POST /wiz/<id>/abort`, `GET /wiz/dark` | A check, a sheet card, or a package's check (`pkg:<id>`): start it, answer its open prompt (`seq`, `value`), stop it, and read its state; the login that started it drives it, and the state says whether the run is `owned` and `mine` |
 | `POST /wiz/<id>/takeover` | A second browser takes the running step over |
 | `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A sheet card's preview and its program |
