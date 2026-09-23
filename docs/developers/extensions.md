@@ -90,6 +90,12 @@ Some rules to write for:
   (the lid is open, somebody is watching the camera, a job is armed) comes
   back as the machine said it. A client raises it with the status and the
   words; show the words to the operator.
+- **Where your service connects is fixed before it starts.** Name a public
+  service in the manifest (`net.outbound:ntfy.sh:443`). A device on the
+  operator's own network, which only they can name, takes
+  `net.outbound.operator`: they name it on the package's card, and
+  `/v0/self` (`ffx.me()["destinations"]`) says what they have named, so
+  your page can tell them what is still missing.
 - **A page can send a little data out of the operator's browser** through
   WebRTC, and nothing in a browser prevents it. Say what your page does
   with what it is shown.

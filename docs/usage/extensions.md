@@ -102,6 +102,18 @@ length of the job. The lid, the interlock, the armed window and its
 button, the cooling gates, and the limits on motion work the same with
 extensions on: the most a package can do to a job is hold it.
 
+## Places you name for a package
+
+A package that works with things on your own network - a smart plug for
+the exhaust fan, a Home Assistant server, an MQTT broker - cannot know
+where they are. It asks to be told instead, and its card then shows
+**Places you named for it**, with a box for one more. Type the address and
+port, such as `192.0.2.40:80` or `broker.lan:1883`, and press **Add**.
+The package can reach those places and no others, and nothing the package
+does can add one. It is started again each time the list changes. The
+machine itself is never a place a package can reach, so its own address is
+refused. **Remove** takes a place away again.
+
 ## A package's own page
 
 A package may bring a page of its own, and the card opens it when you ask

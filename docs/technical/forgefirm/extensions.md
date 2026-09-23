@@ -169,6 +169,7 @@ consent do not change shape as each one lands.
 | `job_time.run` | Not being frozen while a job is armed | yes, as a limit the host applies | required |
 | `ui` | A page of its own in the control panel, in a sandboxed frame ([A package's own page](#a-packages-own-page)) | yes | |
 | `net.outbound:<host>:<port>` | One named destination: a lowercase DNS name, an IPv4 address, or an IPv6 address in brackets. Never the machine itself | yes, as a rule the host installs | |
+| `net.outbound.operator` | The destinations the operator names for it, and no others ([The operator's destinations](#the-operators-destinations)) | yes, as a rule the host installs | |
 | `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port. It answers callers and is no way out ([the deny rules](image-and-bsp.md#the-extension-sandbox)) | yes, as a rule the host installs | |
 | `storage:<MiB>` | How much its data directory may hold, 1 to 256 MiB. Every service has a data directory; this says how large it may grow ([The storage quota](#the-storage-quota)) | yes, as a limit the host enforces | |
 
@@ -177,15 +178,16 @@ consent do not change shape as each one lands.
 which is a different refusal from the one a name the list does not hold
 gets. Nothing this firmware serves is reached by any of the three.
 
-At most **15** outbound destinations take effect for one service, whatever
-the manifest declares: the host's rule chain and the sandbox's port list
-each hold 16, one of which a DNS lookup may take. A manifest naming more is
-installed, and the ones past the fifteenth are dropped when the service
-starts.
+At most **15** outbound destinations take effect for one service, the
+manifest's and the operator's together: the host's rule chain and the
+sandbox's port list each hold 16, one of which a DNS lookup may take. A
+manifest naming more is installed, and the ones past the fifteenth are
+dropped when the service starts.
 
 Three rules tie capabilities to the runtime. A `data` package holds none.
-`hold`, `job_time.run`, `net.outbound`, `net.listen`, and `storage` belong
-to a service, so a `ui` package cannot hold them. And the capabilities
+`hold`, `job_time.run`, `net.outbound`, `net.outbound.operator`,
+`net.listen`, and `storage` belong to a service, so a `ui` package cannot
+hold them. And the capabilities
 marked *required* above are never implied by a tier: the operator grants
 each one, per package, at install, and an install that lacks a grant, or
 carries a grant for something the package did not ask for, is refused.
@@ -287,6 +289,7 @@ seconds, with a count of what was dropped.
 | Healthy | after 60 s of running: the backoff starts over, and the package's previous version is removed |
 | Quarantine | at the fifth end inside 10 minutes without reaching healthy; remembered in `state.json` until the operator lifts it |
 | A service that should not run | (disabled, removed, quarantined, the wrong controller mode, extensions off) is stopped: its group is killed and removed, and its chain and map element are taken out of the rule table |
+| A service whose version, or whose operator's destinations, changed | is stopped and started again with them, outside an armed window; that is not an end that counts toward quarantine |
 
 **The armed window.** While the window is open, every service is frozen
 with its cgroup's `cgroup.freeze`, and it is thawed when the window closes.
@@ -397,11 +400,14 @@ kind, the account, the manifest, and `effective` - the capabilities the
 package may use, which is what needs no grant together with what the
 operator granted. That last one is the list anything deciding what a
 package may do reads, the panel's bridge included: the manifest's own
-list is what was *asked for*, which is a different question). `POST /ext/package` takes `id` and
+list is what was *asked for*, which is a different question), and `destinations`, the ones the
+operator named for it. `POST /ext/package` takes `id` and
 `action`: `enable` (which also lets a package out of quarantine),
 `disable` (its service stops and its hold goes: the way out of a hold it
 has on a job), `remove`, `remove-keep-data`, `hold-required`,
-`hold-advisory`.
+`hold-advisory`. `POST /ext/dest` takes `id`, `action` (`add` or `remove`),
+and `dest`, and names a destination for a package or takes one away
+([The operator's destinations](#the-operators-destinations)).
 
 Three more routes are the panel's alone, and all three refuse while
 extensions are off: `GET /ext/ui` hands over a package's own page
@@ -455,6 +461,35 @@ reads as at the moment it is inspected, not what an installed package is.
 `GET /ext/status` lists the keys with each one's id, the same id a
 package's `key` names.
 
+### The operator's destinations
+
+A package that talks to things on the operator's own network - a smart
+plug, a Home Assistant host, an MQTT broker - cannot name them in its
+manifest: only the operator knows where they are. Such a package asks for
+`net.outbound.operator`, and the operator names each place it may reach,
+per package, on the package's card (`forgeext dest <id> add|remove
+<host>:<port>` at the console). A package that asks is given none until
+then. Nothing a package does reaches the list: it is not a setting and not
+a bridge call.
+
+A destination is `host:port` in `net.outbound`'s form. A numeric address
+of the machine, loopback included, is refused when it is named; a name is
+judged by what it resolves to when the service starts, and the rule table
+refuses the machine whatever the list says. At most 8 are named for one
+package, and never more than a service's 15 with its manifest's. An update
+that still asks keeps them; one whose own destinations and the operator's
+would be more than 15 is refused; one that no longer asks keeps none.
+
+A change to the list starts a running service again at the host's next
+turn, outside an armed window, and the new chain and the sandbox's ports
+are its. GET `/v0/self` names every destination a service may reach, its
+manifest's and then the operator's, and so does the bridge's `self`, so a
+package's page can show the operator what is still to be named.
+`exthost.operator-destinations` proves it on the image by dialing the
+machine's own DNS resolver on TCP port 53: refused inside the sandbox until
+the operator names it, connected once named, and refused again when it is
+taken away.
+
 ### A change of owner
 
 The forgotten-password reset ([Setup](../../usage/setup.md#a-forgotten-password))
@@ -502,7 +537,7 @@ What does not fit is refused with a status and a sentence
 
 | Request | Needs | Answers |
 |---|---|---|
-| `GET /v0/self` | | `id`, `version`, `api`, and `capabilities`: the ones the package may use (those that need no grant, and its grants) |
+| `GET /v0/self` | | `id`, `version`, `api`, `capabilities` (the ones the package may use: those that need no grant, and its grants), and `destinations` (where it may connect: its manifest's, then the operator's) |
 | `GET /v0/machine/status` | `machine.read` | forgectrl's `GET /status` |
 | `GET /v0/machine/cool` | `machine.read` | forgectrl's `GET /cool/status` |
 | `GET /v0/machine/mode` | `machine.read` | forgectrl's `GET /mode` |
@@ -606,7 +641,7 @@ Three rules govern it:
 
 | The page asks for | It needs | It gets |
 |---|---|---|
-| `self` | | its id, version, tier, and the capabilities it may use (the same list `GET /v0/self` gives its service) |
+| `self` | | its id, version, tier, the capabilities it may use, and the destinations its service may reach (the same lists `GET /v0/self` gives its service) |
 | `machine.status`, `machine.cool`, `machine.mode` | `machine.read` | the machine's own answer |
 | `settings.get`, `settings.set` | `settings.own` | its settings and their schema |
 | `camera.frame` | `camera.lid` or `camera.head` | the frame as bytes, taken as a background capture, so it yields to a viewer and is refused while a job is armed. It takes `camera`, and optionally `resolution` (`full` or `half`, the default), `quality` (1 to 100), and `lamp` (0 to 1023); a value outside those is refused by name, and nothing else in the message is carried |
@@ -932,6 +967,7 @@ error with exit 2. `key-add <name> -` reads the key from standard input.
 | `wipe` | Every package, everything under `data/`, and the owner's keys: [a change of owner](#a-change-of-owner), and nothing an operator reaches |
 | `enable <id>`, `disable <id>` | The operator's switch for one package. Disabled, it keeps its files, its data, its grants, and its account, and its service and its hold are gone; enabling it also lets it out of quarantine |
 | `hold <id> required\|advisory` | What the package's hold does when the package cannot speak for itself: stand, or drop |
+| `dest <id> add\|remove <host>:<port>` | A destination the operator names for a package that asks for them, or takes away ([The operator's destinations](#the-operators-destinations)) |
 | `keys`, `key-add <name> <file.pub>`, `key-remove <name>` | The owner's keys. `key-add` parses the file as an Ed25519 public key before it is written |
 | `ui <id>` | The package's own page, as a JSON string ([A package's own page](#a-packages-own-page)) |
 | `settings <id> [<json>]` | The package's own settings and their schema; with a patch, applied whole or not at all ([A package's own settings](#a-packages-own-settings)) |
