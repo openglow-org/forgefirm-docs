@@ -514,12 +514,17 @@ every 5 s.
 | `homing.started`, `homing.completed`, `homing.failed` | `source`, `axes` on completed | A homing session starts and ends. A manual home has no session, so it is a `homing.completed` alone |
 | `motors.released`, `motors.energized` | | The X and Y motor release and its end |
 | `lease.changed` | `owner`, or `null` | The machine lease's innermost holder changes ([The machine lease](#the-machine-lease)) |
+| `button` | `pressed` | The button is pressed or let go, and nothing else is waiting for it: not while a job arms or runs, not under the machine lease (a wizard, a diagnostic), and not while this daemon waits for a press itself (the setup's, an install's). The button is looked at 25 times a second, so a short press is not lost |
+| `update.available` | `version` | The release check finds a release newer than the installed version, or one newer yet |
+| `setup.flag` | `gate_open`, `reason` | The setup's gate on the controllers opens or closes; `reason` says what keeps it closed |
+| `telemetry.tick` | `phase`, `verdict`, `fire_ok`, `down_c`, `up_c`, `state`, `lid` | Every 10 s: what the daemon already holds (the cooling engine's last word, the controller's state, the lid), with no sensor read of its own |
 | `bye` | `reason`: `replaced` | This stream is ending because the same address opened a newer one |
 
 An edge detector reads state the daemon already holds (the supervisor, the
 cooling engine's last tick, the controller's report and the markers in the
-run directory, the switch word) five times a second, **and only while a
-stream is open**. It reads no sensor. The first listener after a quiet
+run directory, the switch word, the setup's gate, the last release check)
+five times a second, and the switch word alone 25 times a second for the
+button, **and only while a stream is open**. It reads no sensor. The first listener after a quiet
 spell starts from a fresh baseline, so nothing that happened while nobody
 listened is replayed. A client that falls more than 64 events behind gets a
 comment line saying how many it lost, and then the oldest event still held.

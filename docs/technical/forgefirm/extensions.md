@@ -290,6 +290,7 @@ seconds, with a count of what was dropped.
 | Quarantine | at the fifth end inside 10 minutes without reaching healthy; remembered in `state.json` until the operator lifts it |
 | A service that should not run | (disabled, removed, quarantined, the wrong controller mode, extensions off) is stopped: its group is killed and removed, and its chain and map element are taken out of the rule table |
 | A service whose version, or whose operator's destinations, changed | is stopped and started again with them, outside an armed window; that is not an end that counts toward quarantine |
+| Extensions off, safe mode, the host stopping | `ext.shutdown` is put in the event feed, and the services are stopped one second later ([The events a package reads](#the-events-a-package-reads)) |
 
 **The armed window.** While the window is open, every service is frozen
 with its cgroup's `cgroup.freeze`, and it is thawed when the window closes.
@@ -932,6 +933,14 @@ before the first event stands at 0, and it has to be able to be told of the
 events it was there for. A `since` past the head is a feed that started over
 under the reader (the host was restarted): the answer comes at once with
 `next` back at the head, and a reader that compares the two sees the rewind.
+
+The host puts events of its own into the same feed, named `ext.`:
+
+| Event | Data | When |
+|---|---|---|
+| `ext.will_freeze` | | The armed window opens. A service with `job_time.run` reads it at once; a frozen one reads it when it thaws |
+| `ext.thawed` | | The armed window closes |
+| `ext.shutdown` | `reason` | Every service is about to be stopped: extensions off, safe mode, or the host stopping. The services are stopped one second later, so that each can read it; the holds do not wait for that second |
 
 At most 32 events come back at a time and the rest waits for the next call.
 The host holds the last 64; a reader that falls a whole ring behind is told
