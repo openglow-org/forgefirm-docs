@@ -599,7 +599,9 @@ is always on, whatever `$20` says, and until Z is referenced it holds Z
 where it is (a jog is refused with error 15, a program move raises the
 soft-limit alarm before it starts). X and Y join it after a home: a
 successful home turns the driver's X and Y soft limits on with the bed as
-the envelope (`$130` by `$131` from the home corner), whatever `$20` says,
+the envelope (from the home corner to the far edges, `$130` by `$131` unless
+the bed check measured them; [Homing](homing.md#the-far-edges)), whatever
+`$20` says,
 and whatever invalidates the position (an underrun, a stream fault, a new
 homing session) turns them off again
 ([Homing](homing.md#the-position-after-a-home)). In practice Z is referenced from the

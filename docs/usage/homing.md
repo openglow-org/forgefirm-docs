@@ -111,7 +111,8 @@ coordinates the stop blocks stand for. Left blank, the blocks are the origin,
 X0 Y0, and that is what most machines want. They are never negative, and
 manual homing alone uses them: no other homing method reads them, and the
 panel shows them only while manual homing is the method. The soft limits start at that position,
-since the blocks are a wall, and end at the bed's travel.
+since the blocks are a wall, and end at the bed's travel, or at the far edges the Setup page's
+**Bed size** check measured from the blocks ([Setup](setup.md#bed-size)).
 
 To get out of a release without homing, press **Energize motors** (the same
 button, while they are released) or send `$ME`: the motors energize, and X and

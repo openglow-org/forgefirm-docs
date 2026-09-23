@@ -42,6 +42,7 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | `panel_open_reads` | `1` (default) or `0`: whether the read-only routes answer any client on the network without a login. 0 closes them to logged-in sessions and the machine itself ([The control panel](control-panel.md#access)). |
 | `gfcloud_home_x/y` | Machine coordinates after a completed camera homing (mm, may be negative). Used by camera homing alone ([Homing](homing.md)). |
 | `manual_home_x/y` | Machine coordinates the stop blocks stand for, which a manual home declares (mm, never negative). Used by manual homing alone ([Homing](homing.md#manual-homing)). |
+| `envelope_x_mm`, `envelope_y_mm` | Where X's and Y's work envelope ends, as machine coordinates (mm, 50 to 600). The Setup page's Bed size check writes them ([Setup](setup.md#bed-size)); unset, the envelope ends at the axis travel ([Homing](../technical/forgefirm/homing.md#the-far-edges)). |
 | `gfcloud_home_timeout_s` | Web-service homing session budget (30 to 3600 s). |
 | `gf_serial` | Cloud sign-in serial override (digits). |
 | `gf_password` | Cloud sign-in password override (64 hex; write-only: `GET` reports `gf_password_set`). |
@@ -61,6 +62,7 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | `homing_mode` | unset (behaves as `none`) | What `$H` does: `gfcloud`, `manual`, `switches`, `none`. Set `gfcloud` for camera homing (needs `cloud_enabled=1`). |
 | `gfcloud_home_x/y` | 0 / 0 | Coordinates assigned after a successful camera home. Held to the axis travel either side of the origin. |
 | `manual_home_x/y` | 0 / 0 | Coordinates a manual home declares: the stop blocks are the origin unless set. Held to 0 up to the axis travel; a negative value is refused. |
+| `envelope_x_mm`, `envelope_y_mm` | unset (the axis travel) | Where the soft limits end in X and Y, measured by the Bed size check. Held to 50 mm up to the travel plus 30 mm; a change takes effect at the next home. |
 | `gfcloud_home_timeout_s` | 300 | How long a homing session may take before it alarms. |
 | `lid_policy` | `cancel` | `cancel` = factory behavior; `hold` = stock Grbl door parking. |
 | `xy_microsteps` | `32` | The X and Y microstep mode: `8` (the factory's), `16` or `32` (the default). The GRBL controller reads it at its start and derives `$100`/`$101`, its machine tick (28160 Hz at 8, doubled at 16, quadrupled at 32) and the kernel stop ramp from it, so nothing else needs typing; `$100`/`$101` are derived, never typed. Saving a change restarts an idle GRBL controller. Cloud mode runs at the service's own 8. 32 asks four times the step rate of 8 and depends on the machine ([The motion hardware](../technical/machine/motion-hardware.md)). |

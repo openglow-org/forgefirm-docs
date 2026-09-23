@@ -134,8 +134,8 @@ The factory home is the machine origin, the back-left corner,
 with the workspace all-positive from there
 ([The motion hardware](../machine/motion-hardware.md)). The position is then
 anchored, and the panel shows it normally. A successful home also turns the
-driver's X and Y soft limits on, with the bed as the envelope, whatever `$20`
-says; they go off with the anchor whenever the position is invalidated
+driver's X and Y soft limits on, with the bed as the envelope (to the far
+edges, [The far edges](#the-far-edges)), whatever `$20` says; they go off with the anchor whenever the position is invalidated
 ([The grblHAL driver](grblhal-driver.md#the-lens-z)).
 
 ## Manual homing
@@ -153,7 +153,8 @@ source `manual`. The two keys belong to this provider alone. Unset, they are
 the origin: the stop blocks are X0 Y0. They are never negative (forgectrl
 refuses one, and the driver holds a hand-edited value to 0 up to the axis
 travel, with a log line). The stop blocks are a wall, so the work envelope
-starts at the declared position and ends at the axis travel. There is
+starts at the declared position and ends at the far edges
+([The far edges](#the-far-edges)). There is
 no stream suspend, no runner, and no pulse byte. Z is not touched: its
 position, its reference, and its envelope stay as they were, and since the
 counters are cleared for all three axes the anchor carries the height the
@@ -167,6 +168,27 @@ shifts the whole envelope, so a move inside the limits can reach the frame.
 That is a mechanical matter and never an emission one. The crash watch is not
 a backstop for it, since it arms only inside the laser's armed window
 ([The cooling engine](cooling-engine.md)).
+
+### The far edges
+
+Every provider ends X's and Y's envelope at the same far edges:
+`envelope_x_mm` and `envelope_y_mm`, the machine coordinates the Setup
+page's **Bed size** check measured
+([Setup](../../usage/setup.md#bed-size)), and the axis travel (`$130`,
+`$131`) while they are unset. The driver reads them at every home, and holds
+a value to 50 mm up to the travel plus 30 mm, with a log line; forgectrl
+refuses one outside 50 to 600 mm. The travel keeps a margin the factory took
+for its tolerances, which the check gives back: the operator jogs the head
+to each far end, watching it, and the edge is set 1 mm short of where they
+stopped.
+
+For the measurement the check opens the envelope through the controller
+port (`envelope open`): X's and Y's far edges go to the travel plus 30 mm,
+for the port's jogs alone
+([The controller port](controller-port.md#the-sender-goes-first)). `envelope
+apply` sets them from the keys again without a home. A home, a soft reset, a
+Grbl client's line, and the port's client going away each close an open
+envelope.
 
 ### The motor release
 

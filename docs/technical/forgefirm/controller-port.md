@@ -40,12 +40,13 @@ the requests.
 
 | Request | Reply | What it does |
 |---|---|---|
-| `state` | One JSON object | `state` (the Grbl state name), `sender` (a Grbl client is connected), `port_jog` (the jog in progress is the port's), `released` (the X and Y motors are released), `mpos` (machine position, mm), `homed` (the homed-axes mask), `mcode` (the M-code a job waits at, `{"seq", "code", "words"}`, or `null`) |
+| `state` | One JSON object | `state` (the Grbl state name), `sender` (a Grbl client is connected), `port_jog` (the jog in progress is the port's), `released` (the X and Y motors are released), `mpos` (machine position, mm), `homed` (the homed-axes mask), `envelope_open` (the bed check's envelope is open), `mcode` (the M-code a job waits at, `{"seq", "code", "words"}`, or `null`) |
 | `jog <words>` | `ok`, `error:<n>`, or `busy:<why>` | Runs `$J=<words>`. `<words>` is held to the characters a jog needs (capital letters, digits, `.`, `-`, `+`, and spaces); anything else answers `error:invalid` |
 | `cancel` | `ok` | Cancels a port jog in progress. It does nothing to a sender's own jog |
 | `release` | `ok`, `error:<n>`, or `busy:<why>` | `$MD`: releases the X and Y motors |
 | `energize` | `ok`, `error:<n>`, or `busy:<why>` | `$ME`: energizes them |
 | `home` | `ok`, `error:<n>`, `error:mode`, or `busy:<why>` | `$H`, only while `homing_mode = manual`, where it moves nothing. Under every other method it answers `error:mode`: a homing session is a Grbl client's to start |
+| `envelope open\|apply` | `ok`, `error:homed`, or `busy:state` | The Setup page's bed check: `open` sets X's and Y's far edges to the axis travel plus 30 mm, and `apply` sets them from `envelope_x_mm` and `envelope_y_mm` again, without a home ([Homing](homing.md#the-far-edges)). Both need X and Y homed (`error:homed`), and the machine Idle with no armed window (`busy:state`) |
 | `mcodes <list>` | `ok` or `error:invalid` | The M-codes packages answer now: `-` for none, or numbers from 160 to 179, each once, comma separated. A list with any other form leaves the table as it was ([A package's M-code](extensions.md#a-packages-m-code)) |
 | `mcode_result <seq> ok\|fail [<words>]` | `ok`, `error:stale`, or `error:invalid` | The answer to the M-code `state` names under `seq`. The words are printable, with no brackets, at most 96 bytes; they go to the Grbl client in a `[MSG:]`. An answer under another `seq`, or a second one, is stale |
 
@@ -68,8 +69,8 @@ Every port jog puts `[MSG:Panel jog]` on the Grbl client's console, and
 `state`, `jog`, and `cancel` are the **package set**: what the panel's Jog
 card, a scoped token, or any other client of forgectrl's motion routes can
 reach.
-`release`, `energize`, and `home` are the **panel set**: they belong to the
-operator's own control panel and to nothing else.
+`release`, `energize`, `home`, and `envelope` are the **panel set**: they
+belong to the operator's own control panel and to nothing else.
 `mcodes` and `mcode_result` are the **daemon set**: forgectrl's own M-code
 relay says them, and no route reaches them.
 
@@ -113,6 +114,14 @@ from the Grbl client:
   discard the client's waiting line without a status.
 - A sender's own jog is untouched: the port neither cancels it nor chains
   onto it.
+- **An open envelope is the port's jogs' alone.** While the bed check's
+  envelope is open, the client's lines wait as they do during a port jog,
+  and the first one closes it (the far edges it had before it was opened)
+  before the core reads the line, with `[MSG:Bed check envelope closed: a
+  sender line]` on the client's console; a port jog it meets is canceled
+  first. A status poll and an empty line leave it open. A soft reset, a
+  home, and the port's client going away close it as well. No program ever
+  runs in the widened envelope.
 
 ## Verification
 
@@ -131,6 +140,11 @@ Host tests on the null-sink controller build, in the driver's CI:
 - `mcode_test.py`: the daemon set's `mcodes` and `mcode_result`, and the
   wait at an M-code a package answers
   ([A package's M-code](extensions.md#a-packages-m-code)).
+- `envelope_test.py`: the far edges from `envelope_x_mm` and
+  `envelope_y_mm` and their bounds, the panel set's `envelope open` and
+  `apply` and their refusals, and **the client's first line (never a status
+  poll or an empty line) closing an open envelope before the core reads
+  it**, as a soft reset and the port client going away do.
 
 forgectrl's side is `grblport_test` in forgectrl's CI: the sets, a
 refused operation leaving the socket untouched, one kept connection, a

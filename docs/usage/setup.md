@@ -109,6 +109,27 @@ keeps the values before and after.
 A tenth check, **Flow check**, is the short form of the flow calibration
 (about three minutes) for a re-run; the first run does not need it.
 
+### Bed size
+
+**Bed size** is optional: the setup never asks for it and never opens it as
+the next step, so run it from the list. It measures how far the head really
+travels from its home in X and Y. The travel the controller knows keeps a
+margin for the factory's tolerances, and this check gives it back.
+
+Home the machine first, on its stop blocks or with the camera, and close the
+lid. The check opens the controller's envelope to the travel plus 30 mm for
+the measurement. You jog the head toward the right end in steps of 10, 1,
+and 0.1 mm, watching the head and not the page, and press **This is the
+end** just short of where it would touch; then the same toward the front.
+The check writes `envelope_x_mm` and `envelope_y_mm` 1 mm short of where you
+stopped, sets the envelope from them, and jogs the head back to X 10 Y 10.
+From then on a job past those edges is refused
+([Homing](../technical/forgefirm/homing.md#the-far-edges)).
+
+Keep your Grbl client quiet while it runs: a line from LightBurn or any
+other client closes the widened envelope at once, and the check then stops
+without writing anything. An abort sets the envelope back as well.
+
 ## The sheet
 
 The last part of the setup measures the machine's own numbers on a sheet of
