@@ -90,7 +90,7 @@ is removed on every path out.
 | Tier | Signed by | What an install takes |
 |---|---|---|
 | **Official** | The OpenGlow extension key in the image (`/etc/forgefirm/keys/ext/forgefirm-ext.pub`), a different key from the one that signs firmware | Nothing beyond the grants below |
-| **Community** | A key the owner added under `/data/forgefirm/ext/keys/` | The operator's typed consent |
+| **Community** | A key the owner added under `/data/forgefirm/ext/keys/`, or the author's key that the [signed index](#the-signed-index) endorses for that package's id | The operator's typed consent |
 | **Unverified** | Nobody this machine trusts: unsigned, or signed by a key it does not hold | The machine button held, as for unsigned firmware |
 
 - The ids under `org.openglow.` and `org.forgefirm.` belong to the official
@@ -101,6 +101,61 @@ is removed on every path out.
   the owner removes it first.
 - Nothing updates itself. An update is the operator's act, and what it asks
   for that the installed version did not is shown as new.
+
+## The signed index
+
+The catalog the panel shows is one file, `index.ffi`: an archive of the
+package container's own form whose `meta-product` is
+`ForgeFIRM extension index`, signed with the OpenGlow extension key and by
+nothing else, holding one file, `index.json`, of at most 1 MiB. No owner
+key and no endorsed key speaks for an index, and the product gate holds
+both ways: an index is never a package, and a package is never an index.
+
+`index.json` is `{"index": 1, "packages": [...]}`, at most 256 entries,
+each id once:
+
+| Field | Holds |
+|---|---|
+| `id` | The package id |
+| `name`, `author` | Text, at most 64 and 128 bytes |
+| `description`, `license` | Text, optional, at most 256 and 64 bytes |
+| `version` | The listed version |
+| `url` | Where the archive is fetched: `https://`, no user or password, at most 1024 bytes |
+| `homepage` | Optional, `https://` |
+| `sha256`, `size` | The archive's SHA-256 (64 lowercase hex digits) and its size in bytes, at most 32 MiB |
+| `capabilities` | What its manifest asks for, each a capability the host knows |
+| `key` | The author's Ed25519 public key, as fwup writes it: required for an id outside OpenGlow's namespace, and refused for one inside it |
+
+An index that breaks any of it is refused whole, and the one kept stays.
+
+**The endorsement.** A package signed with the key the index names for its
+id reads as **Community** on a machine whose owner never added that key,
+and `inspect` says `endorsed: true`. The key speaks for that id alone: an
+archive under another id signed with it is judged as signed by nobody.
+Pinning holds as for every package: an update is signed by the key that
+signed the installed version.
+
+**Kept.** `forgeext index-verify` checks the archive, lays out
+`index.json` (with the index's version and each key's id added) and one
+`keys/<id>.pub` for each endorsed key, and swaps them in whole under the
+host's lock. When a listing is withdrawn, the next index no longer names
+its key, so an archive signed with it reads as unverified from then on.
+The installed version stays as it is, and an update of it is refused by
+pinning. A change of owner leaves the index: it is OpenGlow's, not the
+owner's.
+
+**Where it comes from.** forgectrl fetches it only when the operator asks
+([The catalog](#the-catalog)), from one fixed address:
+`https://github.com/openglow-org/forgefirm-extensions/releases/latest/download/index.ffi`.
+The hosting is not trusted; the signature is. What it takes to be listed
+is the [listing policy](../../developers/extension-listing.md).
+
+The acceptance test `exthost.catalog` proves it on the image: the
+machine's own `forgeext` keeps an index signed with a stand-in for the
+extension key on a scratch root, and the key it endorses makes that one id
+community and no other; on the machine's own root it refuses every index
+that key did not sign, and a package handed over as one; and forgectrl's
+catalog routes refuse before they fetch, and leave nothing staged.
 
 ## The manifest
 
@@ -203,6 +258,7 @@ The extension root is `/data/forgefirm/ext`:
 | `pkg/<id>/current` | A symbolic link to the version in use |
 | `data/<id>/` | A service's own data, mode 0700, owned by its account |
 | `keys/` | Public keys the owner added |
+| `index/` | The [signed index](#the-signed-index) as last verified: `index.json`, and `keys/<id>.pub` for each key it endorses |
 | `tmp/` | Staging, the host's alone |
 | `required-holds/` | One empty file per package whose hold the operator marked required, so a hold fails closed across a reboot before the host has read anything |
 | `settings/<id>.json` | A package's own settings, root's alone at 0600 |
@@ -442,6 +498,33 @@ capability name before it is an argument; which grants a package needs,
 and that no grant is given that it did not ask for, is the host's to
 enforce. The staged file goes with a successful install and stays after a
 refused one, for another try.
+
+### The catalog
+
+`GET /ext/catalog` answers the host's `index` (`index`: the kept document,
+or `null` when none is kept) and `url`, the address the index is fetched
+from. Nothing reaches the network until the operator asks:
+
+- `POST /ext/catalog/refresh` fetches the index with curl (`https` alone,
+  redirects included, at most 2 MiB and 30 s, under curl's own name) into
+  a file beside the staging file, has the host verify and keep it, removes
+  the file, and answers as `GET /ext/catalog` does. A fetch that fails is
+  `502` in curl's words, and the host's refusal is `409` in its words; the
+  index kept stays as it was.
+- `POST /ext/catalog/get` (`id`) reads the entry from the kept index,
+  never from the request, and fetches the archive from its `url` into the
+  staging file, bounded by the entry's `size` and 240 s. The bytes are held
+  to that size and that SHA-256 before the host reads any of them. From
+  there it is an upload: the answer is the host's `inspect` with `consent`
+  and `catalog` added, and `POST /ext/install` follows as above. Bytes that
+  are not the listed archive, and an archive of another package than the
+  id asked for, are refused with `409` and not kept; an id the index does
+  not list is `404`, and with no index kept it is `409`.
+
+The fetch of a package is gated as the upload is (the machine idle, no
+lease in the way), and the one staging file is the upload's or the
+fetch's, never both at once. All three routes are the logged-in operator's,
+and none of them refuses while extensions are off.
 
 ### The owner's keys
 
@@ -981,6 +1064,8 @@ error with exit 2. `key-add <name> -` reads the key from standard input.
 | `ui <id>` | The package's own page, as a JSON string ([A package's own page](#a-packages-own-page)) |
 | `settings <id> [<json>]` | The package's own settings and their schema; with a patch, applied whole or not at all ([A package's own settings](#a-packages-own-settings)) |
 | `call <id> GET\|POST <path> [<json>] [--call-dir <dir>] [--cg-parent <dir>]` | One call from the package's page to its own service; `status` and `body`, the service's answer ([A page and its own service](#a-page-and-its-own-service)) |
+| `index-verify <file.ffi>` | Verifies the [signed index](#the-signed-index) and keeps it in place of the last; `version` and the number of `packages` |
+| `index` | The index this host keeps, or `null` |
 | `caps` | The capability list and the API version |
 | `net-check` | Whether the image's deny table is loaded |
 | `net-allow <uid> [--listen <port>] [--dns] [<host>:<port>]...` | A service's chain in the deny table, as the host installs it when a service starts |

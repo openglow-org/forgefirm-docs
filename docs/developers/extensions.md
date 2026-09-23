@@ -184,6 +184,10 @@ then holds the button to install it. An update must be signed with the
 key that signed the installed version. Keep the private key: a lost key is
 a package that cannot be updated, only removed and installed again.
 
+A package in OpenGlow's catalog installs as **Community** on every machine,
+with no key added: the catalog names your key for your package's id.
+[List a package in the catalog](extension-listing.md) says what that takes.
+
 ## Put it on a machine
 
 ```sh

@@ -42,12 +42,12 @@ be allowed, and who signed it.
 | Who signed it | The machine says | Installing it takes |
 |---|---|---|
 | The OpenGlow extension key | **Official** | Your login |
-| A key you added to this machine | **Community** | Your login, and you type `I UNDERSTAND` |
+| A key you added to this machine, or its author's key that the [catalog](#the-catalog) names for it | **Community** | Your login, and you type `I UNDERSTAND` |
 | Nobody the machine trusts | **Unverified** | Your login, and the machine's button **held** while you press Install, as for unsigned firmware |
 
 A signature says who made a package. It does not say the package is safe,
-correct, or useful. The project does not review a package unless it is
-signed with the OpenGlow extension key.
+correct, or useful. The project does not test or vouch for a package
+unless it is signed with the OpenGlow extension key.
 
 Some of what a package asks for needs a grant from you for that one
 package, and the card shows those as tick boxes: holding a job, running a
@@ -57,6 +57,30 @@ is new.
 
 **Discard** removes an uploaded package without installing it. The upload
 and the install are refused while a job runs.
+
+## The catalog
+
+The catalog is OpenGlow's list of packages, signed with the OpenGlow
+extension key. **Fetch the catalog** on the Extension packages card asks
+GitHub for it, that once: the machine never fetches it on its own. It
+lists each package with who wrote it, what it says it does, and what it
+asks to be allowed, and marks the ones this machine has installed.
+
+**Get** fetches that one package, checks that it is the very archive the
+catalog lists, and shows it to you as an upload is shown. Then you install
+it or discard it, as above. A package OpenGlow makes reads as
+**Official**. Every other listed package is signed with its author's key,
+which the catalog names for that package alone, so it reads as
+**Community** and you type `I UNDERSTAND` to install it. OpenGlow read it
+before it listed it; that is not a test, and nobody vouches for it. What
+it takes to be listed is the
+[listing policy](../developers/extension-listing.md).
+
+When a package is taken out of the catalog, a copy you installed stays
+installed, and the machine removes nothing on its own. An update of it
+then reads as unverified, and the machine refuses it, because an update
+must be signed with the key that signed the installed version. Remove it
+if you no longer want it.
 
 ## Keys you trust
 

@@ -173,6 +173,7 @@ nav:
       - Acceptance: developers/acceptance.md
       - Test: developers/testing.md
       - Write an extension package: developers/extensions.md
+      - List a package in the catalog: developers/extension-listing.md
       - The bench: developers/bench.md
       - Contribute: developers/contributing.md
       - This site: developers/docs.md

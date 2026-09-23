@@ -270,6 +270,7 @@ offset diagnostic's Apply button.
 | `POST /ext/upload` | Stage an archive and read back what it is: its tier, what it asks for, and what consent it takes |
 | `POST /ext/install` | Install the staged archive, with the grants and the consent its tier takes |
 | `POST /ext/upload/discard` | Throw the staged archive away |
+| `GET /ext/catalog`, `POST /ext/catalog/refresh`, `POST /ext/catalog/get` | The catalog this machine keeps, fetching a fresh one, and fetching one listed package to stage it as an upload ([Extensions](extensions.md#the-catalog)) |
 | `POST /ext/key`, `POST /ext/key/remove` | Add or remove a key you trust; adding one takes the machine's button held |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever: stop halts the active controller and holds supervision suspended; start resumes it ([Modes](modes.md)) |
 | `POST /motion/jog?x=&y=&z=&feed=`, `POST /motion/cancel`, `GET /motion/state` | A bounded jog beside the Grbl client, its cancel, and the controller's own state; `POST /motion/release`, `/motion/energize`, and `/motion/home` are the panel's motor release and manual home ([forgectrl](../technical/forgefirm/forgectrl.md#http-api)) |
