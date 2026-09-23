@@ -112,7 +112,7 @@ since a witness that stays quiet in the control is no witness.
 | No request reaches another address or the machine: fetch, XHR, beacon, WebSocket, EventSource, images, scripts, style sheets, fonts, prefetch and preload, nested frames, objects, media, workers | WebRTC, and a connection hint (`rel=preconnect`): the two ways out that no page policy closes |
 | No navigation leaves the frame: `location`, a form, `<meta refresh>`, a link, a popup, the top window | |
 | Nothing of the panel is read (its window, its token, its frames, the top location, cookies, storage), and nothing draws over it (fullscreen, a modal, pointer lock) | |
-| The bridge answers what the package may use and refuses the rest by name: a capability not held, a camera not held, a call that does not exist, a claim in the message about who is asking | |
+| The bridge answers what the package may use and refuses the rest by name: a capability not held, a camera not held, a call that does not exist, a claim in the message about who is asking; a call to a service goes out for the frame's own package, whatever package the message names | |
 | The frame is sandboxed with `allow-scripts` alone and no permissions, its policy is its first element, the panel's label sits outside it, and the panel page sends `frame-src 'none'` | |
 
 The verdict is on the page and in its title, and `--once` exits with it: 0

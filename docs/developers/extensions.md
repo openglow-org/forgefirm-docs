@@ -94,6 +94,35 @@ Some rules to write for:
   WebRTC, and nothing in a browser prevents it. Say what your page does
   with what it is shown.
 
+### A page and its own service
+
+A package that is a service and a page at once can have the page ask the
+service, and the kit carries both ends. The service answers:
+
+```python
+import ffx
+
+def handle(method, path, body):          # "GET" or "POST", "/rules", the page's JSON object
+    if path == "/rules":
+        return load_rules()              # answered as 200, as JSON
+    raise ffx.CallError(404, "there is no " + path)
+
+ffx.serve(handle, background=True)       # a thread of its own; then the service's own work
+```
+
+and the page asks:
+
+```js
+ffx.service.call('GET', '/rules').then(function (r) { show(r.status, r.body); });
+```
+
+A native service polls `ffx_call_fd()` beside its own work and answers with
+`ffx_serve_one()`. A shell service cannot answer: busybox `sh` has no way to
+accept a connection. A call waits at most 10 s for the whole answer, which
+is at most 64 KiB, and a service frozen for an armed window is not asked at
+all: the page is told so. The form a call takes, and what refuses one, are
+in [A page and its own service](../technical/forgefirm/extensions.md#a-page-and-its-own-service).
+
 ## Test it without a machine
 
 The panel's dev server in the `forgectrl` repository installs a package
@@ -108,6 +137,12 @@ package. The page is read fresh from `ui/index.html` at every Open, its
 settings follow its manifest, every capability that needs a grant is
 granted, and the mock's head camera shows a millimeter grid that moves as
 the head jogs. A service does not run in the mock: test one on a machine.
+
+With `--call-port 8765`, the page's calls to its service go to
+`127.0.0.1:8765` in the host's form. The service's handler can answer them
+there under `ffx.serve()`, given a socket listening on that port as its
+`FFX_CALL_FD`; the rest of a service, which asks the machine, runs only on
+a machine.
 
 ## Check it, and pack it
 

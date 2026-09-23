@@ -272,7 +272,8 @@ A step that cannot be taken is a failed start, never a looser sandbox. The
 environment is fixed: `PATH`, `LANG`, `HOME` (the data directory),
 `TMPDIR`, `FFX_ID`, `FFX_PKG`, `FFX_DATA`, `FFX_API` (its
 [API socket](#the-extension-api)), `PYTHONDONTWRITEBYTECODE`, and
-`PYTHONUNBUFFERED`. A service's output goes
+`PYTHONUNBUFFERED`, and `FFX_CALL_FD` for a service whose package has a
+page ([its page's calls](#a-page-and-its-own-service)). A service's output goes
 to the `forgeext` logger under the package's id, at most 60 lines in 10
 seconds, with a count of what was dropped.
 
@@ -369,7 +370,8 @@ close with the heartbeat still, the freeze in place before the latch unlocks
 for the run, thawed within 3 s of the close, one process throughout.
 `exthost.package-routes` drives the operator's door against the host's
 own state, and `exthost.panel-install` installs through it at each tier's
-consent, the button held included. `exthost.events` proves the one
+consent, the button held included. `exthost.page-call` carries a page's
+calls to its own service through the relay. `exthost.events` proves the one
 subscription and the poll a package reads it with. `exthost.platform`
 proves the image holds the sandbox ready before any of it runs.
 `setup.extensions-consent` proves the consent
@@ -401,12 +403,14 @@ list is what was *asked for*, which is a different question). `POST /ext/package
 has on a job), `remove`, `remove-keep-data`, `hold-required`,
 `hold-advisory`.
 
-Two more routes are the panel's alone, and both refuse while extensions
-are off: `GET /ext/ui` hands over a package's own page
-([A package's own page](#a-packages-own-page)), and `GET` and
+Three more routes are the panel's alone, and all three refuse while
+extensions are off: `GET /ext/ui` hands over a package's own page
+([A package's own page](#a-packages-own-page)), `GET` and
 `POST /ext/settings` read and patch a package's own settings
-([A package's own settings](#a-packages-own-settings)). They are what the
-frame's bridge calls reach, never the frame itself.
+([A package's own settings](#a-packages-own-settings)), and
+`POST /ext/call` carries a page's call to its own service
+([A page and its own service](#a-page-and-its-own-service)). They are what
+the frame's bridge calls reach, never the frame itself.
 
 ### Installing through the panel
 
@@ -505,7 +509,7 @@ What does not fit is refused with a status and a sentence
 | `GET /v0/settings` | `settings.own` | `settings` (every declared key with its value) and `schema` |
 | `POST /v0/settings` | `settings.own` | A patch of settings, applied whole or not at all; the same answer |
 | `POST /v0/camera` | `camera.lid` or `camera.head`, for the one it asks for | The body `{"camera": "lid"\|"head", "resolution": "full"\|"half", "quality": 1-100, "lamp": 0-1023}` (the camera required, the rest optional, and no other key); **the answer is a JPEG**, not JSON |
-| `POST /v0/motion/jog` | `motion.jog` | The body `{"x":, "y":, "z":, "feed":}` in millimetres and mm/min, each a number and no other key, at least one axis moving; the machine's answer |
+| `POST /v0/motion/jog` | `motion.jog` | The body `{"x":, "y":, "z":, "feed":}` in millimeters and mm/min, each a number and no other key, at least one axis moving; the machine's answer |
 | `POST /v0/motion/cancel` | `motion.jog` | Ends a jog; the machine's answer |
 | `POST /v0/motion/job` | `motion.job`, granted | The body `{"program": "<a file of its own data>", "lit_within_s":, "timeout_s":}`; the machine's answer |
 | `POST /v0/motion/job/abort` | `motion.job`, granted | Ends the running job |
@@ -611,9 +615,54 @@ Three rules govern it:
 | `motion.job` | `motion.job`, granted | a program the page wrote (`program`, at most 2 MiB, with the optional `lit_within_s` and `timeout_s`) run as the machine's one sender; **who the job is from is the panel's word, the package's id**, never a name the page chose |
 | `motion.job.state`, `motion.job.abort` | `motion.job`, granted | the job's record, and ending the running job |
 | `frame.height` | | the page's own frame made `px` tall, inside 200 to 1400 pixels; the label and the panel around the frame do not move |
+| `service.call` | `ui` | a call to **its own package's service**, whatever package the message names (`method`, `path`, and for a `POST` an optional `body` object); `{status, body}`, the service's own status and the JSON it answered ([below](#a-page-and-its-own-service)) |
 
 Anything else is refused by name, and a capability the package does not
 hold is refused in those words.
+
+#### A page and its own service
+
+A package that has a page and a service may have the one ask the other: a
+rules editor, say, whose service is what applies the rules. Nothing about
+it is a way out for either side. The page still reaches nothing but the
+bridge, and the service is still reached by nothing but the host.
+
+**The socket is the host's.** For a service whose package asks for `ui`,
+the host binds `/run/forgefirm/ext/call/<id>.sock`, root's socket at mode
+`0600` in a directory that is root's alone (`0700`), and hands the service
+only the listening end, at descriptor 4, named in its environment as
+`FFX_CALL_FD=4`. The service answers; it never names a path, so there is
+no socket the host could be pointed at but the one it made. The name goes
+when the service stops.
+
+**A call is one request per connection, in a closed form.** The host
+writes it: `GET` or `POST`, a path of letters, digits, `/`, `.`, `-`, and
+`_` (no query, no `..`, at most 200 bytes), and for a `POST` a JSON object
+of at most 4096 bytes, which the host parses and writes out again (`{}`
+when the page sent none; a `GET` carries none). The service answers
+HTTP/1.1 with a status and JSON, at most 64 KiB in all, within 10 s. What
+comes back to the page is the service's own status and its JSON: a
+service's refusal is its own, not the relay's.
+
+**What refuses a call, in words:** a package that is not installed, one
+that is disabled ("its service is not running"), one with no page or no
+service, a service that is not running, one frozen for the armed window
+("its service is frozen while a job is armed", said at once rather than
+after the wait), an answer that is late, too long, or not JSON. A package
+with the `job_time.run` grant is not frozen and answers through the
+window.
+
+The panel's bridge makes the call as `POST /ext/call` (`id`, `method`,
+`path`, `body`) under its own session, with the package's id from the
+frame that asked. forgectrl holds the method, the path's leading `/`, and
+the body's being an object before anything runs, and the host's command
+`forgeext call` judges the rest; the kit's `ffx.serve()` (Python) and
+`ffx_serve_one()` (C) are the service's side
+([Write an extension package](../../developers/extensions.md#a-page-and-its-own-service)).
+`exthost.page-call` proves the relay on the image, forgeext's `sdk_test`
+the socket, both clients of the kit, and a frozen service, and the
+frame-isolation harness that a page's call is its own package's whatever
+the message names.
 
 ### A package's jog
 
@@ -886,6 +935,7 @@ error with exit 2. `key-add <name> -` reads the key from standard input.
 | `keys`, `key-add <name> <file.pub>`, `key-remove <name>` | The owner's keys. `key-add` parses the file as an Ed25519 public key before it is written |
 | `ui <id>` | The package's own page, as a JSON string ([A package's own page](#a-packages-own-page)) |
 | `settings <id> [<json>]` | The package's own settings and their schema; with a patch, applied whole or not at all ([A package's own settings](#a-packages-own-settings)) |
+| `call <id> GET\|POST <path> [<json>] [--call-dir <dir>] [--cg-parent <dir>]` | One call from the package's page to its own service; `status` and `body`, the service's answer ([A page and its own service](#a-page-and-its-own-service)) |
 | `caps` | The capability list and the API version |
 | `net-check` | Whether the image's deny table is loaded |
 | `net-allow <uid> [--listen <port>] [--dns] [<host>:<port>]...` | A service's chain in the deny table, as the host installs it when a service starts |
