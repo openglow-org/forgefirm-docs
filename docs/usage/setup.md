@@ -319,6 +319,15 @@ Setup tab lists every check with the version it completed at, what
 the machine asks for again and why, and the **What changed?** menu
 ([What changed](#what-changed)).
 
+## Checks your extensions add
+
+An extension package can add a check of its own, listed after the
+machine's checks. It runs like any other check, with its log, its
+questions, and its result, but it is the package's: nothing of the
+machine's setup waits for it, it is never the next step the page opens,
+and its result is the package's own, which the package uses to decide what
+it may do. See [Extensions](extensions.md).
+
 ## The gate
 
 Until the first run is complete, no controller runs for a sender. The same
@@ -377,7 +386,7 @@ stands.
 | Endpoint | Purpose |
 |---|---|
 | `GET /setup` | The setup page (also `/` until the setup is complete) |
-| `GET /wiz` | The setup state |
+| `GET /wiz` | The setup state; `extensions` lists the checks packages add (`pkg:<id>`, the title, done) |
 | `GET /wiz/record`, `GET /wiz/record?download=1`, `GET /wiz/record.html` | The setup record, the same as a download named after the sheet id, and the printable summary |
 | `POST /wiz/changed` | A replaced part or a service (`what`: `tube`, `pump`, `coolant`, `fan`, `head`, `tray`, `service`); the checks it maps to are flagged |
 | `GET /advisories/<id>` | The text of one advisory; the `ETag` is its hash |
@@ -387,7 +396,7 @@ stands.
 | `POST /wiz/preferences` | `ui_units`, `wifi_country`, `clock` |
 | `POST /wiz/machine` | `model`, `tec` |
 | `POST /wiz/cloud` | `enabled`, `phrase`, `homing_mode`, `gfcloud_home_timeout_s`, `gf_serial`, `gf_password` |
-| `POST /wiz/<id>/start`, `POST /wiz/<id>/answer`, `POST /wiz/<id>/abort`, `GET /wiz/dark` | A check or a sheet card: start it, answer its open prompt (`seq`, `value`), stop it, and read its state; the login that started it drives it, and the state says whether the run is `owned` and `mine` |
+| `POST /wiz/<id>/start`, `POST /wiz/<id>/answer`, `POST /wiz/<id>/abort`, `GET /wiz/dark` | A check, a sheet card, or a package's check (`pkg:<id>`): start it, answer its open prompt (`seq`, `value`), stop it, and read its state; the login that started it drives it, and the state says whether the run is `owned` and `mine` |
 | `POST /wiz/<id>/takeover` | A second browser takes the running step over |
 | `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A sheet card's preview and its program |
 | `POST /wiz/complete` | Mark the setup complete |

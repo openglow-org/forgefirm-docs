@@ -227,12 +227,13 @@ consent do not change shape as each one lands.
 | `net.outbound.operator` | The destinations the operator names for it, and no others ([The operator's destinations](#the-operators-destinations)) | yes, as a rule the host installs | |
 | `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port. It answers callers and is no way out ([the deny rules](image-and-bsp.md#the-extension-sandbox)) | yes, as a rule the host installs | |
 | `storage:<MiB>` | How much its data directory may hold, 1 to 256 MiB. Every service has a data directory; this says how large it may grow ([The storage quota](#the-storage-quota)) | yes, as a limit the host enforces | |
+| `wizard` | A check of its own on the Setup page, run on the setup's own runner, its result the package's ([A package's check on the Setup page](#a-packages-check-on-the-setup-page)) | yes | |
 | `mcode:<n>` | Answering `M<n>` in a job, one of M160 to M179: the job waits at it until the service answers ([A package's M-code](#a-packages-m-code)). One package per number, and a package that asks for one asks for `job_time.run` too | yes | (`job_time.run`'s) |
 
-`motion.offsets` and `wizard` are named in the list but are **not
-offered**: a manifest that asks for one is refused in those words, which is
-a different refusal from the one a name the list does not hold gets.
-Nothing this firmware serves is reached by either.
+`motion.offsets` is named in the list but is **not offered**: a manifest
+that asks for it is refused in those words, which is a different refusal
+from the one a name the list does not hold gets. Nothing this firmware
+serves is reached by it.
 
 At most **15** outbound destinations take effect for one service, the
 manifest's and the operator's together: the host's rule chain and the
@@ -913,6 +914,46 @@ and `install_test` prove the relay and the host. On the machine,
 job waits with the head still and goes on after the answer, a job naming
 M161 stops at it with nothing moved, and a refusal holds the job.
 
+### A package's check on the Setup page
+
+A package that holds `wizard` adds a check of its own to the Setup page,
+as `pkg:<id>`, after the machine's own checks. It runs on the setup's own
+runner, with the same log, progress, prompts, and result a check of the
+machine's has, and the runner asks the package's service for each step on
+its call socket (`forgeext wizard <id> state|start|answer|abort`):
+
+| Request | The service answers |
+|---|---|
+| `GET /wizard` | `{"title": "...", "done": true or false}`: the Setup page's list names the check with it |
+| `POST /wizard/start` | The first step |
+| `POST /wizard/answer` `{"id": "...", "answer": "..."}` | The next step, after the operator answered a prompt; a confirm is answered `yes` or `no` |
+| `POST /wizard/abort` | Anything; the operator stopped the check, or it ran out of time or of form |
+
+A step is `{"log": [...], "phase": "...", "progress": 0 to 100,
+"prompt": {"kind", "id", "text", "options"}}`, the prompt's kind one of
+`continue`, `confirm`, `number`, and `choice`, or, the last step,
+`{"result": {"ok": true or false, "summary": "..."}}`. The runner holds a
+step to its form (at most 8 log lines, a prompt's id a word, a choice with
+two options at least, a text's length) and to 64 steps, and stops the check
+with the reason, telling the service, when one is out of form.
+
+**The check is the package's, and nothing of the machine's is.** Its result
+is kept by the package, and the Setup page's list reads it back from
+`GET /wizard`; the machine's setup record never holds it, and no package's
+check is in the setup gate or is ever the next open step. It holds no
+machine lease: whatever it does to the machine it does through the
+package's own capabilities, under the lease like any other request of the
+package's. It can gate only the package's own work.
+
+`exthost.wizard` proves it on the image: the check listed, run through
+its prompt with the lease free, the operator's Yes reaching the service as
+`yes`, the result the package's summary and listed as done from its own
+answer, the machine's setup record and gate unchanged, an abort reaching
+the service, and a check of a package that is not installed refused.
+forgectrl's `wizpkg_test` holds each step to its form and runs a check
+end to end on stand-ins; forgeext's `sdk_test` runs the command against a
+service.
+
 ### A package's camera
 
 `camera.lid` and `camera.head` are separate capabilities, and the one a
@@ -1125,6 +1166,7 @@ error with exit 2. `key-add <name> -` reads the key from standard input.
 | `ui <id>` | The package's own page, as a JSON string ([A package's own page](#a-packages-own-page)) |
 | `settings <id> [<json>]` | The package's own settings and their schema; with a patch, applied whole or not at all ([A package's own settings](#a-packages-own-settings)) |
 | `call <id> GET\|POST <path> [<json>] [--call-dir <dir>] [--cg-parent <dir>]` | One call from the package's page to its own service; `status` and `body`, the service's answer ([A page and its own service](#a-page-and-its-own-service)) |
+| `wizard <id> state\|start\|answer\|abort [<json>]` | One step of the package's check on the Setup page, to its service: its status and body ([A package's check on the Setup page](#a-packages-check-on-the-setup-page)) |
 | `mcode <n> [<json>]` | `M<n>` of a job, with its words (an object of `P`, `Q`, and `R`), to the service that answers it: its status and body ([A package's M-code](#a-packages-m-code)) |
 | `index-verify <file.ffi>` | Verifies the [signed index](#the-signed-index) and keeps it in place of the last; `version` and the number of `packages` |
 | `index` | The index this host keeps, or `null` |

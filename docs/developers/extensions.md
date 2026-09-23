@@ -159,6 +159,39 @@ the machine refuses a second package that asks for one already taken. What
 the controller does meanwhile is in
 [A package's M-code](../technical/forgefirm/extensions.md#a-packages-m-code).
 
+### A check on the Setup page
+
+A package that asks for `wizard` adds a check of its own to the Setup
+page. The machine's own runner drives it, and your service answers each
+step on the same socket:
+
+```python
+import ffx
+
+done = False
+
+def handle(method, path, body):
+    global done
+    if path == "/wizard":                # the Setup page's list
+        return {"title": "Exhaust check", "done": done}
+    if path == "/wizard/start":
+        return {"log": ["looking for the exhaust"], "progress": 50,
+                "prompt": {"kind": "confirm", "id": "fan", "text": "Is the exhaust fan running?"}}
+    if path == "/wizard/answer":         # {"id": "fan", "answer": "yes"}
+        done = body.get("answer") == "yes"
+        return {"result": {"ok": done, "summary": "the exhaust runs" if done else "no exhaust"}}
+    if path == "/wizard/abort":
+        return {}
+    raise ffx.CallError(404, "there is no " + path)
+
+ffx.serve(handle)
+```
+
+The result is yours to keep: the machine records none of it, and nothing
+of the machine's setup waits for it. Use it to decide what your package
+does. The steps' form is in
+[A package's check on the Setup page](../technical/forgefirm/extensions.md#a-packages-check-on-the-setup-page).
+
 ## Test it without a machine
 
 The panel's dev server in the `forgectrl` repository installs a package
