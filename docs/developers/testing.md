@@ -79,6 +79,49 @@ the driver:
       hold the window open, and a press that counts only after the button
       has been seen up.
 
+## The frame-isolation harness
+
+What keeps a package's page from reaching anything is the browser: the
+sandboxed frame, the policy the frame carries, and the policy of the panel
+page around it ([A package's own page](../technical/forgefirm/extensions.md#a-packages-own-page)).
+So the proof runs in a browser, and it is not part of CI:
+
+```sh
+python3 tools/frame_isolation.py [--port 8091] [--lan] [--once] [--out verdict.json]
+```
+
+in the `forgectrl` repository, then open `http://127.0.0.1:8091/harness`.
+The harness serves the panel as the dev server's mock does (the files under
+`src/ui/`, bundled as the daemon bundles them, with the daemon's page
+headers), installs one more package in the mock whose page tries every way
+out, and adds a driver script to that one copy of the panel page. The driver
+opens the hostile page through the panel's own `extOpenUi()`, once for the
+whole battery and once for each navigation (a navigation that is blocked
+can still replace the document, so each gets a frame of its own).
+
+Three listeners stand in for everywhere that is not the machine: an HTTP
+server, a STUN server, and a bare TCP listener. The panel's own port records
+every request that carries a harness tag, because a request that reaches the
+machine is a request too. **Their log is the ground truth**: an attempt
+failed only if its tag arrived. A control frame, the same page with no
+policy, must get at least ten vectors out, or the run says `NORESULT`,
+since a witness that stays quiet in the control is no witness.
+
+| Asserted | Recorded, not asserted |
+|---|---|
+| No request reaches another address or the machine: fetch, XHR, beacon, WebSocket, EventSource, images, scripts, style sheets, fonts, prefetch and preload, nested frames, objects, media, workers | WebRTC, and a connection hint (`rel=preconnect`): the two ways out that no page policy closes |
+| No navigation leaves the frame: `location`, a form, `<meta refresh>`, a link, a popup, the top window | |
+| Nothing of the panel is read (its window, its token, its frames, the top location, cookies, storage), and nothing draws over it (fullscreen, a modal, pointer lock) | |
+| The bridge answers what the package may use and refuses the rest by name: a capability not held, a camera not held, a call that does not exist, a claim in the message about who is asking | |
+| The frame is sandboxed with `allow-scripts` alone and no permissions, its policy is its first element, the panel's label sits outside it, and the panel page sends `frame-src 'none'` | |
+
+The verdict is on the page and in its title, and `--once` exits with it: 0
+for `PASS`, 1 for `FAIL`, 2 for `NORESULT`. Chrome and Firefox are the
+browsers this project tests, and either can run it headless on a
+throwaway profile. Firefox ignores a STUN server on loopback, so its WebRTC
+reading needs `--lan` and the workstation's LAN address. On a machine,
+`forgectrl.panel-serves` holds the served panel page to the same header.
+
 ## Continuous integration
 
 Each repository with host tests runs them on push and on pull request.

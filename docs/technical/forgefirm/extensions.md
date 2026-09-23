@@ -551,6 +551,21 @@ webrtc 'block'
 
 A package may add its own policy after that one and only make it stricter.
 
+**Where a frame may go is the panel page's to say, not the frame's.** A
+frame's own policy governs what it loads; it does not stop the page
+navigating its frame to another address, carrying what it was shown in the
+URL. Every page forgectrl serves therefore sends
+`Content-Security-Policy: frame-src 'none'`: no frame of the panel may
+navigate anywhere. A `srcdoc` frame still renders under it, and the panel
+frames nothing else.
+
+**The proof is a browser harness**, because what it tests is the browser:
+`tools/frame_isolation.py` in the `forgectrl` repository runs the panel as
+its dev server's mock serves it, installs a hostile package whose page tries
+every way out, and opens that page through the panel's own frame and bridge
+([Test](../../developers/testing.md#the-frame-isolation-harness)).
+`forgectrl.panel-serves` holds the machine's own page to sending the header.
+
 **WebRTC is a documented leak.** It is outside the Content Security Policy
 in both browsers this project tests, and connection hints get past it at
 low bandwidth. A package with a page can therefore send a little data out
