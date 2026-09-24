@@ -155,7 +155,10 @@ machine's own `forgeext` keeps an index signed with a stand-in for the
 extension key on a scratch root, and the key it endorses makes that one id
 community and no other; on the machine's own root it refuses every index
 that key did not sign, and a package handed over as one; and forgectrl's
-catalog routes refuse before they fetch, and leave nothing staged.
+catalog routes refuse before they fetch, and leave nothing staged. It
+never requests the index's address, because GitHub counts every request
+of it as a download and that count is the operators'; the fetch itself is
+proven by forgectrl's host test with a stand-in for curl.
 
 ## The manifest
 

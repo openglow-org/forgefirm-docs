@@ -218,7 +218,11 @@ URL, which GitHub counts as a download. The daemon checks two minutes after
 it starts, then every 24 hours; a check that got no answer is retried after
 an hour. The download requests
 `.../releases/download/<tag>/forgefirm.fw` once, for the tag the check
-found. `new` in the check's answer is the version order of
+found. A probe download (`probe=1`) runs the same job on the release's
+`acceptance.json` instead, into a file of its own: the signature check
+refuses it, the job ends with the file discarded, and a download already
+staged is left as it was. It is how a test drives the download without
+adding to the firmware file's count, which counts installs. `new` in the check's answer is the version order of
 `v<major>.<minor>.<patch>` tags; an installed version that is not one (a
 development build's stamp) is older than every release. The dismissed
 release is the settings key `update_dismissed`.
@@ -235,7 +239,7 @@ signature before writing, and re-verify the written filesystem.
 | `GET /update/release` | The last answer of the release check: `available`, `version`, `current`, `new`, `published`, `bytes`, `notes`, `detail`, `checked`, `dismissed` |
 | `POST /update/check` | Check the latest release now; answers as `GET /update/release` |
 | `POST /update/dismiss?version=<tag>` | Dismiss the alert for that release (an empty version undoes it) |
-| `POST /update/download` | Download the `.fw` to `/data` |
+| `POST /update/download` | Download the `.fw` to `/data`; `probe=1` fetches the release's acceptance record instead, which is refused and discarded |
 | `POST /update/apply` | Verify and apply to the inactive slot, verify the written slot |
 | `POST /update/upload` | Streamed multipart upload to `/data` |
 | `GET /update/status` | The background job's state |
