@@ -31,8 +31,15 @@ It runs on Linux, macOS, and Windows.
 ## Start from the template
 
 ```sh
-tools/ffx new mypackage --id org.example.mypackage --runtime python
+tools/ffx keygen me          # me.priv, which you keep to yourself, and me.pub
+tools/ffx new mypackage --id org.example.mypackage --runtime python --key me.pub
 ```
+
+`ffx new` makes the package's repository: the package itself, and the
+repository's own files around it ([A repository for your
+package](#a-repository-for-your-package)). The directory must not exist,
+or hold nothing but a clone's `.git`, so a new repository on GitHub can be
+cloned first and the package made in it.
 
 The id is yours for good: it names the package's directories on every
 machine it is installed on, and an update must keep it. It is reverse-DNS,
@@ -52,12 +59,12 @@ inside a page).
 A native service is built on the author's computer and packed as a
 binary. A static one needs nothing of the machine's; one that looks up a
 name (`getaddrinfo`) is better linked against the C library, which then
-reads the machine's own resolver configuration. The template's source says
-how; on Debian and Ubuntu:
+reads the machine's own resolver configuration. The repository's
+`Makefile` builds `bin/run` static from `src/` with the cross compiler
+before it stages the package; on Debian and Ubuntu:
 
 ```sh
 apt install gcc-arm-linux-gnueabihf
-arm-linux-gnueabihf-gcc -static -O2 -Wall -o bin/run src/main.c
 ```
 
 A package may be a service and a page at once: a service runtime that also
@@ -199,8 +206,10 @@ The panel's dev server in the `forgectrl` repository installs a package
 from its directory in its mock of the machine:
 
 ```sh
-python3 tools/devserver.py --package ../mypackage
+python3 tools/devserver.py --package ../mypackage/build/pkg
 ```
+
+`make stage` lays that directory out first.
 
 Then open <http://127.0.0.1:8081/#system> and press **Open** beside the
 package. The page is read fresh from `ui/index.html` at every Open, its
@@ -217,9 +226,16 @@ a machine.
 ## Check it, and pack it
 
 ```sh
-tools/ffx lint mypackage
-tools/ffx pack mypackage --key me.priv
+make -C mypackage lint                  # make stage, then ffx lint build/pkg
+make -C mypackage pack KEY=../me.priv   # make stage, then ffx pack build/pkg
 ```
+
+Both judge the package as it ships, which `make stage` lays out in
+`build/pkg`: the manifest, and those of `ui`, `bin`, `lib`, and `share`
+that the package has, and nothing of the repository's own files. `FFX`
+names forgeext's `tools/ffx` (by default, `../forgeext/tools/ffx`, a
+sibling checkout). `ffx lint` of the repository itself says so, since the
+repository's files are not the package's.
 
 `lint` judges the package the way the machine will, in the machine's
 words, and stops where the machine would: the manifest, the capabilities,
@@ -252,7 +268,7 @@ with no key added: the catalog names your key for your package's id.
 ## Put it on a machine
 
 ```sh
-tools/ffx install mypackage-0.1.0.ffx --machine 192.0.2.10 --grant hold
+tools/ffx install mypackage/build/org.example.mypackage.ffx --machine 192.0.2.10 --grant hold
 tools/ffx logs --machine 192.0.2.10 --id org.example.mypackage --follow
 ```
 
@@ -276,16 +292,19 @@ release. OpenGlow's own packages are examples:
 | [`forgefirm-extension-alignment`](https://github.com/openglow-org/forgefirm-extension-alignment) | The smallest: a page, and nothing that runs on the machine |
 | [`forgefirm-extension-automation`](https://github.com/openglow-org/forgefirm-extension-automation) | A native service built for the machine, and its page, with unit tests and a test under the real extension host |
 
-A repository like them holds:
+`ffx new` makes a repository like them. It holds:
 
 | Path | What it is |
 |---|---|
-| `manifest.json`, and the package's files | The package, as `ffx new` made it |
-| `Makefile` | A `stage` target that lays out what the package ships in `build/pkg`, and nothing of the repository's own files, source, or tests |
-| `key.pub` | The public half of the key that signs the package ([Sign it](#sign-it)) |
+| `manifest.json`, and the package's files | The package, from the template of its runtime, with the kit's client |
+| `Makefile` | `stage` lays out what the package ships in `build/pkg`, and nothing of the repository's own files, source, or tests; `lint` and `pack` judge and pack `build/pkg`. For a native service it also builds `bin/run` |
+| `key.pub` | The public half of the key that signs the package ([Sign it](#sign-it)), from `ffx new --key` |
 | `.github/workflows/package.yml` | A call to forgeext's shared workflow |
+| `.gitignore`, `README.md` | What git leaves out (`build/`, and `bin/` for a native service), and a README that points here |
 
-The call, with the inputs a native service needs:
+Add the package's own tests to its `Makefile` and name them in the
+workflow's inputs. The call `ffx new` writes for a native service asks for
+the cross compiler; the automation package's call also runs its tests:
 
 ```yaml
 name: package
