@@ -66,7 +66,14 @@ GitHub for it, that once: the machine never fetches it on its own. It
 lists each package with who wrote it, what it says it does, and what it
 asks to be allowed, and marks the ones this machine has installed.
 
-**Get** fetches that one package, checks that it is the very archive the
+The catalog can list more than one version of a package. The card shows
+the newest version that runs on this machine's firmware, and **Get**
+fetches that version. If a newer version needs a newer firmware, the card
+says so. If no version runs on this firmware, the card says why and has no
+Get button. After a firmware update, the card shows what the new firmware
+runs, with no new fetch.
+
+**Get** fetches the package, checks that it is the very archive the
 catalog lists, and shows it to you as an upload is shown. Then you install
 it or discard it, as above. A package OpenGlow makes reads as
 **Official**. Every other listed package is signed with its author's key,
@@ -76,11 +83,19 @@ before it listed it; that is not a test, and nobody vouches for it. What
 it takes to be listed is the
 [listing policy](../developers/extension-listing.md).
 
-When a package is taken out of the catalog, a copy you installed stays
-installed, and the machine removes nothing on its own. An update of it
-then reads as unverified, and the machine refuses it, because an update
-must be signed with the key that signed the installed version. Remove it
-if you no longer want it.
+The machine never goes back to a catalog older than the one it has.
+
+OpenGlow can withdraw a package, or one version of it:
+
+- A copy you installed stays installed. The machine removes nothing on its
+  own. The package's card says that OpenGlow withdrew it, and why.
+- A withdrawn version does not install again, from the catalog or from a
+  file.
+- When a whole package is withdrawn, an update of it reads as unverified,
+  and the machine refuses it, because an update must be signed with the
+  key that signed the installed version.
+
+Remove a withdrawn package if you no longer want it.
 
 ## Keys you trust
 

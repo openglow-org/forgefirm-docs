@@ -104,61 +104,129 @@ is removed on every path out.
 
 ## The signed index
 
-The catalog the panel shows is one file, `index.ffi`: an archive of the
+The catalog the panel shows is one file, `index-1.ffi`: an archive of the
 package container's own form whose `meta-product` is
 `ForgeFIRM extension index`, signed with the OpenGlow extension key and by
-nothing else, holding one file, `index.json`, of at most 1 MiB. No owner
-key and no endorsed key speaks for an index, and the product gate holds
-both ways: an index is never a package, and a package is never an index.
+nothing else, holding one file, `index.json`, of at most 1 MiB. Its
+`meta-version` is the index's own version, `YYYY.MMDD.N`. No owner key and
+no endorsed key speaks for an index, and the product gate holds both ways:
+an index is never a package, and a package is never an index.
 
-`index.json` is `{"index": 1, "packages": [...]}`, at most 256 entries,
-each id once:
+**One index serves every firmware.** `index.json` is
+`{"index": 1, "packages": [...], "withdrawn": [...]}`. The `1` is the
+schema, and the file's name carries it too: a catalog that changes its form
+publishes `index-2.ffi` beside `index-1.ffi`, and each machine goes on
+reading the file its firmware knows. A field the host does not know is
+passed over at every level, so a catalog that adds one is still kept by an
+older machine.
+
+The index lists at most 512 packages, each id once:
 
 | Field | Holds |
 |---|---|
 | `id` | The package id |
 | `name`, `author` | Text, at most 64 and 128 bytes |
 | `description`, `license` | Text, optional, at most 256 and 64 bytes |
-| `version` | The listed version |
-| `url` | Where the archive is fetched: `https://`, no user or password, at most 1024 bytes |
 | `homepage` | Optional, `https://` |
-| `sha256`, `size` | The archive's SHA-256 (64 lowercase hex digits) and its size in bytes, at most 32 MiB |
-| `capabilities` | What its manifest asks for, each a capability the host knows |
 | `key` | The author's Ed25519 public key, as fwup writes it: required for an id outside OpenGlow's namespace, and refused for one inside it |
+| `versions` | 1 to 16 listed versions, each version once |
+| `withdrawn` | Optional: at most 64 versions that OpenGlow withdrew, each `{"version", "reason"}`, none of them also listed |
 
-An index that breaks any of it is refused whole, and the one kept stays.
+Each listed version:
 
-**The endorsement.** A package signed with the key the index names for its
-id reads as **Community** on a machine whose owner never added that key,
-and `inspect` says `endorsed: true`. The key speaks for that id alone: an
-archive under another id signed with it is judged as signed by nobody.
+| Field | Holds |
+|---|---|
+| `version` | The version |
+| `url` | Where the archive is fetched: `https://`, no user or password, at most 1024 bytes |
+| `sha256`, `size` | The archive's SHA-256 (64 lowercase hex digits) and its size in bytes |
+| `capabilities` | What its manifest asks for: at most 64 names, each printable text with no space |
+| `api` | Optional: the extension API its manifest names |
+| `core` | Optional: the firmware range its manifest names, `{"min", "max"}`, each a version. The catalog can narrow a range after the listing, and never widens it |
+
+The top-level `withdrawn` names the packages that OpenGlow withdrew whole,
+at most 512, each `{"id", "key", "reason"}`. The `key` follows the rule of a
+listed package, and no id is both listed and withdrawn.
+
+An index whose form breaks any of these rules is refused whole, and the
+index kept stays. The form is all that keeping an index judges.
+
+**Judged when read.** Whether a version runs on this firmware is judged
+when the index is read (`forgeext index`), never when it is kept. Thus a
+newer catalog never stops an older machine from keeping it, and after a
+firmware update the machine sees what it now runs with no new fetch. A
+version is usable when all of these are true:
+
+- The firmware's version is inside the version's `core` range. A dev
+  image's version is a build stamp and not a version, so no range is
+  judged there, and the answer's `core_checked` says so.
+- Its `api` is the extension API this firmware serves.
+- This firmware has every capability it asks for.
+- Its size is at most what this firmware takes, 32 MiB.
+
+Each version gets `usable`, and `why` when it is not usable. Each package
+gets `offer`, the newest usable version, or null. With no offer, the
+package also gets `why`: the newest listed version, and what keeps it off
+this firmware. The judgment belongs to the reading, and it is never written
+into the index kept.
+
+**The endorsement.** A package signed with the key that the index names for
+its id reads as **Community** on a machine whose owner never added that
+key, and `inspect` says `endorsed: true`. One author's key can be named for
+several ids, and it speaks for each of them. It speaks for those ids alone:
+an archive under another id signed with it is judged as signed by nobody.
 Pinning holds as for every package: an update is signed by the key that
 signed the installed version.
 
-**Kept.** `forgeext index-verify` checks the archive, lays out
-`index.json` (with the index's version and each key's id added) and one
-`keys/<id>.pub` for each endorsed key, and swaps them in whole under the
-host's lock. When a listing is withdrawn, the next index no longer names
-its key, so an archive signed with it reads as unverified from then on.
-The installed version stays as it is, and an update of it is refused by
-pinning. A change of owner leaves the index: it is OpenGlow's, not the
-owner's.
+**Never back.** An index older than the one kept is refused, however well
+it is signed. An index that OpenGlow signed once stays signed, so a copy of
+an old one would list again what was withdrawn after it. The same version
+again is kept.
+
+**Withdrawn.** A withdrawal names the listed package: its id, signed with
+the key that the index names for it (in whichever key directory the machine
+finds that key), or with the OpenGlow extension key in OpenGlow's own
+namespace. An archive of the same id under another key is another package.
+
+- A **withdrawn version** does not install, from the catalog or from a
+  file: `inspect` and `install` refuse it in OpenGlow's words, with its
+  reason.
+- A **package withdrawn whole** is out of the catalog, and its key endorses
+  nothing. An archive signed with that key reads as unverified, unless the
+  owner added the key. Then the owner's key speaks for it, and `inspect`
+  shows the withdrawal (`withdrawn`, with the reason) for the owner to
+  judge.
+- An installed copy of either stays installed. The machine removes nothing
+  on its own, and `list` names the withdrawal: `withdrawn` is
+  `{"scope": "version" or "package", "reason"}`, or null. An update of a
+  package withdrawn whole is judged as signed by nobody, and pinning
+  refuses it.
+
+**Kept.** `forgeext index-verify` checks the archive, lays out `index.json`
+(with the index's version and each named key's id added) and one
+`keys/<id>.pub` for each listed package's key, and swaps them in whole under
+the host's lock. A change of owner leaves the index: it is OpenGlow's, not
+the owner's.
 
 **Where it comes from.** forgectrl fetches it only when the operator asks
 ([The catalog](#the-catalog)), from one fixed address:
-`https://github.com/openglow-org/forgefirm-extensions/releases/latest/download/index.ffi`.
-The hosting is not trusted; the signature is. What it takes to be listed
-is the [listing policy](../../developers/extension-listing.md).
+`https://github.com/openglow-org/forgefirm-extensions-catalog/releases/latest/download/index-1.ffi`.
+The hosting is not trusted; the signature and the version are. How a
+package is listed, and how the index is built and published, is the
+[listing policy](../../developers/extension-listing.md).
 
-The acceptance test `exthost.catalog` proves it on the image: the
-machine's own `forgeext` keeps an index signed with a stand-in for the
-extension key on a scratch root, and the key it endorses makes that one id
-community and no other; on the machine's own root it refuses every index
-that key did not sign, and a package handed over as one; and forgectrl's
-catalog routes refuse before they fetch, and leave nothing staged. It
-never requests the index's address, because GitHub counts every request
-of it as a download and that count is the operators'; the fetch itself is
-proven by forgectrl's host test with a stand-in for curl.
+The acceptance test `exthost.catalog` proves it on the image. On a scratch
+root, the machine's own `forgeext` keeps an index signed with a stand-in
+for the extension key, and the key it endorses makes that one id community
+and no other. Read back, a version that asks for a capability the firmware
+does not have is kept and not offered, and the offer is the newest version
+it runs. An older index is refused, and an index that withdraws the probe's
+version makes the probe refuse to install. On the machine's own root, the
+host refuses every index that key did not sign, and a package handed over
+as one. forgectrl's catalog routes refuse before they fetch, and leave
+nothing staged. The test never requests the index's address, because
+GitHub counts every request of it as a download, and that count is the
+operators'. The fetch itself is proven by forgectrl's host test with a
+stand-in for curl.
 
 ## The manifest
 
@@ -458,7 +526,8 @@ forgectrl's descriptors (it holds the pulse device).
 `host` (the host's own status file with `running: true`, or `running:
 false` alone when no host is alive behind it), and `packages` (the host's
 `list`: id, version, tier, key, enabled, quarantined, grants, the hold's
-kind, the account, the manifest, and `effective` - the capabilities the
+kind, the account, the manifest, `withdrawn` (what the kept index says
+OpenGlow withdrew of it, or null), and `effective` - the capabilities the
 package may use, which is what needs no grant together with what the
 operator granted. That last one is the list anything deciding what a
 package may do reads, the panel's bridge included: the manifest's own
@@ -506,9 +575,11 @@ refused one, for another try.
 
 ### The catalog
 
-`GET /ext/catalog` answers the host's `index` (`index`: the kept document,
-or `null` when none is kept) and `url`, the address the index is fetched
-from. Nothing reaches the network until the operator asks:
+`GET /ext/catalog` answers the host's `index`: `index`, the kept document
+judged against this firmware ([judged when read](#the-signed-index)), or
+`null` when none is kept; `core_version` and `core_checked`, the firmware
+version it was judged by; and `url`, the address the index is fetched from.
+Nothing reaches the network until the operator asks:
 
 - `POST /ext/catalog/refresh` fetches the index with curl (`https` alone,
   redirects included, at most 2 MiB and 30 s, under curl's own name) into
@@ -516,15 +587,18 @@ from. Nothing reaches the network until the operator asks:
   the file, and answers as `GET /ext/catalog` does. A fetch that fails is
   `502` in curl's words, and the host's refusal is `409` in its words; the
   index kept stays as it was.
-- `POST /ext/catalog/get` (`id`) reads the entry from the kept index,
-  never from the request, and fetches the archive from its `url` into the
-  staging file, bounded by the entry's `size` and 240 s. The bytes are held
-  to that size and that SHA-256 before the host reads any of them. From
-  there it is an upload: the answer is the host's `inspect` with `consent`
-  and `catalog` added, and `POST /ext/install` follows as above. Bytes that
-  are not the listed archive, and an archive of another package than the
-  id asked for, are refused with `409` and not kept; an id the index does
-  not list is `404`, and with no index kept it is `409`.
+- `POST /ext/catalog/get` (`id`) reads the package from the kept index,
+  never from the request, and takes the version the host offers: the
+  newest one this firmware runs. It fetches that version's archive from its
+  `url` into the staging file, bounded by its `size` and 240 s. The bytes
+  are held to that size and that SHA-256 before the host reads any of them.
+  From there it is an upload: the answer is the host's `inspect` with
+  `consent` and `catalog` added, and `POST /ext/install` follows as above.
+  Bytes that are not the listed archive, and an archive of another package
+  or another version than the one offered, are refused with `409` and not
+  kept. A package with no version this firmware runs is `409`, with the
+  host's reason, before anything is fetched. An id the index does not list
+  is `404`, and with no index kept it is `409`.
 
 The fetch of a package is gated as the upload is (the machine idle, no
 lease in the way), and the one staging file is the upload's or the
@@ -1158,7 +1232,7 @@ error with exit 2. `key-add <name> -` reads the key from standard input.
 |---|---|
 | `inspect <file.ffx>` | Everything an install checks short of consent and grants, with nothing left behind: the tier, the manifest, what needs a grant, what is new against the installed version, whether it is a downgrade |
 | `install <file.ffx> [--grant <capability>]... [--consent-community] [--consent-unverified]` | Installs, or refuses in words |
-| `list` | What is installed |
+| `list` | What is installed, with what the kept index says was withdrawn of each |
 | `check [<id>]` | The integrity check |
 | `remove <id> [--keep-data]` | Removes the package and, unless told otherwise, its data |
 | `wipe` | Every package, everything under `data/`, and the owner's keys: [a change of owner](#a-change-of-owner), and nothing an operator reaches |
@@ -1171,8 +1245,8 @@ error with exit 2. `key-add <name> -` reads the key from standard input.
 | `call <id> GET\|POST <path> [<json>] [--call-dir <dir>] [--cg-parent <dir>]` | One call from the package's page to its own service; `status` and `body`, the service's answer ([A page and its own service](#a-page-and-its-own-service)) |
 | `wizard <id> state\|start\|answer\|abort [<json>]` | One step of the package's check on the Setup page, to its service: its status and body ([A package's check on the Setup page](#a-packages-check-on-the-setup-page)) |
 | `mcode <n> [<json>]` | `M<n>` of a job, with its words (an object of `P`, `Q`, and `R`), to the service that answers it: its status and body ([A package's M-code](#a-packages-m-code)) |
-| `index-verify <file.ffi>` | Verifies the [signed index](#the-signed-index) and keeps it in place of the last; `version` and the number of `packages` |
-| `index` | The index this host keeps, or `null` |
+| `index-verify <file.ffi>` | Verifies the [signed index](#the-signed-index) and keeps it in place of the last, never one older than it; `version` and the number of `packages` |
+| `index` | The index this host keeps, judged against this firmware (`usable` and `why` for each version, `offer` for each package), or `null`; and `core_version` and `core_checked` |
 | `caps` | The capability list and the API version |
 | `net-check` | Whether the image's deny table is loaded |
 | `net-allow <uid> [--listen <port>] [--dns] [<host>:<port>]...` | A service's chain in the deny table, as the host installs it when a service starts |

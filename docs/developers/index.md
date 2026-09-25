@@ -38,6 +38,7 @@ repository is checked out into one base working directory,
 | [`python3-gfhardware`](https://github.com/openglow-org/python3-gfhardware) | The `gfhardware` Python library for the machine hardware, and the cloud-mode applications in `forgefirm-app/`: `gfcloud.py` (the cloud-mode controller daemon), `gfhome.py` (one-shot homing through the Glowforge service), and `ffmachine.py` (the hardware glue that both use). [Cloud mode](../technical/forgefirm/cloud-mode.md) describes cloud mode. | MIT, with one LGPL-2.1-or-later component (see Licenses) |
 | [`Glowforge-Utilities`](https://github.com/openglow-org/Glowforge-Utilities) | `gfutilities`, on PyPI: the factory protocol and service layer that cloud mode uses. It includes a machine emulator that speaks the real-time protocol without hardware. | MIT |
 | [`forgefirm-docs`](https://github.com/openglow-org/forgefirm-docs) | This site. | CC BY-SA 4.0 |
+| [`forgefirm-extensions-catalog`](https://github.com/openglow-org/forgefirm-extensions-catalog) | OpenGlow's catalog of extension packages: a record for each listed version, each package's author key, and what OpenGlow withdrew. Its workflow checks each pull request, and signs and publishes the index that machines fetch ([List a package in the catalog](extension-listing.md)). It is not part of the image. | MIT |
 
 ## How the components connect
 

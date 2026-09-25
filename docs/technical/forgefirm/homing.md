@@ -94,7 +94,7 @@ Completion is guarded:
   failure, not a homing.** Position counters advancing are not proof of
   motion.
 - **A motion that does not run whole fails the session** at its end:
-  cancelled, stopped short (a fault, the cooling engine's stop), or ended
+  canceled, stopped short (a fault, the cooling engine's stop), or ended
   with no step totals on record. The service goes quiet after it all the
   same, and the head is short of the home.
 
