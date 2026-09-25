@@ -52,7 +52,10 @@ shadows the core's homing cycle. Under `gfcloud`:
    so the handover opens and closes no device and never moves the 40 V rail
    ([forgectrl](forgectrl.md)). The runner's configuration is
    `/data/forgefirm/gfhome.conf`, seeded from `/etc/gfhome.conf.sample` on first
-   run.
+   run. The runner also reports job state to the cooling engine in the
+   driver's place, which reports nothing while the session runs, so the
+   driver hands it the report channel's secret at its spawn
+   ([The cooling engine](cooling-engine.md)).
 3. While the session runs, the driver **pumps the Grbl protocol**, so the
    sender keeps getting status reports and does not time out. What the service
    does during it is the factory's own camera homing
@@ -90,6 +93,10 @@ Completion is guarded:
 - **A quiet service without an accelerometer-witnessed motion window is a
   failure, not a homing.** Position counters advancing are not proof of
   motion.
+- **A motion that does not run whole fails the session** at its end:
+  cancelled, stopped short (a fault, the cooling engine's stop), or ended
+  with no step totals on record. The service goes quiet after it all the
+  same, and the head is short of the home.
 
 After the service goes quiet the lens takes the run's one reference, on the
 hall sensor's edge, and the driver places it in Z.

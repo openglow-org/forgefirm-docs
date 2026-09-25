@@ -697,8 +697,14 @@ mode=idle|run|cooldown & armed=0|1 [& model=density|analog]
   header `X-ForgeFIRM-Report`, and the route refuses a report without it
   (403). A reap ends the secret, so nothing reports for a controller that is
   gone. Both clients read it once and take it out of their environment, so
-  nothing they start (the homing runner) inherits it, and neither puts a
-  value in a header that is not 32 hex digits. The secret is never logged.
+  nothing they start inherits it, with one exception: the GRBL controller
+  hands it to the homing runner at the runner's spawn. The runner reports in
+  the controller's place while a camera home holds the machine, and the
+  controller reports nothing then ([Homing](homing.md)); without the secret
+  every one of the runner's reports is refused, the engine hears silence,
+  and the hung-controller dead-man stops the session's first motion. Neither
+  client puts a value in a header that is not 32 hex digits. The secret is
+  never logged.
 - **Level-triggered, repeated at ~1 Hz** while the controller runs, not
   edge-triggered events. A lost report self-heals on the next one.
 - `armed` = the laser is armed (fire possible). The engine forces the run
