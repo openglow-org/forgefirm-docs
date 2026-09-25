@@ -7,7 +7,8 @@ title: Write an extension package
 This page is for the author of a package. What a package is, what the
 machine takes, and what a package may reach are in
 [Extension packages](../technical/forgefirm/extensions.md); this page is
-how to make one, test it, sign it, and put it on a machine.
+how to make one, test it, sign it, put it on a machine, and keep it in a
+repository that publishes it.
 
 ## The kit
 
@@ -263,3 +264,89 @@ tier takes: nothing more for Official, the typed phrase for Community, and
 the button held for Unverified. A grant is given only when it is named
 with `--grant`. `logs` shows the extension host's log, a package's own
 lines with `--id`: everything a service prints is there.
+
+## A repository for your package
+
+A package can live in a repository of its own, whose workflow tests and
+packs it on every push, and signs and publishes each new version as a
+release. OpenGlow's own packages are examples:
+
+| Repository | Shows |
+|---|---|
+| [`forgefirm-extension-alignment`](https://github.com/openglow-org/forgefirm-extension-alignment) | The smallest: a page, and nothing that runs on the machine |
+| [`forgefirm-extension-automation`](https://github.com/openglow-org/forgefirm-extension-automation) | A native service built for the machine, and its page, with unit tests and a test under the real extension host |
+
+A repository like them holds:
+
+| Path | What it is |
+|---|---|
+| `manifest.json`, and the package's files | The package, as `ffx new` made it |
+| `Makefile` | A `stage` target that lays out what the package ships in `build/pkg`, and nothing of the repository's own files, source, or tests |
+| `key.pub` | The public half of the key that signs the package ([Sign it](#sign-it)) |
+| `.github/workflows/package.yml` | A call to forgeext's shared workflow |
+
+The call, with the inputs a native service needs:
+
+```yaml
+name: package
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    uses: openglow-org/forgeext/.github/workflows/package.yml@main
+    with:
+      apt: gcc-arm-linux-gnueabihf
+      test: make test
+      host-test: make host && python3 -B tests/automation_test.py
+    secrets: inherit
+```
+
+| Input | Default | What it is |
+|---|---|---|
+| `stage` | `make stage` | The command that lays out the package as it ships |
+| `dir` | `build/pkg` | Where `stage` lays it out |
+| `test` | none | The package's own tests |
+| `host-test` | none | A test under the real extension host, run as root with `FORGEEXT`, `FWUP`, `FFX`, `MKFFX`, and `FFX_RULES` set |
+| `apt` | none | Ubuntu packages the build needs, such as a cross compiler |
+| `public-key` | `key.pub` | The public half of the signing key |
+| `environment` | `extension-signing` | The environment whose secret signs a release |
+| `forgeext-ref` | `main` | The forgeext revision whose kit judges and packs the package |
+
+On every push and pull request, the workflow runs the package's own tests,
+runs `stage`, lints the result as the machine judges it
+([Check it, and pack it](#check-it-and-pack-it)), packs it, and runs the test
+under the real extension host.
+
+On a push to `main`, when the manifest names a version that has no release
+yet, the workflow does these steps:
+
+1. It stages the package again, and lints it.
+2. It signs the package with `EXTENSION_SIGNING_KEY`, the secret of the
+   repository's `extension-signing` environment: the private half of your
+   key, as `ffx keygen` wrote it. `ffx pack` checks the signature against
+   `key.pub` before the step ends, so a secret that is not that key
+   publishes nothing.
+3. It writes the package's catalog record with `ffx index record`, for the
+   address the release gives the archive.
+4. It publishes `<id>-<version>.ffx` and the record, `<version>.json`, as
+   release `v<version>`.
+
+A version that has a release publishes nothing again: a change ships under
+a new version in the manifest. Give the environment one deployment branch,
+`main`, so that no pull request and no other branch receives the key. To
+list the new version in the catalog, add its record as
+`packages/<id>/<version>.json` in a pull request to the catalog
+([Asking for a listing](extension-listing.md#asking-for-a-listing)).
+
+A workflow of your own can use forgeext's kit alone: check out forgeext at
+`.forgeext`, then `uses: ./.forgeext/.github/actions/kit`. The kit installs
+fwup 1.16.0 and sets `FFX`, `MKFFX`, `FWUP`, and `FORGEEXT_SRC`. With
+`host: true` it also builds the extension host and fetches the image's deny
+rules, and sets `FORGEEXT` and `FFX_RULES`.

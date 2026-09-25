@@ -151,7 +151,7 @@ package says it could not do its part, or does not answer in 30 s, the job
 is held with a message that says why: resume it to go on without what the
 M-code was for, or stop it. A job that names one no package answers stops
 at that line with `error:20`, as for any unsupported command. See
-[Extensions](extensions.md).
+[Extensions](extensions/index.md).
 
 ## Lid, interlock, and button
 

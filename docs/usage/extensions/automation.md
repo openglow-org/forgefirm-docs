@@ -20,17 +20,20 @@ it by rules you make on its page:
 
 !!! danger "Read the Safety page first"
 
-    ForgeFIRM is not the manufacturer's firmware. Read [Safety](../safety/index.md)
+    ForgeFIRM is not the manufacturer's firmware. Read [Safety](../../safety/index.md)
     before you run a job. A rule that turns the exhaust on is a help, not a
     safety device: look at the exhaust before you start a job.
 
-It is a package like any other ([Extensions](extensions.md)), with a service
+It is a package like any other ([Extensions](index.md)), with a service
 that runs on the machine and a page in the panel.
 
 ## Installing it
 
-Upload `org.openglow.automation-<version>.ffx` in the **Extension packages**
-card. It asks to:
+Get it from the [catalog](index.md#the-catalog) on the **Extension
+packages** card. You can also upload `org.openglow.automation-<version>.ffx`
+from the releases of its repository,
+[openglow-org/forgefirm-extension-automation](https://github.com/openglow-org/forgefirm-extension-automation/releases).
+Either way it reads as **Official**. It asks to:
 
 | Capability | For |
 |---|---|
@@ -97,7 +100,7 @@ confirm*. When the plug does not answer that it is on in time, the hold
 stays, and says *it did not confirm*: the job does not fire. It goes when
 the job ends. Every way out of an extension's hold works here too: turning
 the package off, turning extensions off, or removing the package ends it
-at once ([Holds](extensions.md#holds)).
+at once ([Holds](index.md#holds)).
 
 ## What it shows you
 
@@ -111,4 +114,4 @@ and which actions are waiting to run.
 It sends no email, and it does not reach an MQTT broker that takes only
 encrypted connections. It reaches nothing you did not name, and never the
 machine itself. How it works is on its technical page
-([Notifications and automation](../technical/forgefirm/automation.md)).
+([Notifications and automation](../../technical/forgefirm/automation.md)).

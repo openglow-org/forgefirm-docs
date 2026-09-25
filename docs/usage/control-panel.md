@@ -212,7 +212,7 @@ package cannot speak for itself.
 Turning extensions on shows you the Extensions advisory and takes the typed
 phrase. Installing takes the consent of the package's tier: the login for
 an official package, the typed phrase for a community one, and the
-machine's button held for an unverified one. [Extensions](extensions.md) is
+machine's button held for an unverified one. [Extensions](extensions/index.md) is
 the page for all of it.
 
 #### Keys you trust
@@ -220,7 +220,7 @@ the page for all of it.
 Below it, the keys this machine trusts besides OpenGlow's own. A package
 signed with one of them reads as Community instead of Unverified. Adding a
 key takes the machine's button held, because what you add is what the
-machine will trust from then on ([Extensions](extensions.md#keys-you-trust)).
+machine will trust from then on ([Extensions](extensions/index.md#keys-you-trust)).
 
 #### API tokens
 
@@ -265,12 +265,12 @@ offset diagnostic's Apply button.
 | `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `waiting` with `why` naming what is open, `motion-fault`, or `gated` with `why`), pid, motion verdict |
 | `POST /mode?controller=grbl\|cloud` | Live idle-gated mode switch; also the retry lever after a motion fault |
 | `GET /extensions` | The Extension packages page |
-| `GET /ext/status` | What is installed, what is running, and the keys you trust ([Extensions](extensions.md)) |
+| `GET /ext/status` | What is installed, what is running, and the keys you trust ([Extensions](extensions/index.md)) |
 | `POST /ext/package` | Enable, disable, remove, remove and keep data, or mark one package's hold required or advisory |
 | `POST /ext/upload` | Stage an archive and read back what it is: its tier, what it asks for, and what consent it takes |
 | `POST /ext/install` | Install the staged archive, with the grants and the consent its tier takes |
 | `POST /ext/upload/discard` | Throw the staged archive away |
-| `GET /ext/catalog`, `POST /ext/catalog/refresh`, `POST /ext/catalog/get` | The catalog this machine keeps, fetching a fresh one, and fetching the version of one listed package that this firmware runs, to stage it as an upload ([Extensions](extensions.md#the-catalog)) |
+| `GET /ext/catalog`, `POST /ext/catalog/refresh`, `POST /ext/catalog/get` | The catalog this machine keeps, fetching a fresh one, and fetching the version of one listed package that this firmware runs, to stage it as an upload ([Extensions](extensions/index.md#the-catalog)) |
 | `POST /ext/key`, `POST /ext/key/remove` | Add or remove a key you trust; adding one takes the machine's button held |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever: stop halts the active controller and holds supervision suspended; start resumes it ([Modes](modes.md)) |
 | `POST /motion/jog?x=&y=&z=&feed=`, `POST /motion/cancel`, `GET /motion/state` | A bounded jog beside the Grbl client, its cancel, and the controller's own state; `POST /motion/release`, `/motion/energize`, and `/motion/home` are the panel's motor release and manual home ([forgectrl](../technical/forgefirm/forgectrl.md#http-api)) |

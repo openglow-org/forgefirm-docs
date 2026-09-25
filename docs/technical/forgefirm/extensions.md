@@ -772,7 +772,7 @@ every way out, and opens that page through the panel's own frame and bridge
 in both browsers this project tests, and connection hints get past it at
 low bandwidth. A package with a page can therefore send a little data out
 of the operator's browser. That is named here and on the operator's own
-page ([Extensions](../../usage/extensions.md#a-packages-own-page)), and a
+page ([Extensions](../../usage/extensions/index.md#a-packages-own-page)), and a
 package without a page cannot do it at all.
 
 **The label above the frame is the panel's**, outside the frame: the name

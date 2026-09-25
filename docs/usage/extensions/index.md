@@ -12,12 +12,12 @@ on, and everything about them is on the panel's System tab, in the
 
 !!! danger "Read the Safety page first"
 
-    ForgeFIRM is not the manufacturer's firmware. Read [Safety](../safety/index.md)
+    ForgeFIRM is not the manufacturer's firmware. Read [Safety](../../safety/index.md)
     before you run a job.
 
 What a package runs inside, the API it reaches the machine through, and how
 a hold reaches the cooling engine are in
-[Extension packages](../technical/forgefirm/extensions.md).
+[Extension packages](../../technical/forgefirm/extensions.md).
 
 ## Turning extensions on
 
@@ -81,7 +81,7 @@ which the catalog names for that package alone, so it reads as
 **Community** and you type `I UNDERSTAND` to install it. OpenGlow read it
 before it listed it; that is not a test, and nobody vouches for it. What
 it takes to be listed is the
-[listing policy](../developers/extension-listing.md).
+[listing policy](../../developers/extension-listing.md).
 
 The machine never goes back to a catalog older than the one it has.
 
@@ -133,7 +133,7 @@ jobs do. A package that answers an M-code (one of M160 to M179, which you
 put in your own job) holds that job at the M-code until it answers, with the
 head still and the laser dark; if it does not answer, or says it could not
 do its part, the job is held for you to resume or stop
-([GRBL mode](grbl-mode.md#m-codes-an-extension-answers)). It can
+([GRBL mode](../grbl-mode.md#m-codes-an-extension-answers)). It can
 send to the network only where its capabilities say, and never to the
 machine itself.
 
@@ -216,7 +216,7 @@ credentials of services it talks to, so removing it removes those too.
 ## Its log
 
 Every package's output is in the `forgeext` logger, under the package's id,
-in the panel's Logs tab and in an export ([Logging](logging.md)). The
+in the panel's Logs tab and in an export ([Logging](../logging.md)). The
 machine's own account of what it started, froze, held, and set aside is
 there too.
 

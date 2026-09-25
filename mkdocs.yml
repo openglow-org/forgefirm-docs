@@ -128,9 +128,10 @@ nav:
       - Homing: usage/homing.md
       - Cameras: usage/cameras.md
       - Cooling and fans: usage/cooling-and-fans.md
-      - Extensions: usage/extensions.md
-      - Visual alignment: usage/alignment.md
-      - Notifications and automation: usage/automation.md
+      - Extensions:
+        - usage/extensions/index.md
+        - Visual alignment: usage/extensions/alignment.md
+        - Notifications and automation: usage/extensions/automation.md
       - Settings: usage/settings.md
       - Logging: usage/logging.md
       - Diagnostics: usage/diagnostics.md

@@ -73,9 +73,12 @@ OpenGlow can decline a package for another reason, and says which.
 Open a pull request on the catalog repository that adds one version of one
 package:
 
-- `packages/<id>/<version>.json`, the version's record. `ffx index record`
-  writes it from the signed archive, after it checks the signature against
-  your key and judges the package as `ffx lint` does:
+- `packages/<id>/<version>.json`, the version's record. A repository that
+  uses forgeext's shared workflow publishes it with each release
+  ([A repository for your package](extensions.md#a-repository-for-your-package)).
+  Otherwise `ffx index record` writes it from the signed archive, after it
+  checks the signature against your key and judges the package as
+  `ffx lint` does:
 
     ```sh
     tools/ffx index record mypackage-0.1.0.ffx \

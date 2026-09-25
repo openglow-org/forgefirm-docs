@@ -7,15 +7,19 @@ title: Notifications and automation
 `org.openglow.automation` is an official extension package: a native service
 that turns the machine's events into actions by rules, and a page that edits
 the rules. How to use it is on the operator's page
-([Notifications and automation](../../usage/automation.md)); what a package
+([Notifications and automation](../../usage/extensions/automation.md)); what a package
 is, and what holds one, is [Extension packages](extensions.md).
 
 ## The service
 
-One ARMv7 binary linked against the C library alone, in the source tree at
-`forgeext/packages/automation`. It carries its own small JSON, speaks the
-extension API through the kit's `ffx.h`, sends HTTP through the image's
-`curl`, and speaks MQTT itself. Three threads:
+One ARMv7 binary linked against the C library alone. Its source is its own
+repository,
+[openglow-org/forgefirm-extension-automation](https://github.com/openglow-org/forgefirm-extension-automation),
+which is also an example of a package's repository
+([A repository for your package](../../developers/extensions.md#a-repository-for-your-package)).
+It carries its own small JSON, speaks the extension API through the kit's
+`ffx.h` (a copy in its source), sends HTTP through the image's `curl`, and
+speaks MQTT itself. Three threads:
 
 - **the follower** reads the machine's events with `POST /v0/events`
   (starting at the present, so nothing from before the start is acted on)

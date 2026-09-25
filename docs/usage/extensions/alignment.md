@@ -13,17 +13,20 @@ Position**.
 
 !!! danger "Read the Safety page first"
 
-    ForgeFIRM is not the manufacturer's firmware. Read [Safety](../safety/index.md)
+    ForgeFIRM is not the manufacturer's firmware. Read [Safety](../../safety/index.md)
     before you run a job.
 
-It is a package like any other ([Extensions](extensions.md)): it runs in the
+It is a package like any other ([Extensions](index.md)): it runs in the
 panel's sandboxed frame and reaches the machine only through the panel. It
 does not run on the machine at all.
 
 ## Installing it
 
-Upload `org.openglow.alignment-<version>.ffx` in the **Extension packages**
-card. It asks to:
+Get it from the [catalog](index.md#the-catalog) on the **Extension
+packages** card. You can also upload `org.openglow.alignment-<version>.ffx`
+from the releases of its repository,
+[openglow-org/forgefirm-extension-alignment](https://github.com/openglow-org/forgefirm-extension-alignment/releases).
+Either way it reads as **Official**. It asks to:
 
 | Capability | For |
 |---|---|
@@ -114,4 +117,4 @@ the package.
 | `jog_feed` | 3000 | The speed of every jog, in mm/min |
 
 How the page reaches the machine through the panel is in
-[A package's own page](../technical/forgefirm/extensions.md#a-packages-own-page).
+[A package's own page](../../technical/forgefirm/extensions.md#a-packages-own-page).

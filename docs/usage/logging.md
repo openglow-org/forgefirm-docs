@@ -71,7 +71,7 @@ log levels, and the settings with secrets masked. It also carries the log the
 installer kept of each of its runs, when the machine has one
 ([Logging](../technical/forgefirm/logging.md#loggers-and-the-tree)), and
 `system/extensions.json`: what
-[extension packages](extensions.md) are installed, each one's version and
+[extension packages](extensions/index.md) are installed, each one's version and
 tier, whether it is enabled, and what you granted it. A problem on a machine
 running extensions reads differently from the same problem without them, and
 that is the file that says which it is.

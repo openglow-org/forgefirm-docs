@@ -347,7 +347,7 @@ machine's checks. It runs like any other check, with its log, its
 questions, and its result, but it is the package's: nothing of the
 machine's setup waits for it, it is never the next step the page opens,
 and its result is the package's own, which the package uses to decide what
-it may do. See [Extensions](extensions.md).
+it may do. See [Extensions](extensions/index.md).
 
 ## The gate
 
@@ -398,7 +398,7 @@ ten seconds, until the button blinks amber. The setup then asks for a new
 account.
 
 **The extension packages, when there are any.** The account step offers to
-remove every [extension package](extensions.md) on the machine, its data,
+remove every [extension package](extensions/index.md) on the machine, its data,
 and every signing key the last owner added, and the offer is ticked. Take
 it when the machine is changing hands: a package can hold the last owner's
 tokens and credentials, and a key of theirs would go on making their
