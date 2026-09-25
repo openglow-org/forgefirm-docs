@@ -250,6 +250,10 @@ The cloud tests split by what they prove:
   arm still unlocks the latch, so they stay `live`. The offline client is
   left in place. The next test that needs the service restarts it
   (`enter_cloud` does), as does a mode switch or a controller restart.
+  A takeover is the exception: when it finds the offline service running,
+  forgectrl's start at its end is made under the offline marker again, and
+  the takeover fails the run unless the client that comes up listens on
+  the offline socket.
 
 **The coverage maps follow the split.** The protocol test stands for the web
 session, the emulator, and its fixtures. The offline tests stand for the run
@@ -269,8 +273,9 @@ makes the mode switch and the print necessary again.
 **The connect-time hunt is paid only where it is the subject.** A cloud
 client that the tool starts for anything else comes up under the
 `/run/gfcloud-nohunt` marker. That includes the real client back after the
-emulator, a mode that the runner switches to or hands back, and a
-controller that it restarts. Its first
+emulator, a mode that the runner switches to or hands back, a
+controller that it restarts, and forgectrl's start at the end of a
+takeover in cloud mode. Its first
 settings report is the reconnect form, and the service keeps the head
 position it has instead of a homing. The hunt tests (`cloud.mode-switch`,
 `cloud.service-protocol`) get their hunt, and so does the one real print.
