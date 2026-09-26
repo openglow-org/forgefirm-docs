@@ -22,8 +22,8 @@ Machine tab sets it, and the driver re-reads the file on every `$H`:
 - `gfcloud`: camera homing through the Glowforge web service, the same cycle
   the factory machine runs. A cycle takes roughly a minute.
 - `manual`: the operator puts the head against the stop blocks by hand and
-  `$H` declares that spot as `manual_home_x`, `manual_home_y`. Nothing moves
-  ([Manual homing](#manual-homing)).
+  `$H` declares that spot X0 Y0, or minus `manual_home_x`, `manual_home_y`
+  and then jogs the head to X0 Y0 ([Manual homing](#manual-homing)).
 - `switches`: the planned limit-switch cycle. `$H` is refused (error 53).
 - `none`: `$H` is rejected (error 5).
 
@@ -153,20 +153,34 @@ The operator's procedure is [Homing, Manual homing](../../usage/homing.md#manual
 
 `$H` under `manual` is accepted in Idle or Alarm, as every provider is. It
 waits for the kernel to finish any decel tail, energizes X and Y if they are
-released, and then declares the position: `sys.position` X and Y to
+released, and then declares the position: `sys.position` X and Y to minus
 `manual_home_x` and `manual_home_y` on the step grid, X and Y added to the
 homed mask, the kernel counters cleared, and the anchor written with the
-source `manual`. The two keys belong to this provider alone. Unset, they are
-the origin: the stop blocks are X0 Y0. They are never negative (forgectrl
-refuses one, and the driver holds a hand-edited value to 0 up to the axis
-travel, with a log line). The stop blocks are a wall, so the work envelope
-starts at the declared position and ends at the far edges
-([The far edges](#the-far-edges)). There is
-no stream suspend, no runner, and no pulse byte. Z is not touched: its
-position, its reference, and its envelope stay as they were, and since the
-counters are cleared for all three axes the anchor carries the height the
-lens stands at. There is no lid gate, because nothing moves and the lid is
-open while the head is being pushed.
+source `manual`. The two keys are how far in front of the stop blocks the
+origin lies, and they belong to this provider alone. Unset, the stop blocks
+are X0 Y0. They are never negative (forgectrl refuses one, and the driver
+holds a hand-edited value to 0 up to the axis travel, with a log line). The
+work envelope starts at the origin, so the strip between the blocks and the
+origin is outside it, and ends at the far edges
+([The far edges](#the-far-edges)). Z is not touched: its position, its
+reference, and its envelope stay as they were, and since the counters are
+cleared for all three axes the anchor carries the height the lens stands at.
+
+With no offset nothing moves: there is no stream suspend, no runner, and no
+pulse byte. With one, the sender is told where the head was declared, and the
+driver jogs the head to X0 Y0 at the X and Y rate limit through the core's jog
+(`mc_jog_execute`), pumping the protocol until the jog ends and the kernel has
+played its tail, and only then does `$H` answer; a sender's next line never
+meets the jog. The jog is the motion that ships dark whatever the modal
+spindle state is ([The grblHAL driver](grblhal-driver.md#laser-control)), and like every jog
+it runs with the lid open, since the door is hidden from the core while it
+jogs; a jog cancel, a feed hold, a cooling verdict, or a reset ends it. The
+core acts on a jog cancel when its main loop reads it out of the input
+stream, and that loop is waiting for `$H`, so while the jog runs the driver
+turns a jog cancel into a motion cancel itself. The
+home stands whatever becomes of the move, and a move that ends short of the
+origin is reported with where it stopped. There is no lid gate on the home
+itself: the lid is open while the head is being pushed.
 
 The sender gets a warning at every manual home, and the anchor names its
 source so a reader can tell a position a hand declared from one the machine
@@ -180,7 +194,8 @@ a backstop for it, since it arms only inside the laser's armed window
 
 Every provider ends X's and Y's envelope at the same far edges:
 `envelope_x_mm` and `envelope_y_mm`, the machine coordinates the Setup
-page's **Bed size** check measured
+page's **Bed size** check measured, counted from the origin (so a changed
+manual home offset moves them by the same amount)
 ([Setup](../../usage/setup.md#bed-size)), and the axis travel (`$130`,
 `$131`) while they are unset. The driver reads them at every home, and holds
 a value to 50 mm up to the travel plus 30 mm, with a log line; forgectrl

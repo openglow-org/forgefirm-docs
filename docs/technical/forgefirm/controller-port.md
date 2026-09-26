@@ -45,7 +45,7 @@ the requests.
 | `cancel` | `ok` | Cancels a port jog in progress. It does nothing to a sender's own jog |
 | `release` | `ok`, `error:<n>`, or `busy:<why>` | `$MD`: releases the X and Y motors |
 | `energize` | `ok`, `error:<n>`, or `busy:<why>` | `$ME`: energizes them |
-| `home` | `ok`, `error:<n>`, `error:mode`, or `busy:<why>` | `$H`, only while `homing_mode = manual`, where it moves nothing. Under every other method it answers `error:mode`: a homing session is a Grbl client's to start |
+| `home` | `ok`, `error:<n>`, `error:mode`, or `busy:<why>` | `$H`, only while `homing_mode = manual`, where it moves nothing, or only the jog to the origin a manual home offset asks for, and answers once the head has stopped. Under every other method it answers `error:mode`: a homing session is a Grbl client's to start |
 | `envelope open\|apply` | `ok`, `error:homed`, or `busy:state` | The Setup page's bed check: `open` sets X's and Y's far edges to the axis travel plus 30 mm, and `apply` sets them from `envelope_x_mm` and `envelope_y_mm` again, without a home ([Homing](homing.md#the-far-edges)). Both need X and Y homed (`error:homed`), and the machine Idle with no armed window (`busy:state`) |
 | `mcodes <list>` | `ok` or `error:invalid` | The M-codes packages answer now: `-` for none, or numbers from 160 to 179, each once, comma separated. A list with any other form leaves the table as it was ([A package's M-code](extensions.md#a-packages-m-code)) |
 | `mcode_result <seq> ok\|fail [<words>]` | `ok`, `error:stale`, or `error:invalid` | The answer to the M-code `state` names under `seq`. The words are printable, with no brackets, at most 96 bytes; they go to the Grbl client in a `[MSG:]`. An answer under another `seq`, or a second one, is stale |
@@ -136,7 +136,8 @@ Host tests on the null-sink controller build, in the driver's CI:
   the port across a soft reset; and **every operation of both sets under an
   open armed window with `M3` modal and `S500` ships no FIRE tick**.
 - `manual_home_test.py`: the panel set's `release`, `energize`, and `home`,
-  with each energize written exactly once.
+  with each energize written exactly once, and a `home` with an offset
+  answering with the head at the origin.
 - `mcode_test.py`: the daemon set's `mcodes` and `mcode_result`, and the
   wait at an M-code a package answers
   ([A package's M-code](extensions.md#a-packages-m-code)).

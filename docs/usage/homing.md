@@ -24,7 +24,7 @@ controller re-reads it on every `$H`.
 | Value | What `$H` does |
 |---|---|
 | `gfcloud` | Camera-referenced homing through the Glowforge web service, the same cycle the factory machine runs. The method that works; set it on the Machine tab, since a fresh install leaves `homing_mode` unset. |
-| `manual` | You put the head against the stop blocks by hand, and `$H` declares that spot as `manual_home_x`, `manual_home_y`. Nothing moves. No account, no service, no camera ([Manual homing](#manual-homing)). |
+| `manual` | You put the head against the stop blocks by hand and `$H` sets X0 Y0 there, or at the offset you set. No account, no service, no camera ([Manual homing](#manual-homing)). |
 | `switches` | The planned limit-switch cycle. Not available. |
 | `none` | `$H` is rejected (error 5). |
 
@@ -102,17 +102,17 @@ the home corner, and `$H` takes your word for it.
    the left is a cable.
 3. **Close the lid and press Set home here** (Machine tab, shown while
    manual homing is the method), or send `$H`. The motors energize and hold, and the
-   spot the head is in becomes `manual_home_x`, `manual_home_y`. Nothing
-   moves. Z is left as it is: the lens carries its own reference
+   spot the head is in becomes X0 Y0. Z is left as it is
    ([Running unhomed](#running-unhomed)).
 
-`manual_home_x` and `manual_home_y`, on the Machine tab, are the machine
-coordinates the stop blocks stand for. Left blank, the blocks are the origin,
-X0 Y0, and that is what most machines want. They are never negative, and
-manual homing alone uses them: no other homing method reads them, and the
-panel shows them only while manual homing is the method. The soft limits start at that position,
-since the blocks are a wall, and end at the bed's travel, or at the far edges the Setup page's
-**Bed size** check measured from the blocks ([Setup](setup.md#bed-size)).
+`manual_home_x` and `manual_home_y`, on the Machine tab, are how far from the
+stop blocks X0 Y0 is. Blank, the blocks are X0 Y0. With 1 and 1, Set home
+here moves the head 1 mm off the blocks in X and Y and makes that X0 Y0. The
+move never fires the laser.
+
+The work area starts at X0 Y0 and reaches the axis travel, or what the
+**Bed size** check measured ([Setup](setup.md#bed-size)). After changing the
+offsets, run the check again.
 
 To get out of a release without homing, press **Energize motors** (the same
 button, while they are released) or send `$ME`: the motors energize, and X and
@@ -139,7 +139,7 @@ of the far frame rather than past it.
 | `$X`, or a soft reset and then `$X` | Refused: error 9. The machine stays locked |
 | `$H` with `homing_mode = gfcloud` | Refused: the homing session would energize the motors and move the head |
 | `$ME` | The motors energize. X and Y stay unreferenced |
-| `$H` with `homing_mode = manual` | The motors energize and the head's position becomes `manual_home_x`, `manual_home_y` |
+| `$H` with `homing_mode = manual` | The motors energize and the home is set |
 
 `$MD` is refused while a program runs and while a laser job is armed.
 

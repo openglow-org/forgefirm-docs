@@ -113,7 +113,7 @@ A tenth check, **Flow check**, is the short form of the flow calibration
 
 **Bed size** is optional: the setup never asks for it and never opens it as
 the next step, so run it from the list. It measures how far the head really
-travels from its home in X and Y. The travel the controller knows keeps a
+travels from the origin in X and Y. The travel the controller knows keeps a
 margin for the factory's tolerances, and this check gives it back.
 
 Home the machine first, on its stop blocks or with the camera, and close the
