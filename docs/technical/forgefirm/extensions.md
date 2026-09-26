@@ -289,9 +289,10 @@ consent do not change shape as each one lands.
 | `events` | The machine's events | yes | |
 | `hold` | Holding a job until the package clears the hold (pause tier only) | yes | required |
 | `settings.own` | The package's own settings, declared in its manifest ([A package's own settings](#a-packages-own-settings)) | yes | |
-| `camera.lid`, `camera.head` | One frame from that camera, under the privacy gate, and never while a job is armed ([A package's camera](#a-packages-camera)) | yes | |
+| `camera.lid`, `camera.head` | That camera's frames, under the privacy gate: one frame, never while a job is armed, or the video on its page ([A package's camera](#a-packages-camera)) | yes | |
 | `motion.jog` | Dark jogs inside the jog bounds, and canceling one ([A package's jog](#a-packages-jog)) | yes | |
 | `motion.job` | Running a program as the machine's one sender, under every arm gate ([A package's job](#a-packages-job)) | yes | required |
+| `sender.keep_out` | Keeping the Grbl sender out while the package uses the machine, on an idle machine, holding the machine lease ([A package keeps the Grbl sender out](#a-package-keeps-the-grbl-sender-out)) | yes | required |
 | `job_time.run` | Not being frozen while a job is armed | yes, as a limit the host applies | required |
 | `ui` | A page of its own, a card on the panel's Extensions tab, in a sandboxed frame ([A package's own page](#a-packages-own-page)) | yes | |
 | `ui.background` | Its page kept running while the panel shows another tab, from the moment the panel opens. Asked for with `ui` only ([A package's own page](#a-packages-own-page)) | yes | required |
@@ -315,8 +316,8 @@ dropped when the service starts.
 
 Three rules tie capabilities to the runtime. A `data` package holds none.
 `hold`, `job_time.run`, `net.outbound`, `net.outbound.operator`,
-`net.listen`, and `storage` belong to a service, so a `ui` package cannot
-hold them. And the capabilities
+`net.listen`, `storage`, `mcode`, `wizard`, and `sender.keep_out` belong to
+a service, so a `ui` package cannot hold them. And the capabilities
 marked *required* above are never implied by a tier: the operator grants
 each one, per package, at install, and an install that lacks a grant, or
 carries a grant for something the package did not ask for, is refused.
@@ -708,10 +709,12 @@ What does not fit is refused with a status and a sentence
 | `GET /v0/settings` | `settings.own` | `settings` (every declared key with its value) and `schema` |
 | `POST /v0/settings` | `settings.own` | A patch of settings, applied whole or not at all; the same answer |
 | `POST /v0/camera` | `camera.lid` or `camera.head`, for the one it asks for | The body `{"camera": "lid"\|"head", "resolution": "full"\|"half", "quality": 1-100, "lamp": 0-1023}` (the camera required, the rest optional, and no other key); **the answer is a JPEG**, not JSON |
-| `POST /v0/motion/jog` | `motion.jog` | The body `{"x":, "y":, "z":, "feed":}` in millimeters and mm/min, each a number and no other key, at least one axis moving; the machine's answer |
+| `POST /v0/motion/jog` | `motion.jog` | The body `{"x":, "y":, "z":, "feed":}` in millimeters and mm/min, each a number and no other key, at least one axis moving; the machine's answer. The host names the package to the machine, so while it keeps the Grbl sender out its jog passes the lease it holds |
 | `POST /v0/motion/cancel` | `motion.jog` | Ends a jog; the machine's answer |
 | `POST /v0/motion/job` | `motion.job`, granted | The body `{"program": "<a file of its own data>", "lit_within_s":, "timeout_s":}`; the machine's answer |
 | `POST /v0/motion/job/abort` | `motion.job`, granted | Ends the running job |
+| `GET /v0/sender` | `sender.keep_out`, granted | `{"out": bool, "released": bool}`: whether this package keeps the Grbl sender out, and whether the operator let the sender back in while the package still claims it |
+| `POST /v0/sender` | `sender.keep_out`, granted | The body `{"out": true}` or `{"out": false}` and nothing else keeps the Grbl sender out or lets it back in; the same answer, or the machine's refusal in its words |
 | `GET /v0/hold` | `hold`, granted | `{"raised": bool, "reason": "..."}` |
 | `POST /v0/hold` | `hold`, granted | The body `{"raised": bool, "reason": "..."}` (those two keys and no other; the reason at most 95 bytes of printable ASCII without the quote and the backslash) raises or clears the package's hold; the new state |
 | `POST /v0/events` | `events` | The body `{"since": n, "wait": s}` (those two keys and no other, both optional) asks for the machine's events after `n`, waiting up to `s` seconds for one; `{"next": n, "dropped": n, "connected": bool, "events": [{"seq": n, "event": "...", "data": {...}}]}`. See [The events a package reads](#the-events-a-package-reads) |
@@ -837,6 +840,7 @@ Three rules govern it:
 | `machine.status`, `machine.cool`, `machine.mode` | `machine.read` | the machine's own answer |
 | `settings.get`, `settings.set` | `settings.own` | its settings and their schema |
 | `camera.frame` | `camera.lid` or `camera.head` | the frame as bytes, taken as a background capture, so it yields to a viewer and is refused while a job is armed. It takes `camera`, and optionally `resolution` (`full` or `half`, the default), `quality` (1 to 100), and `lamp` (0 to 1023); a value outside those is refused by name, and nothing else in the message is carried |
+| `camera.stream` | `camera.lid` or `camera.head` | the camera's video: the panel reads `/cam/stream` under its own session and posts each picture to the page as a JPEG `Blob` (`{stream: "camera", frame}`), and `{stream: "camera", end: true, error}` when the machine ends it. It takes `camera`, and optionally `fps` (1 to 15, 5 when not given) and `lamp` (0 to 1023); `on: false` ends it. One stream a page: a new one replaces the last, and the stream ends with the page |
 | `motion.jog` | `motion.jog` | the machine's answer, under every bound the jog already has |
 | `motion.cancel` | `motion.jog` | ends a jog |
 | `motion.job` | `motion.job`, granted | a program the page wrote (`program`, at most 2 MiB, with the optional `lit_within_s` and `timeout_s`) run as the machine's one sender; **who the job is from is the panel's word, the package's id**, never a name the page chose |
@@ -912,8 +916,10 @@ machine has to turn away.
 
 Everything the machine already enforces still stands and is the machine's
 to enforce: GRBL mode only, the machine lease, and the rule that **a
-sender at the controller port always wins** - a line from LightBurn
-cancels a package's jog.
+sender at the controller port always wins** - a line from a Grbl sender
+cancels a package's jog. The one exception is a package that keeps the
+sender out ([below](#a-package-keeps-the-grbl-sender-out)): no sender is
+connected then to win.
 
 **The lid being open does not stop a jog**, and a jog is motion the
 operator did not ask for. That is said plainly in the Extensions advisory,
@@ -954,9 +960,10 @@ sender could make a job look as though it came from somewhere else.
 
 Everything the machine already does to a sender it does to this one, and
 those are the machine's to enforce: the job runs **under the machine
-lease**, it is **refused while a sender is connected** (LightBurn holds
+lease**, it is **refused while a sender is connected** (a Grbl sender holds
 TCP 23 outside the lease), and **every arm gate and the button press
-stand**. A program that commands no laser never opens an armed window,
+stand**. A package that keeps the sender out holds the lease itself, and
+its own job runs under that lease. A program that commands no laser never opens an armed window,
 so there is nothing for a press to arm; the gates are in force and are
 simply never reached.
 
@@ -1071,9 +1078,19 @@ camera is refused the head's in words.
 `POST` for the same reason the other calls are: the request reader
 refuses a query string on purpose, so the body carries the parameters.
 
-The privacy gate stands exactly as it does for anyone else: **no camera
-captures while the lid is open**, and a package is told so in the
-machine's own words.
+The privacy gate stands as it does for anyone else, and a package is told
+so in the machine's own words: **the lid camera captures nothing while the
+lid is open**. The head camera looks down at the bed, and the host asks
+for a package's frames as a local viewer, so a package holding
+`camera.head` has it with the lid open too
+([the privacy gate](video-pipeline.md#the-privacy-gate)).
+
+**A page can have the video.** The bridge's `camera.stream` hands a page
+the camera's pictures as they come, paced at the `fps` it asks for, so a
+page can show the operator a live picture rather than a frame at a time.
+The panel reads the stream under its own session: it is the operator's
+own viewing, so it is not a background capture, and a package's own
+frames yield to it like to any other viewer.
 
 **The lamp is the camera's own light, for one frame.** `lamp` sets the
 head camera's LED, or the lid camera's lamp, for the capture it is asked
@@ -1108,6 +1125,56 @@ back frees its connection after 25 s.
 
 Captures are request-driven: a package gets a frame because it asked for
 one.
+
+### A package keeps the Grbl sender out
+
+A package that moves the head for its own reasons - the alignment tool
+jogs it so the head camera shows where the laser will hit - leaves the
+machine where no job should start. `sender.keep_out` lets it make sure none
+does: while the package uses the machine, **the Grbl sender is
+disconnected and kept out**. It is a capability the operator grants by
+hand, and it belongs to a service.
+
+**Only an idle machine is taken.** The service asks with
+`POST /v0/sender {"out": true}`, and the GRBL controller decides: it
+refuses while a program, a jog, a hold, an armed or arming laser, or an
+alarm is in progress, and while the sender is using the machine (a line
+open, bytes waiting, or a line within the last 2 s). Otherwise it
+disconnects the sender, telling it first
+(`[MSG:The machine is in use: senders are kept out for now]`), and turns
+away every sender that connects from the network with the same message
+until it is told otherwise. A client on the machine itself still
+connects, which is how the machine's own job runner and a package's job
+keep working ([the controller port](controller-port.md#keeping-the-sender-out)).
+
+**The package holds the machine lease** as `ext:<id>`, of the `extension`
+kind, for as long as it keeps the sender out, so the panel's motion
+controls lock and name it, and only the package's own jogs and its own
+job pass. One package keeps the sender out at a time; a second is refused
+in words.
+
+**Nothing keeps the sender out past its keeper.** The host keeps the
+claim fresh for forgectrl, `/run/forgefirm/sender-out/<id>.json` in the
+holds' own form (`raised` is the claim), rewritten twice a second while
+the package's service runs and keeps the sender out. When the service
+stops, crashes, or is turned off, when extensions go off, or when the host
+goes, the file goes stale, and within a few seconds forgectrl ends the claim:
+the lease is released and senders are let back in. **Nothing moves when
+it ends that way**, and the panel says so in a notice that names the
+package, until the operator clears it. A package that moved the head puts
+it back itself, before it asks `{"out": false}`.
+
+**The operator can always let the sender back in.** The panel shows a
+banner while a package keeps the sender out, with a button that ends it
+(`POST /motion/sender out=0`). The package reads `released: true` from
+`GET /v0/sender` and cannot claim again until it lets the sender in
+itself; that is its cue to finish, put the head back, and say
+`{"out": false}`.
+
+forgectrl's `senderout_test` holds the claim, the staleness, the
+operator's release, and the notice; the GRBL controller's `serial_test`
+the keep-out at the port; `exthost.sender-keep-out` proves it on the
+image with a sender from the network.
 
 ### The firmware a package needs
 

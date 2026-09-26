@@ -185,7 +185,7 @@ The scope and its reasons are in
 
 ## The cameras only work with the lid closed
 
-Neither camera captures while the lid is open. A refused image is reported back
+Neither camera captures anything for the service while the lid is open. A refused image is reported back
 to the service as a failed action, so it resolves rather than hanging.
 [Cameras](cameras.md) has the rule in full.
 

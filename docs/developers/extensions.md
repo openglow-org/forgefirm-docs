@@ -161,6 +161,46 @@ is at most 64 KiB, and a service frozen for an armed window is not asked at
 all: the page is told so. The form a call takes, and what refuses one, are
 in [A page and its own service](../technical/forgefirm/extensions.md#a-page-and-its-own-service).
 
+### A live picture
+
+A page shows a camera's video with `ffx.camera.stream`: the panel reads the
+stream and hands the page each picture as a JPEG `Blob`, about `fps` times a
+second (1 to 15, 5 when not given).
+
+```js
+ffx.camera.stream({ camera: 'head', fps: 5, lamp: 60 }, function (jpeg) {
+  createImageBitmap(jpeg).then(draw);
+}, function (why) { say(why); });           // the machine ended it
+// ffx.camera.stop() ends it; leaving the page ends it too
+```
+
+It needs `camera.head` or `camera.lid`, as a single frame does. The head
+camera works with the lid open; the lid camera does not
+([A package's camera](../technical/forgefirm/extensions.md#a-packages-camera)).
+
+### A tool that moves the head
+
+A package that moves the head for a while, as the alignment tool does,
+leaves it where a job from the Grbl sender should not start. With
+`sender.keep_out`, which the operator grants, its service keeps the sender
+out meanwhile:
+
+```python
+ffx.sender_out(True)       # only on an idle machine; a refusal is an ffx.ApiError in words
+# ... move the head, show the operator, move it back ...
+ffx.sender_out(False)
+```
+
+Put the head back yourself before `sender_out(False)`. If your service
+stops while it keeps the sender out, the machine lets the sender back in
+within seconds and moves nothing, so a service that moved the head should
+remember where it stands and finish the job when it starts again. The
+operator can let the sender back in from the panel at any time:
+`ffx.sender_state()["released"]` turns true, and your service should then
+put the head back and say `sender_out(False)`. A page cannot ask for this;
+it asks its service
+([A package keeps the Grbl sender out](../technical/forgefirm/extensions.md#a-package-keeps-the-grbl-sender-out)).
+
 ### An M-code in a job
 
 A package can answer one of M160 to M179 in the operator's own jobs: ask

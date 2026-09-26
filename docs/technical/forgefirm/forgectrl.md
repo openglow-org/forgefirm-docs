@@ -125,7 +125,7 @@ costs one bounded error, never a pinned thread.
 | `GET /wiz/record?download=1`, `GET /wiz/record.html`, `POST /wiz/changed` (`what`) | The record as a download named after the sheet id; the printable summary (`recordhtml.c`: one page, no script, every value escaped, the steps in catalog order with the sentence, the settings written with their values before, and the numbers); a replaced part or a service mapped to the wizards to run again (`setup.c`: the table of changes, required for the wizards whose settings were measured on the old part, recommended for the ones that prove it; a required flag never drops to recommended, and a run clears it). The record routes take a login session or the token |
 | `POST /wiz/<id>/start`, `POST /wiz/<id>/answer` (`seq`, `value`), `POST /wiz/<id>/abort`, `POST /wiz/<id>/takeover`, `GET /wiz/dark`, `GET /wiz/shot?cam=lid\|head` | The checks (the dark wizards) and the sheet cards (the live wizards): one runs at a time on a worker thread; the status carries the phase, the progress, the time so far, the log, the open prompt with its sequence number and how long it waits (`timeout_s`, `since_s`), the result (a live card's carries a `summary` sentence), the settings the wizard wrote with their values before (`applied`), and the run's ownership (`owned`: a login session drives it; `mine`: the requester's); the login session that started a run answers and aborts it, another session is refused (409) until it takes the run over, and a requester with no session (a tool with the token) is never held back; the shot is the cameras check's last snapshot |
 | `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A sheet card's preview (the drawing the daemon streams, from the record's facts) and its program body; the live wizards stream their programs through the daemon's own sender (`jobstream.c`: lines in flight up to half the controller's RX ring, ok per line, a $ command, M102 and the program end sent alone as barriers, the emission witnesses sampled at 25 Hz) in loopback posture, with the lens referenced on its hall sensor first; the focus card homes the lens on its bottom stop to place the hall edge in the carriage's travel, and its result is the focus model in the lens's own half-steps ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)) |
-| `GET /status` | Machine operational status as JSON: state, position with `homed_axes` naming the axes that carry a reference and `home_source` naming what set it (`gfcloud`, `manual`, or `startup` for the lens reference alone), `motors_released` (the release marker stands, [Homing](homing.md#the-motor-release)), `lease` (who has the machine, [The machine lease](#the-machine-lease)), fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
+| `GET /status` | Machine operational status as JSON: state, position with `homed_axes` naming the axes that carry a reference and `home_source` naming what set it (`gfcloud`, `manual`, or `startup` for the lens reference alone), `motors_released` (the release marker stands, [Homing](homing.md#the-motor-release)), `lease` (who has the machine, [The machine lease](#the-machine-lease)), `sender_out` (the package that keeps the Grbl sender out, and the notice when one stopped while it did, as `GET /motion/sender` answers), fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
 | `GET /settings` | Current settings as JSON, plus `machine_id` (the fuse-derived identity), the firmware version, `tls_fingerprint`, and the `gates` table: range, recommended band, off end, and state per gate setting |
 | `POST /settings?key=value&...` | Set any subset of known keys. An empty value clears a key to its built-in default. Refused (409) unless the machine is idle. `cloud_enabled=1` from 0 takes `phrase=I UNDERSTAND` (400 without it); `cloud_enabled=0` takes `homing_mode` to `none` and `controller_mode` to `grbl` when they point at the cloud |
 | `GET /mode` | Supervisor state: mode, controller (`running`, `stopped`, `standby`, `waiting` with `why` naming what is open, `motion-fault`, or `gated` with `why`), pid, motion verdict, and `why` behind an unverified or faulted verdict (the probe's own words) |
@@ -137,6 +137,7 @@ costs one bounded error, never a pinned thread.
 | `POST /motion/cancel` | Cancels the jog in progress, if it is the port's |
 | `POST /motion/release`, `POST /motion/energize` | The X and Y motor release and its end (`$MD`, `$ME`, [Homing](homing.md#the-motor-release)). The panel's own: these and the next route are outside the operation set a jog client can reach ([The controller port](controller-port.md#three-operation-sets)) |
 | `POST /motion/home` | A manual home (`$H`), accepted only while `homing_mode = manual`, where it moves nothing, or only the jog to the origin a manual home offset asks for. 409 under every other method: a homing session is a Grbl client's to start |
+| `GET /motion/sender`, `POST /motion/sender` | Keeping the Grbl sender out ([A package keeps the Grbl sender out](extensions.md#a-package-keeps-the-grbl-sender-out)). `GET` answers `{"holder": {"id", "for_s"} or null, "notice": {"id", "why": "stopped"} or null}`. The operator's `POST`: `out=0` lets the sender back in, `notice=clear` clears the notice. Only the extension host names a package (`id`), 403 for anybody else: `out=1` keeps the sender out for it and `out=0` ends that, both answering `{"out", "released"}` as `GET` with `id` does; 409 in words when the controller refuses (the machine is not idle, the sender is sending), another package holds it, the lease is taken, or the operator let the sender back in on this package's claim. No scoped token reaches the route (403) |
 | `POST /cool/state` | Controller job-state report, level-triggered at ~1 Hz; a loopback peer that presents the secret the supervisor handed the running controller, and nobody else ([Cooling engine](cooling-engine.md#job-state-reports)) |
 | `GET /cool/status` | Cooling-engine state: phase, verdict, `fire_ok`, `hold`, `resume_ok`, temps, report age, `gates_off`, the effective `limits`, `fan_gates`, `fire_watch`, `accel_watch`, `quiet_hold` |
 | `POST /cool/quiet?on=1` or `=0`, with `pump=1` | The quiet hold for a listening to the head accelerometer (the bench tools; the setup finder uses the same hold inside the daemon): every fan off, and with `pump=1` the coolant pump and the TEC too, the machine silent. Taken only from an idle machine with no diagnostic running; the engine releases it itself when a run session opens or after 600 s ([Cooling engine](cooling-engine.md#what-the-fans-do-and-when)) |
@@ -152,7 +153,7 @@ costs one bounded error, never a pinned thread.
 | `POST /ext/key` (`name`, `key`), `POST /ext/key/remove` (`name`) | The owner's keys ([the operator's door](extensions.md#the-owners-keys)): a key is added only with the machine's button held, as unsigned firmware is installed, and it is written through the extension host, which parses it before it lands. `400` for a name or a key with no such form, `409` for a button that is not held and for the host's refusal. Both answer with the new status. |
 | `POST /job`, `GET /job`, `POST /job/abort` | The job runner ([below](#the-job-runner)): a G-code program run with the daemon as the machine's one sender |
 | `GET /logs`, `GET /logs/tail`, `POST /logs/export` | The logging tree ([Logging](logging.md)) |
-| `GET /cam/stream`, `GET /cam/snapshot`, `GET /cam/status`, `GET /cam/h264`, the mjpg-streamer aliases | The camera service ([Video pipeline](video-pipeline.md)). `background=1` on a snapshot marks a capture nobody is waiting for: it is refused with 409 while a stream has a client, because a snapshot borrows the mux and stutters a running stream, and refused with 409 while a job is armed, because a capture costs kernel-side work beside the step stream that a thread priority does not cover. An operator's own snapshot is unmarked and still wins |
+| `GET /cam/stream`, `GET /cam/snapshot`, `GET /cam/status`, `GET /cam/h264`, the mjpg-streamer aliases | The camera service ([Video pipeline](video-pipeline.md)). `background=1` on a snapshot marks a capture nobody is waiting for: it is refused with 409 while a stream has a client, because a snapshot borrows the mux and stutters a running stream, and refused with 409 while a job is armed, because a capture costs kernel-side work beside the step stream that a thread priority does not cover. An operator's own snapshot is unmarked and still wins. `fps` (1 to 15) paces one stream viewer and `lamp` (0 to 1023) lights the camera while streams watch. A request with the panel's credential or the extension host's is a local viewer, which has the head camera with the lid open ([the privacy gate](video-pipeline.md#the-privacy-gate)) |
 | `GET /slots`, `POST /boot`, `GET /update/release`, `POST /update/check`, `POST /update/dismiss`, `POST /update/download`, `POST /update/apply`, `POST /update/upload`, `GET /update/status`, `POST /restore/factory`, `POST /restore/factory-return?confirm=1`, `POST /system/reboot` | The update manager ([Install and update](install-and-update.md#the-update-manager)) |
 | `GET /system/ssh`, `POST /system/ssh?enable=0` or `=1` | SSH state, and the switch that turns it on until the next reboot; off at every boot, kept on by a development image |
 | `GET /system/camera-key`, `POST /system/camera-key?rotate=1` | The per-machine camera key (`/data/forgefirm/camera.key`, 128 bits) with the stream and snapshot URLs that carry it, and its rotation. A valid key, as the `key` query parameter or the `X-ForgeFIRM-Camera-Key` header, authorizes any read-only route on either listener, origin checks included, and never a write |
@@ -608,13 +609,14 @@ Three things run through it:
 | The dose ladder | `recorder` | `POST /curve/record` ([below](#the-dose-curve-recorder)) |
 | A sheet card's program | `job:<wizard id>`, under the wizard's own hold | The sheet wizards ([Setup](../../usage/setup.md)) |
 | A posted program | `job:<name>` | `POST /job` |
+| A package's job while it keeps the Grbl sender out | `job:<id>`, under the package's own `ext:<id>` | `POST /job` from the extension host, in the package's name |
 
 `POST /job` is a multipart form:
 
 | Part | What it is |
 |---|---|
 | `program` (file) | The G-code, at most 16 MiB, streamed to a staging file in the run directory as it arrives; the runner opens it and removes its name before the first line goes out |
-| `name` | Who sends the job, 1 to 32 of letters, digits, `.`, `_`, `-`. The job holds the machine as `job:<name>` |
+| `name` | Who sends the job, 1 to 63 of letters, digits, `.`, `_`, `-`. The job holds the machine as `job:<name>` |
 | `lit_within_s` | Optional, 0 to 3600. Above 0, the program must show a discharge within that long, the press included, or the job fails |
 | `timeout_s` | Optional, 0 to 86400. Above 0, the whole run's budget |
 | `unlock` | Optional. `1`: the runner sends `$X` itself ahead of the program's first line |
@@ -659,7 +661,9 @@ refuses that `$X`, and the job ends at its first line.
 
 While anything holds the machine (a log export aside), `POST /motion/jog`,
 `/motion/release`, `/motion/energize`, and `/motion/home` are refused in the
-holder's name: a job's pauses are not the panel's to jog in.
+holder's name: a job's pauses are not the panel's to jog in. A package that
+keeps the Grbl sender out is the one exception its own hold makes: the jogs
+the extension host sends in its name pass.
 
 Host tests: `jobrun_test` (the program check and every offense with its line
 number, a program played as `job:<name>` with the lease held as a sender,
@@ -828,7 +832,7 @@ to start while another holds it is refused with 409, and the refusal names
 the holder: `a diagnostic (flow-verify) holds the machine`. The routes that
 must not act under a holder ask it too.
 
-An owner is a short name, `<what>:<which>`. A hold is one of four kinds:
+An owner is a short name, `<what>:<which>`. A hold is one of five kinds:
 
 | Owner | Kind | Taken by |
 |---|---|---|
@@ -838,6 +842,7 @@ An owner is a short name, `<what>:<which>`. A hold is one of four kinds:
 | `job:<name>` | `sender` | The [job runner](#the-job-runner), for a posted program (`job:<name>`) or a sheet card (`job:<wizard id>`, under the wizard) |
 | `update:<job>` | `system` | An update job: `download`, `apply`, `restore`, `factory-return` |
 | `logs.export` | `export` | A log export, from its staging to the end of the download. It only reads the machine at rest |
+| `ext:<id>` | `extension` | An extension package, for as long as it keeps the Grbl sender out ([A package keeps the Grbl sender out](extensions.md#a-package-keeps-the-grbl-sender-out)). Its own jogs and its own job pass it |
 
 What asks the lease, and which holders refuse it:
 
@@ -856,8 +861,9 @@ hold, which the mode switch allows for the holder and nobody else.
 **What the lease does not hold, it still reports.** A Grbl client holds TCP
 23 outside any grant and cannot be revoked, and the X and Y motors may be
 released; an operator asking why something will not start is asking about
-these too. A `sender` hold is refused while a client is connected. `/status`
-carries:
+these too. A `sender` hold is refused while a client is connected; an
+`extension` hold disconnects the client instead, and is refused unless the
+machine is idle and the client quiet. `/status` carries:
 
 ```json
 "lease": {
@@ -1007,7 +1013,7 @@ mode. Readers are unrestricted. This table is normative.
 | `cnc/laser_latch` | GRBL controller (locked by forgectrl across handovers and on writer death) | cloud client (same) | none |
 | Button LEDs (`/sys/class/leds/button_led_*`) | GRBL controller (arm flow) | cloud client | none |
 | Head and lid illumination (camera lamps) | forgectrl (`lamp` on snapshot); the lid lamp's idle level is the `lid_lamp_idle` setting (0 to 255, default 236), asserted at daemon start, on a settings change, and at every controller spawn | the cloud client drives the lid lamp while it runs (its `LLvl`); forgectrl re-asserts the idle level at the next spawn | forgectrl |
-| Cameras (V4L2, MIPI mux) | forgectrl; capture only with the lid closed ([privacy gate](video-pipeline.md)) | forgectrl, same gate, including the cloud client's direct-capture fallback | forgectrl, same gate |
+| Cameras (V4L2, MIPI mux) | forgectrl; the lid camera only with the lid closed, the head camera with the lid open for a local viewer only ([privacy gate](video-pipeline.md#the-privacy-gate)) | forgectrl, same gate, including the cloud client's direct-capture fallback | forgectrl, same gate |
 | `/data/forgefirm/forgefirm.conf` settings | read (re-read per `$H` and run start) | read | read; forgectrl writes (409 while busy) |
 | `/run/grblhal.homed` anchor | GRBL controller writes | none | none |
 | `/run/forgefirm/cooling.state` | forgectrl writes, controllers read | forgectrl writes, controllers read | forgectrl writes |

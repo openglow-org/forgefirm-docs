@@ -64,8 +64,13 @@ or the page with unsaved changes asks first. Each card and field has a "?" that
 opens its help, with a link into this documentation site.
 
 All settings controls disable, with a banner, while the machine is not idle or
-while a diagnostic, a setup wizard, the dose-curve recorder, or an update job
-has the machine; the banner names it. The header identifies the machine by its factory
+while a diagnostic, a setup wizard, the dose-curve recorder, an update job, or
+an extension package has the machine; the banner names it. While an extension
+package keeps the Grbl sender out, a banner on every tab names it, with **Let
+the sender back in** to end that at once. If the package stops while it keeps
+the sender out, a notice names it until you dismiss it: the head may not be
+where a job expects it, so check before you start one
+([A package keeps the Grbl sender out](../technical/forgefirm/extensions.md#a-package-keeps-the-grbl-sender-out)). The header identifies the machine by its factory
 identity (the factory hostname derived from the serial in the fuses), whatever
 cloud identity override is set.
 

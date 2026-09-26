@@ -108,10 +108,13 @@ imx-media pipeline whenever a stream is open; the snapshot works during an
 active stream and takes a per-shot lamp override), with direct V4L2 capture
 as the fallback when the daemon is unreachable.
 
-**The cameras only capture with the lid closed.** This is a privacy rule,
-not a factory behavior. Both capture paths enforce it (forgectrl answers
-`409` and the direct fallback raises `gfhardware.cam.LidOpen`), and the check
-fails closed ([The video pipeline](video-pipeline.md)). A refused image
+**The cameras capture for the cloud client only with the lid closed.** This
+is a privacy rule, not a factory behavior. Both capture paths enforce it
+(forgectrl answers `409` and the direct fallback raises
+`gfhardware.cam.LidOpen`), and the check fails closed. The head camera's
+exception for a local viewer, the panel or an extension package, does not
+reach the cloud client: it is not one
+([The video pipeline](video-pipeline.md#the-privacy-gate)). A refused image
 action is reported to the service as `<action>:failed`, so it resolves
 rather than hanging, and the client does not fall back to a direct grab that
 would refuse identically.

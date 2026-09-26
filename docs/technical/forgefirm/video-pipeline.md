@@ -24,7 +24,7 @@ imx-media pipeline:
 | Endpoint | Purpose |
 |---|---|
 | `GET /` | The control panel: stream toggle, head peek, snapshots, status ([The control panel](../../usage/control-panel.md)) |
-| `GET /cam/stream?cam=lid\|head` | Multipart MJPEG, half the capture size in each axis (1296x972 on a 5 MP machine) |
+| `GET /cam/stream?cam=lid\|head&fps=1..15&lamp=0..1023` | Multipart MJPEG, half the capture size in each axis (1296x972 on a 5 MP machine); `fps` paces this viewer alone, `lamp` lights the camera while a stream watches |
 | `GET /cam/h264?cam=lid\|head` | The same picture as H.264 in fragmented MP4 |
 | `GET /cam/snapshot?cam=lid\|head&res=full\|half&q=1..100` | Single JPEG, default full (2592x1944 on a 5 MP machine) |
 | `GET /cam/status` | JSON: running/cam/clients/frames/fps/fps_cap/encoder/buffers, the sensor, the frame sizes, the lid gate, the health counters |
@@ -46,10 +46,23 @@ per-camera illumination LED is raised during capture and restored on idle.
 
 ## The privacy gate
 
-**Neither camera captures unless the lid is closed.** The lid camera faces
+**The lid camera captures only while the lid is closed, and the head camera
+captures with the lid open only for a local viewer.** The lid camera faces
 the room once the lid is raised, and in cloud mode the capture request comes
-from a remote service, so the enclosure being shut is the precondition for
-any image.
+from a remote service, so the enclosure being shut is the precondition for a
+lid-camera image and for any image the cloud client asks for. The head camera
+looks straight down at the bed from the head, so with the lid open it still
+sees only the bed and what is on it; the panel and the extension host may
+have it, which is what lets a package show the head camera's picture while
+the operator places material.
+
+A **local viewer** is a request with the panel's own credential (a logged-in
+session or the panel token, from an allowed origin, and not a scoped token),
+or one the extension host makes from this machine (`X-ForgeFIRM-Client:
+extension-host` from a local peer). Nothing else is: the camera key, the open
+reads, and the cloud client are not local viewers, so the rule for them is
+the lid rule. The marker is positive: a request that does not show it gets
+the lid rule, which is the fail-closed direction.
 
 The signal is EV_SW bit 3 (`doors`, the series combination both lid switches
 feed, the same one the hardware safety chain uses). `machine_lid_closed()` in
@@ -61,13 +74,15 @@ It is enforced in two places, because two processes can reach a sensor:
 
 | Owner | Covers | Behavior |
 |---|---|---|
-| forgectrl [`src/cam.c`](https://github.com/openglow-org/forgectrl/blob/main/src/cam.c) | the panel, `/cam/stream`, `/cam/snapshot`, the mjpg-streamer aliases, LightBurn, and the cloud client's normal path | refuses to start capture, refuses stream and snapshot up front (HTTP 409), and re-checks every frame so a lid opened mid-capture tears the pipeline down |
+| forgectrl [`src/cam.c`](https://github.com/openglow-org/forgectrl/blob/main/src/cam.c) | the panel, `/cam/stream`, `/cam/snapshot`, the mjpg-streamer aliases, LightBurn, and the cloud client's normal path | refuses to start capture, refuses stream and snapshot up front (HTTP 409), and re-checks every frame so a lid opened mid-capture tears the pipeline down; a head-camera capture that serves only local viewers keeps running, and a client that is not a local viewer is ended when the lid opens |
 | `gfhardware.cam.capture()` | the cloud client's direct-V4L2 fallback when forgectrl is unreachable, and the capture utility | raises `gfhardware.cam.LidOpen` before configuring the pipeline or touching a lamp |
 
 Both check before any side effect, so a refused capture leaves the lamps and
-the media graph as they were. `/cam/status` reports `capture_allowed` (the
-live lid reading) and `stopped_by_lid` (the last capture ended because the
-lid opened rather than going idle).
+the media graph as they were. The direct-V4L2 fallback has no local viewer,
+so it keeps the lid rule for both cameras. `/cam/status` reports
+`capture_allowed` (the live lid reading, the rule for everyone who is not a
+local viewer of the head camera) and `stopped_by_lid` (the last capture ended
+because the lid opened rather than going idle).
 
 For cloud mode a capture attempted with the lid open is refused, and the
 action runner reports the action as failed rather than leaving the service
@@ -272,6 +287,9 @@ Each camera has its own lamp, and ForgeFIRM drives them around captures:
 - **Per shot**, `/cam/snapshot` accepts `lamp=0..1023` to override the level
   for that one image; a few frames are discarded afterward so the image you
   get was exposed under the light you asked for.
+- **Per stream**, `/cam/stream` accepts `lamp=0..1023` too: the camera is lit
+  at that level while streams watch it (the latest viewer to ask sets it),
+  and goes back to the working level when the last stream closes.
 
 In cloud mode the cloud client drives the lid lamp for as long as it runs
 (its `LLvl`), and ForgeFIRM re-asserts your idle level the next time a

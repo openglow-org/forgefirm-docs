@@ -38,8 +38,9 @@ device-tree node (see [Buses](buses.md)). ForgeFIRM reads which one bound and
 configures itself accordingly (one firmware image covers both) and reports it
 in `/cam/status` and on the panel's Status tab.
 
-The cameras only capture with the lid closed. That rule, and every way it is
-enforced, is on [Cameras](../../usage/cameras.md).
+The lid camera only captures with the lid closed, and the head camera with the
+lid open only for the panel and extension packages. That rule, and every way
+it is enforced, is on [Cameras](../../usage/cameras.md).
 
 ## What the sensors can do
 

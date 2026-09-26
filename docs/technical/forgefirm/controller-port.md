@@ -6,7 +6,7 @@ title: The controller port
 
 The Grbl socket is one session: a new connection displaces the sender. The
 controller port is the second channel beside it, the way the machine daemon
-jogs the head and reads the controller's state while LightBurn stays
+jogs the head and reads the controller's state while the Grbl sender stays
 connected. It carries no program and no laser command, and it never becomes
 the sender.
 
@@ -40,7 +40,7 @@ the requests.
 
 | Request | Reply | What it does |
 |---|---|---|
-| `state` | One JSON object | `state` (the Grbl state name), `sender` (a Grbl client is connected), `port_jog` (the jog in progress is the port's), `released` (the X and Y motors are released), `mpos` (machine position, mm), `homed` (the homed-axes mask), `envelope_open` (the bed check's envelope is open), `mcode` (the M-code a job waits at, `{"seq", "code", "words"}`, or `null`) |
+| `state` | One JSON object | `state` (the Grbl state name), `sender` (a Grbl client is connected), `port_jog` (the jog in progress is the port's), `released` (the X and Y motors are released), `mpos` (machine position, mm), `homed` (the homed-axes mask), `envelope_open` (the bed check's envelope is open), `mcode` (the M-code a job waits at, `{"seq", "code", "words"}`, or `null`), `sender_out` (senders from the network are kept out) |
 | `jog <words>` | `ok`, `error:<n>`, or `busy:<why>` | Runs `$J=<words>`. `<words>` is held to the characters a jog needs (capital letters, digits, `.`, `-`, `+`, and spaces); anything else answers `error:invalid` |
 | `cancel` | `ok` | Cancels a port jog in progress. It does nothing to a sender's own jog |
 | `release` | `ok`, `error:<n>`, or `busy:<why>` | `$MD`: releases the X and Y motors |
@@ -49,6 +49,8 @@ the requests.
 | `envelope open\|apply` | `ok`, `error:homed`, or `busy:state` | The Setup page's bed check: `open` sets X's and Y's far edges to the axis travel plus 30 mm, and `apply` sets them from `envelope_x_mm` and `envelope_y_mm` again, without a home ([Homing](homing.md#the-far-edges)). Both need X and Y homed (`error:homed`), and the machine Idle with no armed window (`busy:state`) |
 | `mcodes <list>` | `ok` or `error:invalid` | The M-codes packages answer now: `-` for none, or numbers from 160 to 179, each once, comma separated. A list with any other form leaves the table as it was ([A package's M-code](extensions.md#a-packages-m-code)) |
 | `mcode_result <seq> ok\|fail [<words>]` | `ok`, `error:stale`, or `error:invalid` | The answer to the M-code `state` names under `seq`. The words are printable, with no brackets, at most 96 bytes; they go to the Grbl client in a `[MSG:]`. An answer under another `seq`, or a second one, is stale |
+| `sender out` | `ok`, `busy:state`, or `busy:sender` | Disconnects the Grbl client and keeps every client from the network out, only on an idle machine ([below](#keeping-the-sender-out)) |
+| `sender in` | `ok` | Lets clients from the network connect again |
 
 `error:<n>` is the core's own status for the injected line (`error:15` for a
 jog past the soft limits, `error:9` in an alarm). `error:aborted` means the
@@ -58,7 +60,7 @@ controller was reset before the line's status came back. The `busy` reasons:
 |---|---|
 | `busy:released` | The X and Y motors are released. The core would refuse the jog as well (the release holds the alarm state); this reply says why |
 | `busy:state` | A jog needs Idle, or a port jog already in progress. `release`, `energize`, and `home` need Idle or Alarm |
-| `busy:sender` | The Grbl client sent a line with something in it within the last 0.3 s, has such a line waiting, or is in the middle of one |
+| `busy:sender` | The Grbl client sent a line with something in it within the last 0.3 s, has such a line waiting, or is in the middle of one. For `sender out`: the client is in the middle of a line, has one waiting or not yet answered, or sent one within the last 2 s |
 | `busy:mcode` | A job waits at an M-code a package answers: it is Idle there, and it is still the job |
 
 Every port jog puts `[MSG:Panel jog]` on the Grbl client's console, and
@@ -71,8 +73,9 @@ card, a scoped token, or any other client of forgectrl's motion routes can
 reach.
 `release`, `energize`, `home`, and `envelope` are the **panel set**: they
 belong to the operator's own control panel and to nothing else.
-`mcodes` and `mcode_result` are the **daemon set**: forgectrl's own M-code
-relay says them, and no route reaches them.
+`mcodes`, `mcode_result`, and `sender` are the **daemon set**: forgectrl's
+own M-code relay and its keep-out manager say them, and no route reaches
+them.
 
 The port itself does not tell the sets apart, since it has one client.
 forgectrl does, in one place (`grblport.c`): each route names the set it
@@ -92,7 +95,8 @@ and `G0`, `G1`, `G2`, `G3`, `S`, `M3`, and `M4` are not in either set.
 ## The sender goes first
 
 A port operation is never a sender change, and it never takes the machine
-from the Grbl client:
+from the Grbl client, with one exception, `sender out`
+([Keeping the sender out](#keeping-the-sender-out)):
 
 - A port jog is refused while the client is active (`busy:sender`).
 - The first byte of a line from the client that arrives while a port jog
@@ -123,6 +127,32 @@ from the Grbl client:
   home, and the port's client going away close it as well. No program ever
   runs in the widened envelope.
 
+## Keeping the sender out
+
+The one exception to the sender going first. An extension package that
+moves the head for its own reasons, as the alignment tool does, leaves it
+where no job should start, so while it uses the machine the Grbl client is
+disconnected and kept out
+([A package keeps the Grbl sender out](extensions.md#a-package-keeps-the-grbl-sender-out)
+has who may ask, and how the claim ends).
+
+`sender out` takes the machine only when nothing is under way. It answers
+`busy:state` unless the core is Idle with nothing planned, no port jog, no
+M-code wait, no armed or arming laser, no open envelope, and the kernel's
+motion idle; and `busy:sender` while the client is in the middle of a line,
+has one waiting or not yet answered, or sent one within the last 2 s. A
+connected client that is only polling `?` is quiet, and is disconnected.
+
+Otherwise the client reads
+`[MSG:The machine is in use: senders are kept out for now]` and is
+disconnected, and every client that connects from the network is sent the
+same line and closed, with no banner and no change of session. A client
+from this machine's own addresses (the loopback) connects as always: the
+machine daemon's own job runner is one, and a package's job runs through it.
+The keep-out holds until `sender in` or a controller restart, whatever
+happens to the port's client; forgectrl keeps it and tells a restarted
+controller again. `state` reports it as `sender_out`.
+
 ## Verification
 
 Host tests on the null-sink controller build, in the driver's CI:
@@ -146,16 +176,23 @@ Host tests on the null-sink controller build, in the driver's CI:
   `apply` and their refusals, and **the client's first line (never a status
   poll or an empty line) closing an open envelope before the core reads
   it**, as a soft reset and the port client going away do.
+- `ctlport_test.py`'s keep-out: `sender out` refused during a dwell, within
+  2 s of a line, and while a program moves; the quiet client disconnected
+  after the message; a client from the network turned away with the session
+  unchanged, one from the loopback admitted; the keep-out outliving the
+  port's client; and `sender in` letting the network back in. The driver's `serial_test` holds
+  the peer classification and the drop.
 
 forgectrl's side is `grblport_test` in forgectrl's CI: the sets, a
 refused operation leaving the socket untouched, one kept connection, a
 controller restart, and a port that never answers; `mcode_test` holds the
-daemon set to its one caller.
+daemon set to its one caller, and `senderout_test` the keep-out's claim.
 
-On the bench, three release acceptance tests
+On the bench, four release acceptance tests
 ([Release acceptance](../../developers/acceptance.md)): `motion.port-jog`
 (the jog beside a connected client, the cancel, the client going first, the
 bound, the release and the energize by their routes), `laser.port-dark` (a
 lit cut opens the armed window and leaves `M3` modal, and the port's jogs
 under it ship dark by the LASER_ON sample count, the HV current, and the
-head's beam detector), and `motion.release`.
+head's beam detector), and `motion.release`; `exthost.sender-keep-out` for
+the keep-out.

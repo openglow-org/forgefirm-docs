@@ -22,31 +22,40 @@ The sensors, what they can do, and the 8 MP status are in
 camera-path sharing, and why the image looks the way it does are in
 [The video pipeline](../technical/forgefirm/video-pipeline.md).
 
-## The cameras only work with the lid closed
+## The lid camera only works with the lid closed
 
-**Neither camera captures anything while the lid is open.** Not the live view,
+**The lid camera captures nothing while the lid is open.** Not the live view,
 not a snapshot, and not an image requested in cloud mode. Close the lid and
-everything works; open it and the sensors stop. The lid camera is mounted in
-the lid, so raising it swings the camera up to face the room; the enclosure
-being shut is the condition for an image to exist at all.
+everything works; open it and the lid camera stops. The lid camera is mounted
+in the lid, so raising it swings the camera up to face the room; the enclosure
+being shut is the condition for a lid camera image to exist at all.
 
-The rule covers both cameras and every way in: the panel, `/cam/stream`,
-`/cam/snapshot`, the mjpg-streamer aliases, LightBurn, and cloud mode's image
-actions. A stream already running ends within about a frame. A refused capture
-never raises the lamps.
+**The head camera looks straight down at the bed**, so it sees only the bed
+and the material even with the lid open. The panel can still show it with the
+lid open, and so can an extension package that has the head camera
+permission, such as the [alignment tool](extensions/alignment.md), which lets
+you place material while you watch where the laser will hit. Everyone else
+gets the lid rule for the head camera too: cloud mode's image actions, the
+mjpg-streamer aliases, LightBurn's camera, and any program that reads with the
+camera key or the open reads.
+
+A stream the lid rule covers ends within about a frame of the lid opening. A
+refused capture never raises the lamps.
 
 | Situation | What happens |
 |---|---|
-| Snapshot or stream requested with the lid open | `409` naming the lid; no image data |
-| Lid opened while a stream is running | the stream ends cleanly and the pipeline is torn down |
-| Lid state unreadable | treated as open: capture refused |
+| Lid camera snapshot or stream requested with the lid open | `409` naming the lid; no image data |
+| Head camera, lid open, from the panel or an extension package | the picture, as with the lid closed |
+| Head camera, lid open, from anyone else | `409` naming the lid; no image data |
+| Lid opened while a stream is running | the stream ends cleanly, unless it is the head camera and the panel or an extension package is watching |
+| Lid state unreadable | treated as open |
 | Cloud service asks for an image with the lid open | refused, and reported back as a failed action rather than left hanging |
 | Lid closed again | everything works immediately; nothing to restart |
 
 `GET /cam/status` reports it: **`capture_allowed`** is false whenever the lid is
 open, and **`stopped_by_lid`** records that the last capture ended because the
-lid opened rather than going idle. The panel's Status tab says *lid open, the
-cameras are off* rather than showing a stream error.
+lid opened rather than going idle. The panel's live view says *lid open: the
+lid camera is off* rather than showing a stream error.
 
 The lid signal is the same one the hardware safety chain uses to gate the beam,
 the series combination of both lid switches, and the check **fails closed**: if
@@ -142,7 +151,7 @@ the stream on the computer watching it
 ## When something looks wrong
 
 **No picture at all, and a 409 mentioning the lid.** Working as intended: the
-lid is open. Close it. `/cam/status` shows `capture_allowed: false` while that
+lid is open, and this camera or this viewer is under the lid rule. Close it. `/cam/status` shows `capture_allowed: false` while that
 is the case. If the lid *is* shut and you still see this, one of the two lid
 switches is not making, the same condition that would stop the laser firing,
 so it is worth investigating rather than working around.

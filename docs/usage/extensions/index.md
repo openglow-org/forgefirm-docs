@@ -122,16 +122,20 @@ A package runs as its own account, with limits on processor time, memory,
 and the number of its processes. It sees its own files and the read-only
 parts of the system, and nothing else on the machine. It reaches the
 machine only through the extension host, which answers from what you
-granted: the status, the cooling status, the mode, the machine's events, a
-picture from a camera, a bounded jog, settings of its own, and its own
-hold. Its settings are kept by the machine and outlive the package being
+granted: the status, the cooling status, the mode, the machine's events,
+pictures and video from a camera, a bounded jog, settings of its own, and
+its own hold. The head camera looks down at the bed, so a package can use
+it with the lid open; the lid camera stays off while the lid is open. Its settings are kept by the machine and outlive the package being
 updated; they are its own keys and never the machine's. A package's picture
 never interrupts you: while you are watching a camera, its capture waits.
 **A package that can jog can move the head while you have your hands in the
 machine** - the jog is bounded and never fires the laser, and it is still
 motion you did not ask for. A package you granted `motion.job` can start a
 job, which then waits for the button and stands under every gate your own
-jobs do. A package that answers an M-code (one of M160 to M179, which you
+jobs do. A package you granted `sender.keep_out` can disconnect your Grbl
+sender and keep it out while it uses the machine, only when the machine is
+idle; the panel shows a banner, and **Let the sender back in** ends it at
+any time. A package that answers an M-code (one of M160 to M179, which you
 put in your own job) holds that job at the M-code until it answers, with the
 head still and the laser dark; if it does not answer, or says it could not
 do its part, the job is held for you to resume or stop
