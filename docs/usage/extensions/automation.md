@@ -45,7 +45,7 @@ Either way it reads as **Official**. It asks to:
 | Connect to the places you name for it | your plug, your Home Assistant, your broker, your own ntfy server |
 | Show a page of its own | where you make the rules |
 
-Then press **Open** beside the package in the card.
+Its page is then a card on the panel's **Extensions** tab.
 
 ## Telling it where your devices are
 

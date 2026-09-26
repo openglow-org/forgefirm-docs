@@ -293,7 +293,8 @@ consent do not change shape as each one lands.
 | `motion.jog` | Dark jogs inside the jog bounds, and canceling one ([A package's jog](#a-packages-jog)) | yes | |
 | `motion.job` | Running a program as the machine's one sender, under every arm gate ([A package's job](#a-packages-job)) | yes | required |
 | `job_time.run` | Not being frozen while a job is armed | yes, as a limit the host applies | required |
-| `ui` | A page of its own in the control panel, in a sandboxed frame ([A package's own page](#a-packages-own-page)) | yes | |
+| `ui` | A page of its own, a card on the panel's Extensions tab, in a sandboxed frame ([A package's own page](#a-packages-own-page)) | yes | |
+| `ui.background` | Its page kept running while the panel shows another tab, from the moment the panel opens. Asked for with `ui` only ([A package's own page](#a-packages-own-page)) | yes | required |
 | `net.outbound:<host>:<port>` | One named destination: a lowercase DNS name, an IPv4 address, or an IPv6 address in brackets. Never the machine itself | yes, as a rule the host installs | |
 | `net.outbound.operator` | The destinations the operator names for it, and no others ([The operator's destinations](#the-operators-destinations)) | yes, as a rule the host installs | |
 | `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port. It answers callers and is no way out ([the deny rules](image-and-bsp.md#the-extension-sandbox)) | yes, as a rule the host installs | |
@@ -736,6 +737,24 @@ nothing: there would be nothing to load a second file with.
 composes no markup out of a package's file; the panel is what builds the
 frame.
 
+**The page is a card on the panel's Extensions tab.** The tab is there while
+extensions are on, and it holds one card for each package that is turned on
+and asks for `ui`, in the order `GET /ext/status` lists them. The cards
+follow that list: a package turned off, removed, or no longer asking for
+`ui` takes its card with it, and an updated one's page loads afresh. **The
+frames live only while the tab is shown**, and leaving the tab removes
+them, so a page nobody is looking at asks the machine for nothing and
+nothing it does starts from a tab the operator has left.
+
+**The exception is the operator's grant of `ui.background`.** Such a page
+loads when the panel does, whatever tab it opens on, and keeps running on
+every tab until the panel is closed, the package is turned off, or
+extensions are. Whether a package holds it is read from its `effective`
+list, the machine's word, never the manifest's. While any page runs, the
+panel asks for `GET /ext/status` every 5 s. A browser may slow a page it is
+not showing: Chrome runs a hidden frame's timers about once a second, and
+what the page draws is not seen until the tab is.
+
 **The frame holds nothing.** It is sandboxed **without
 `allow-same-origin`** - with it, the page would hold the operator's
 session and the panel token, and every other measure here would be
@@ -752,6 +771,16 @@ webrtc 'block'
 ```
 
 A package may add its own policy after that one and only make it stricter.
+
+**The page follows the panel's theme.** The frame element carries the
+panel's color scheme (`color-scheme: light` or `dark`, with the theme), and
+in both browsers this project tests a framed page's `prefers-color-scheme`
+answers with that scheme, live, as the theme changes. After the policy the
+panel puts `<meta name="color-scheme" content="light dark">`, so a page
+that names no scheme follows the panel; one that names its own keeps it.
+The frame is transparent: a page that paints no background sits on the
+card. The frame-isolation harness below checks both, with the panel's
+theme set against the browser's own preference.
 
 **Where a frame may go is the panel page's to say, not the frame's.** A
 frame's own policy governs what it loads; it does not stop the page
@@ -775,10 +804,10 @@ of the operator's browser. That is named here and on the operator's own
 page ([Extensions](../../usage/extensions/index.md#a-packages-own-page)), and a
 package without a page cannot do it at all.
 
-**The label above the frame is the panel's**, outside the frame: the name
-and the trust tier are what the panel knows of the package, never what the
-package claims. When the panel knows neither, the label says the id and
-nothing more.
+**The label above the frame is the panel's**, the card's heading, outside
+the frame: the name and the trust tier are what the panel knows of the
+package, never what the package claims. When the panel knows neither, the
+label says the id and nothing more.
 
 #### The bridge
 
@@ -795,9 +824,9 @@ Three rules govern it:
   The manifest's list is what was asked for and is never the test. What a
   frame claims about itself is never an input either.
 - **A package the operator disabled holds nothing.** Disabling is the way
-  out of everything a package does: its page stops being served, and a
-  frame already open is closed at the panel's next refresh rather than
-  left talking to the bridge.
+  out of everything a package does: its page stops being served, and its
+  card goes at the panel's next refresh (every 5 s while the Extensions tab
+  is shown) rather than being left talking to the bridge.
 - **No credential ever enters a message.** The panel makes each call under
   its own session. A camera frame is fetched by the panel and handed over
   as bytes, so the camera key stays where it is.
@@ -909,7 +938,7 @@ so a flaw in the host or its broker would reach every route too.
 ### A package's job
 
 `motion.job` is the widest capability a package can hold, and it is one
-of the three the **operator grants by hand**, whatever the package's tier.
+of those the **operator grants by hand**, whatever the package's tier.
 
 **A program is named, not sent.** The request reader takes 4 KiB of body
 and a program is not that, so a package writes its program into its own

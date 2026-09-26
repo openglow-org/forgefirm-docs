@@ -146,6 +146,16 @@ grace), the laser dose and the dose-curve recorder, the lid and interlock
 policy, the motor-rail settle time, and the lid lamp
 ([GRBL mode](grbl-mode.md), [Settings](settings.md)).
 
+### Extensions {#the-extensions-tab}
+
+The tab exists only while extensions are on
+([Extension packages](#extension-packages)). It holds a card for each
+package that is turned on and has a page of its own. The card's heading is
+the panel's: the package's name, its trust tier, and its id. The page
+follows the panel's light or dark theme. The pages run only while the tab
+is open, except one you let keep running
+([A package's own page](extensions/index.md#a-packages-own-page)).
+
 ### Setup
 
 The checks the setup ran, with the version each completed at and what the
@@ -207,7 +217,8 @@ one. Each package shows who signed it, what it says it does, what it may do
 frozen while a job is armed, turned off, or set aside after it kept ending.
 The buttons turn one package off or on and remove it, and where a package
 has a hold, a menu says whether that hold is dropped or stands when the
-package cannot speak for itself.
+package cannot speak for itself. A package with a page of its own links to
+it on the [Extensions tab](#the-extensions-tab).
 
 Turning extensions on shows you the Extensions advisory and takes the typed
 phrase. Installing takes the consent of the package's tier: the login for

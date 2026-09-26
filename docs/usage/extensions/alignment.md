@@ -36,7 +36,7 @@ Either way it reads as **Official**. It asks to:
 | Keep settings of its own | its calibration and your choices (below) |
 | Run a program as the machine's one sender | the calibration mark only. Tick it if you calibrate on this machine |
 
-Then press **Open** beside the package in the card.
+Its page is then a card on the panel's **Extensions** tab.
 
 ## Using it
 

@@ -7,8 +7,9 @@ title: Extensions
 An extension package is software that is not part of ForgeFIRM. Somebody
 else writes it; you install it on the machine, and it runs there in a
 sandbox with only what you grant it. Extensions are off until you turn them
-on, and everything about them is on the panel's System tab, in the
-**Extension packages** card.
+on. You install and manage packages on the panel's System tab, in the
+**Extension packages** card; a package's own page is on the **Extensions**
+tab.
 
 !!! danger "Read the Safety page first"
 
@@ -51,7 +52,8 @@ unless it is signed with the OpenGlow extension key.
 
 Some of what a package asks for needs a grant from you for that one
 package, and the card shows those as tick boxes: holding a job, running a
-program as the sender, and keeping running while a job is armed. A package
+program as the sender, keeping running while a job is armed, and keeping
+its page running while you are on another tab. A package
 gets nothing you do not tick. An update that asks for more shows you what
 is new.
 
@@ -159,12 +161,20 @@ refused. **Remove** takes a place away again.
 
 ## A package's own page
 
-A package may bring a page of its own, and the card opens it when you ask
-for it. It is where a package that has something to set or to show puts
-it: the settings it declared, a view, a button of its own. Above the page
-the panel writes the package's name, its trust tier and its id, and a
-Close button - those are the machine's own words about the package, never
-the package's.
+A package may bring a page of its own. It is where a package that has
+something to set or to show puts it: the settings it declared, a view, a
+button of its own. The page is a card on the panel's **Extensions** tab,
+which is there while extensions are on. A package you turn on gets its
+card, and one you turn off takes its card with it. The card's heading
+gives the package's name, its trust tier, and its id - the machine's own
+words about the package, never the package's.
+
+The page follows the panel's light or dark theme. It runs only while the
+Extensions tab is open: leave the tab and it stops, and it starts again
+when you come back. A package can ask to keep its page running, and it
+does so only if you grant that when you install it. Then the page starts
+when you open the panel and keeps running on every tab until you close
+the panel or turn the package off.
 
 The page is held at arm's length. It cannot read your session, reach the
 rest of the panel, or open anything of its own on the network; when it

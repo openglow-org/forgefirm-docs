@@ -95,9 +95,10 @@ The harness serves the panel as the dev server's mock does (the files under
 `src/ui/`, bundled as the daemon bundles them, with the daemon's page
 headers), installs one more package in the mock whose page tries every way
 out, and adds a driver script to that one copy of the panel page. The driver
-opens the hostile page through the panel's own `extOpenUi()`, once for the
-whole battery and once for each navigation (a navigation that is blocked
-can still replace the document, so each gets a frame of its own).
+opens the hostile page in its card on the Extensions tab, through the
+panel's own `extOpenUi()`, once for the whole battery and once for each
+navigation (a navigation that is blocked can still replace the document, so
+each gets a frame of its own).
 
 Three listeners stand in for everywhere that is not the machine: an HTTP
 server, a STUN server, and a bare TCP listener. The panel's own port records
@@ -114,6 +115,8 @@ since a witness that stays quiet in the control is no witness.
 | Nothing of the panel is read (its window, its token, its frames, the top location, cookies, storage), and nothing draws over it (fullscreen, a modal, pointer lock) | |
 | The bridge answers what the package may use and refuses the rest by name: a capability not held, a camera not held, a call that does not exist, a claim in the message about who is asking; a call to a service goes out for the frame's own package, whatever package the message names | |
 | The frame is sandboxed with `allow-scripts` alone and no permissions, its policy is its first element, the panel's label sits outside it, and the panel page sends `frame-src 'none'` | |
+| The frame takes the panel's color scheme and the page reads it as its own, with the panel's theme set against the browser's preference | |
+| Leaving the Extensions tab stops every page but one granted `ui.background`, which starts with the panel on the Status tab and goes on running; a manifest that asks for `ui.background` without the grant is stopped too | How often a hidden page's timers ran (Chrome slows them) |
 
 The verdict is on the page and in its title, and `--once` exits with it: 0
 for `PASS`, 1 for `FAIL`, 2 for `NORESULT`. Chrome and Firefox are the

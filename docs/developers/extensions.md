@@ -70,6 +70,27 @@ apt install gcc-arm-linux-gnueabihf
 A package may be a service and a page at once: a service runtime that also
 asks for `ui` and ships `ui/index.html`.
 
+### A page in light and dark
+
+The page is a card on the panel's Extensions tab, and it follows the
+panel's light or dark theme: in the frame, `prefers-color-scheme` answers
+with the panel's theme and changes with it. Write the page for both, as
+the template does: declare `color-scheme: light dark`, put your colors
+under `@media (prefers-color-scheme: dark)`, and leave the background
+transparent so the page sits on the card
+([A package's own page](../technical/forgefirm/extensions.md#a-packages-own-page)).
+
+### A page that keeps running
+
+A page runs while the operator has the Extensions tab open, and stops when
+they leave it. A page that must go on - a live view, a watch of its own -
+asks for `ui.background` as well as `ui`, and has it only if the operator
+grants it at install. Then it starts when the panel opens and runs on every
+tab until the panel closes or the package is turned off. The browser may
+slow it while it is not shown (Chrome runs its timers about once a
+second), so keep time from the clock, not by counting ticks. Work that must
+go on with no browser open belongs in a service.
+
 ## Talk to the machine
 
 A service has one way to the machine, the Unix socket that `FFX_API`
@@ -211,9 +232,10 @@ python3 tools/devserver.py --package ../mypackage/build/pkg
 
 `make stage` lays that directory out first.
 
-Then open <http://127.0.0.1:8081/#system> and press **Open** beside the
-package. The page is read fresh from `ui/index.html` at every Open, its
-settings follow its manifest, every capability that needs a grant is
+Then open <http://127.0.0.1:8081/#ext>: the page is its card on the
+Extensions tab. It is read fresh from `ui/index.html` each time the tab
+opens, the header's theme button shows it in light and dark, its settings
+follow its manifest, every capability that needs a grant is
 granted, and the mock's head camera shows a millimeter grid that moves as
 the head jogs. A service does not run in the mock: test one on a machine.
 
