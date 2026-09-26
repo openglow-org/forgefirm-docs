@@ -41,7 +41,7 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | `ext_enabled` | `0` (default) or `1`: whether installed extension packages run. Through `POST /settings`, `1` takes the current hash of the Extensions advisory as `advisory` and `phrase=I UNDERSTAND`, which agrees to it ([forgectrl](../technical/forgefirm/forgectrl.md#the-extensions-advisory)); `0` stops every package's service within seconds ([Extension packages](../technical/forgefirm/extensions.md#the-extension-host)). |
 | `panel_open_reads` | `1` (default) or `0`: whether the read-only routes answer any client on the network without a login. 0 closes them to logged-in sessions and the machine itself ([The control panel](control-panel.md#access)). |
 | `gfcloud_home_x/y` | Machine coordinates after a completed camera homing (mm, may be negative). Used by camera homing alone ([Homing](homing.md)). |
-| `manual_home_x/y` | How far from the stop blocks X0 Y0 is (mm). Manual homing only ([Homing](homing.md#manual-homing)). |
+| `manual_home_x/y` | How far from the gantry stops X0 Y0 is (mm). Manual homing only ([Homing](homing.md#manual-homing)). |
 | `envelope_x_mm`, `envelope_y_mm` | How far the head can go in X and Y from X0 Y0 (mm). The Bed size check measures it ([Setup](setup.md#bed-size)). |
 | `gfcloud_home_timeout_s` | Web-service homing session budget (30 to 3600 s). |
 | `gf_serial` | Cloud sign-in serial override (digits). |
@@ -61,7 +61,7 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | `controller_mode` | `grbl` | Which controller runs: `grbl` or `cloud` (`cloud` needs `cloud_enabled=1`). |
 | `homing_mode` | unset (behaves as `none`) | What `$H` does: `gfcloud`, `manual`, `switches`, `none`. Set `gfcloud` for camera homing (needs `cloud_enabled=1`). |
 | `gfcloud_home_x/y` | 0 / 0 | Coordinates assigned after a successful camera home. Held to the axis travel either side of the origin. |
-| `manual_home_x/y` | 0 / 0 | The blocks are X0 Y0. |
+| `manual_home_x/y` | 0 / 0 | The gantry stops are X0 Y0. |
 | `envelope_x_mm`, `envelope_y_mm` | unset (the axis travel) | Applies at the next home. |
 | `gfcloud_home_timeout_s` | 300 | How long a homing session may take before it alarms. |
 | `lid_policy` | `cancel` | `cancel` = factory behavior; `hold` = stock Grbl door parking. |

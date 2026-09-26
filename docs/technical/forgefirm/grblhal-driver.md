@@ -551,7 +551,7 @@ own check of it once a second is under [Faults](#faults).
 `homing_mode = gfcloud` it suspends the stream engine, runs a service-driven
 homing session in a child process that inherits the pulse device, and hands
 the machine back. Under `homing_mode = manual` it declares the spot the
-operator put the head in (against the stop blocks) as X0 Y0, or as minus
+operator put the head in (against the gantry stops) as X0 Y0, or as minus
 `manual_home_x`, `manual_home_y` and then jogs the head to X0 Y0. `$MD` and `$ME` release and
 energize the X and Y motors for that, and while they are released the driver
 holds the machine in the alarm state so that nothing moves. The mechanism is

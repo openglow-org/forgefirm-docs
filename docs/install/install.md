@@ -19,6 +19,13 @@ need, and [Regulatory and legal](index.md#regulatory-and-legal) before you begin
     ForgeFIRM is in beta: expect problems, and expect frequent updates.
     Upgrade whenever a newer release is available ([Updating](updating.md)).
 
+!!! warning "Install the gantry stops first"
+
+    We recommend the [gantry stops](gantry-stops.md) for every machine.
+    Install them before you install ForgeFIRM. They stop the gantry from
+    overtraveling in every direction, which protects the head and the head
+    cable. They do not get in the way in cloud mode, so you can leave them on.
+
 ## Run the installer
 
 Log in at the factory console ([Serial access](serial-access/index.md); login

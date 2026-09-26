@@ -21,7 +21,7 @@ Machine tab sets it, and the driver re-reads the file on every `$H`:
 
 - `gfcloud`: camera homing through the Glowforge web service, the same cycle
   the factory machine runs. A cycle takes roughly a minute.
-- `manual`: the operator puts the head against the stop blocks by hand and
+- `manual`: the operator puts the head against the gantry stops by hand and
   `$H` declares that spot X0 Y0, or minus `manual_home_x`, `manual_home_y`
   and then jogs the head to X0 Y0 ([Manual homing](#manual-homing)).
 - `switches`: the planned limit-switch cycle. `$H` is refused (error 53).
@@ -156,11 +156,11 @@ waits for the kernel to finish any decel tail, energizes X and Y if they are
 released, and then declares the position: `sys.position` X and Y to minus
 `manual_home_x` and `manual_home_y` on the step grid, X and Y added to the
 homed mask, the kernel counters cleared, and the anchor written with the
-source `manual`. The two keys are how far in front of the stop blocks the
-origin lies, and they belong to this provider alone. Unset, the stop blocks
+source `manual`. The two keys are how far in front of the gantry stops the
+origin lies, and they belong to this provider alone. Unset, the gantry stops
 are X0 Y0. They are never negative (forgectrl refuses one, and the driver
 holds a hand-edited value to 0 up to the axis travel, with a log line). The
-work envelope starts at the origin, so the strip between the blocks and the
+work envelope starts at the origin, so the strip between the stops and the
 origin is outside it, and ends at the far edges
 ([The far edges](#the-far-edges)). Z is not touched: its position, its
 reference, and its envelope stay as they were, and since the counters are

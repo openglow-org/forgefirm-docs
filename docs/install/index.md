@@ -26,6 +26,7 @@ to update, and how to recover. Read [Safety](../safety/index.md) first, and
 | Page | Contents |
 |---|---|
 | [Serial access](serial-access/index.md) | The console on the control board: the Micro-USB port of early machines, the OpenGlow serial adapter, or a soldered 1.8 V FTDI cable. |
+| [Gantry stops](gantry-stops.md) | The stops that keep the gantry from overtraveling. Recommended for every machine, installed before ForgeFIRM. |
 | [Install](install.md) | The one-stage installer, run at the factory console, and the first boot. |
 | [Back to the factory firmware](factory-restore.md) | The factory archive, and how to restore the factory firmware from it. |
 | [Updating](updating.md) | Signed `.fw` releases and the update manager in the control panel. |
@@ -57,6 +58,7 @@ their build rather than this one: get it from the source
 
 - A stock Glowforge Basic, Plus, or Pro. The control board is common to all
   three, and nothing on it is modified.
+- Recommended: the [gantry stops](gantry-stops.md), installed first.
 - [Serial console](serial-access/index.md) access. The factory firmware does not
   offer SSH and does not support installing firmware that is not signed by 
   Glowforge, so the install runs at the console (login `root`, no password).

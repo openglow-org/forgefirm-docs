@@ -24,7 +24,7 @@ controller re-reads it on every `$H`.
 | Value | What `$H` does |
 |---|---|
 | `gfcloud` | Camera-referenced homing through the Glowforge web service, the same cycle the factory machine runs. The method that works; set it on the Machine tab, since a fresh install leaves `homing_mode` unset. |
-| `manual` | You put the head against the stop blocks by hand and `$H` sets X0 Y0 there, or at the offset you set. No account, no service, no camera ([Manual homing](#manual-homing)). |
+| `manual` | You put the head against the gantry stops by hand and `$H` sets X0 Y0 there, or at the offset you set. No account, no service, no camera ([Manual homing](#manual-homing)). |
 | `switches` | The planned limit-switch cycle. Not available. |
 | `none` | `$H` is rejected (error 5). |
 
@@ -96,7 +96,7 @@ the home corner, and `$H` takes your word for it.
    the release yourself. `$X` does not unlock it and a soft reset does not
    either, because your hands are on the gantry.
 2. **Open the lid and push the head to the home corner:** the back-left
-   corner, against the stop blocks. Push gently, and keep the gantry square
+   corner, against the [gantry stops](../install/gantry-stops.md). Push gently, and keep the gantry square
    to the machine as it goes back. Do not home against the bare factory
    corner: what the gantry meets there is springy, and what the head meets on
    the left is a cable.
@@ -106,8 +106,8 @@ the home corner, and `$H` takes your word for it.
    ([Running unhomed](#running-unhomed)).
 
 `manual_home_x` and `manual_home_y`, on the Machine tab, are how far from the
-stop blocks X0 Y0 is. Blank, the blocks are X0 Y0. With 1 and 1, Set home
-here moves the head 1 mm off the blocks in X and Y and makes that X0 Y0. The
+gantry stops X0 Y0 is. Blank, the stops are X0 Y0. With 1 and 1, Set home
+here moves the head 1 mm off the stops in X and Y and makes that X0 Y0. The
 move never fires the laser.
 
 The work area starts at X0 Y0 and reaches the axis travel, or what the
@@ -130,7 +130,7 @@ check where you put the head. If the head was not in the corner, the whole
 envelope is shifted by the same amount, and a move the limits allow can still
 reach the frame. Your sender is told so at every manual home (`[MSG:Warning:
 Manual home: position set where the head was placed. Soft limits may not match the
-machine.]`). Home against the stop blocks, where an error leaves the far limits short
+machine.]`). Home against the gantry stops, where an error leaves the far limits short
 of the far frame rather than past it.
 
 | While the motors are released | What you get |

@@ -111,12 +111,12 @@ A tenth check, **Flow check**, is the short form of the flow calibration
 
 ### Bed size
 
-**Bed size** is optional: the setup never asks for it and never opens it as
-the next step, so run it from the list. It measures how far the head really
-travels from the origin in X and Y. The travel the controller knows keeps a
-margin for the factory's tolerances, and this check gives it back.
+**Bed size** is optional, and you can skip it: the setup never asks for it.
+Run it from the list, and only with the
+[gantry stops](../install/gantry-stops.md) installed. It measures how far the
+head can go from X0 Y0 in X and Y.
 
-Home the machine first, on its stop blocks or with the camera, and close the
+Home the machine first, on its gantry stops or with the camera, and close the
 lid. The check opens the controller's envelope to the travel plus 30 mm for
 the measurement. You jog the head toward the right end in steps of 10, 1,
 and 0.1 mm, watching the head and not the page, and press **This is the

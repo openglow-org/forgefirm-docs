@@ -112,6 +112,7 @@ nav:
         - install/serial-access/index.md
         - Factory USB Console: install/serial-access/factory-usb.md
         - OpenGlow Console Adapter: install/serial-access/openglow-adapter.md
+      - Gantry stops: install/gantry-stops.md
       - Install: install/install.md
       - Back to the factory firmware: install/factory-restore.md
       - Update: install/updating.md
