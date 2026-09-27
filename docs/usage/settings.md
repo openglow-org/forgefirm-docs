@@ -79,7 +79,9 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | `cloud_resume_lead_ticks` | 1950 | Cloud resume: laser-off lead before firing again (0 to 30000). |
 | `cloud_hold_max_s` | 1800 | Cloud: how long a print may be held on the cooling verdict before it is canceled (60 to 7200). |
 
-The laser keys apply at the next job. Grbl `$` settings (rates,
+The laser keys apply at the next job. The lens keys on the Machine tab's
+Lens card (the park height, the focus at the hall reference, and the free
+travel each way) apply at the next controller start or home. Grbl `$` settings (rates,
 accelerations, laser mode) are set through your sender in the usual way; the
 defaults are baked in from the factory machine's own measured values, and
 the X and Y steps per millimeter (`$100`, `$101`) follow `xy_microsteps`
