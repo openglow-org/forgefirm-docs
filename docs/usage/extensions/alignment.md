@@ -42,15 +42,17 @@ install is refused.
 ## Using it
 
 1. Open the **Extensions** tab and press **Use the alignment tool**. The
-   machine must be idle.
+   machine must be idle and homed.
 2. The head moves about 25 mm, slowly, so the camera is over the spot where
    the laser will hit. The video starts.
 3. Put the red crosshair on the spot where the job starts. Jog with the pad
    or the arrow keys, or open the lid and slide the material. Up is toward
    the back of the machine, as in the video. The step is 0.1, 1, 5, or
-   10 mm.
+   10 mm, or with the panel in inches 0.01, 0.05, 0.25, or 0.5 in.
 4. Press **Done: put the laser on the crosshair**. The head moves back by
-   the same distance, and the laser is on the spot.
+   the same distance, and the laser is on the spot. If the head cannot get
+   back (the spot is past the edge of the work area), **Done** still lets
+   your sender back in, and the page says the laser is not on the spot.
 5. In your Grbl sender, connect again and start the job from the current
    position. In LightBurn, that is **Start From: Current Position**.
 
@@ -72,9 +74,11 @@ it refuses to let a sender connect until you press **Done**. Your sender
 shows the message *The machine is in use: senders are kept out for now*.
 Connect again after **Done**.
 
-The tool starts only when the machine is idle and the sender is not
-sending. If a job is running, or the sender just sent something, wait and
-try again.
+The tool starts only when the machine is idle and homed, and the sender is
+not sending. If a job is running, or the sender just sent something, wait
+and try again. Home the machine first
+([Homing](../homing.md)): until it is homed, nothing keeps the head's moves
+inside the work area.
 
 The panel shows a banner while the tool keeps the sender out. **Let the
 sender back in** ends it at once. The tool then moves the head back, as
@@ -103,7 +107,9 @@ moves run at 10 mm/s.
 
 The video is what the camera sees. Nothing in it is corrected, stretched,
 or moved: only the crosshair is drawn over it. The crosshair has a tick at
-each millimeter to 5 mm and a ring at 10 mm. The ticks and the ring follow
+each millimeter to 5 mm and a ring at 10 mm, or with the panel in inches a
+tick every 0.05 in to 0.25 in and a ring at 0.5 in. The page shows every
+length in the panel's units. The ticks and the ring follow
 the **material height** that you type, because the camera sees a surface
 closer to it as larger. The height changes nothing else: the crosshair's
 center is correct at any height.
@@ -119,11 +125,12 @@ removed or replaced.
 The calibration burns a small mark, so it is a laser job and every gate of
 a job applies.
 
-1. Put scrap material under the head and close the lid.
-2. Open **Calibration** and press **Burn the mark**. Press the button on the
-   machine when it lights. The mark is a plus sign 3 mm wide, burned where
-   the laser is.
-3. The head moves so the camera sees the mark.
+1. Home the machine, put scrap material under the head, and close the lid.
+2. Open **Calibration** and press **Burn the mark**. The head first traces
+   the mark without the laser; a mark closer than 1.5 mm to an edge of the
+   work area is refused. Press the button on the machine when it lights. The
+   mark is a plus sign 3 mm wide, burned where the laser is.
+3. The head moves by the offset, about 25 mm, so the camera sees the mark.
 4. Drag the blue crosshair onto the center of the burned plus, then nudge
    it by one or ten pixels.
 5. Press **Jog to the blue crosshair**. Repeat 4 and 5 until the burned plus

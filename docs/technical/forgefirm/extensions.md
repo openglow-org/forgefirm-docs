@@ -836,7 +836,7 @@ Three rules govern it:
 
 | The page asks for | It needs | It gets |
 |---|---|---|
-| `self` | | its id, version, tier, the capabilities it may use, and the destinations its service may reach (the same lists `GET /v0/self` gives its service) |
+| `self` | | its id, version, tier, the capabilities it may use, and the destinations its service may reach (the same lists `GET /v0/self` gives its service); and `units`, the panel's display units (`metric` or `imperial`, [Settings](../../usage/settings.md)), so the page shows lengths as the panel does while every value it exchanges stays in millimeters |
 | `machine.status`, `machine.cool`, `machine.mode` | `machine.read` | the machine's own answer |
 | `settings.get`, `settings.set` | `settings.own` | its settings and their schema |
 | `camera.frame` | `camera.lid` or `camera.head` | the frame as bytes, taken as a background capture, so it yields to a viewer and is refused while a job is armed. It takes `camera`, and optionally `resolution` (`full` or `half`, the default), `quality` (1 to 100), and `lamp` (0 to 1023); a value outside those is refused by name, and nothing else in the message is carried |
