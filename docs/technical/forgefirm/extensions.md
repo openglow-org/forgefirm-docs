@@ -338,7 +338,7 @@ The extension root is `/data/forgefirm/ext`:
 | `required-holds/` | One empty file per package whose hold the operator marked required, so a hold fails closed across a reboot before the host has read anything |
 | `settings/<id>.json` | A package's own settings, root's alone at 0600 |
 | `lock` | The host's lock, taken around every change to the root |
-| `state.json` | What no package can say about itself: the tier and the key that signed it, its account of the pool (`ffx0` to `ffx31`, the lowest free one), the operator's grants, enabled, quarantined |
+| `state.json` | What no package can say about itself: the tier and the key that signed it, its account of the pool (`ffx0` to `ffx31`, the lowest free one), the operator's grants, enabled, quarantined, and a stamp every install writes anew |
 
 An update keeps the version it replaces; the one before that is removed. `state.json` is written whole and renamed into
 place, and a state file this program did not write (another schema, an
@@ -420,7 +420,7 @@ seconds, with a count of what was dropped.
 | Healthy | after 60 s of running: the backoff starts over, and the package's previous version is removed |
 | Quarantine | at the fifth end inside 10 minutes without reaching healthy; remembered in `state.json` until the operator lifts it |
 | A service that should not run | (disabled, removed, quarantined, the wrong controller mode, extensions off) is stopped: its group is killed and removed, and its chain and map element are taken out of the rule table |
-| A service whose version, or whose operator's destinations, changed | is stopped and started again with them, outside an armed window; that is not an end that counts toward quarantine |
+| A service whose install (a new version, or the same one removed and installed again), or whose operator's destinations, changed | is stopped and started again with them, outside an armed window; that is not an end that counts toward quarantine |
 | Extensions off, safe mode, the host stopping | `ext.shutdown` is put in the event feed, and the services are stopped one second later ([The events a package reads](#the-events-a-package-reads)) |
 
 **The armed window.** While the window is open, every service is frozen
