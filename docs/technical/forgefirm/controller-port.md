@@ -40,13 +40,14 @@ the requests.
 
 | Request | Reply | What it does |
 |---|---|---|
-| `state` | One JSON object | `state` (the Grbl state name), `sender` (a Grbl client is connected), `port_jog` (the jog in progress is the port's), `released` (the X and Y motors are released), `mpos` (machine position, mm), `homed` (the homed-axes mask), `envelope_open` (the bed check's envelope is open), `mcode` (the M-code a job waits at, `{"seq", "code", "words"}`, or `null`), `sender_out` (senders from the network are kept out) |
+| `state` | One JSON object | `state` (the Grbl state name), `sender` (a Grbl client is connected), `port_jog` (the jog in progress is the port's), `released` (the X and Y motors are released), `mpos` (machine position, mm), `homed` (the homed-axes mask), `envelope_open` (the bed check's envelope is open), `mcode` (the M-code a job waits at, `{"seq", "code", "words"}`, or `null`), `sender_out` (senders from the network are kept out), `tray` (the crumb tray's mode, `in` or `out`) |
 | `jog <words>` | `ok`, `error:<n>`, or `busy:<why>` | Runs `$J=<words>`. `<words>` is held to the characters a jog needs (capital letters, digits, `.`, `-`, `+`, and spaces); anything else answers `error:invalid` |
 | `cancel` | `ok` | Cancels a port jog in progress. It does nothing to a sender's own jog |
 | `release` | `ok`, `error:<n>`, or `busy:<why>` | `$MD`: releases the X and Y motors |
 | `energize` | `ok`, `error:<n>`, or `busy:<why>` | `$ME`: energizes them |
 | `home` | `ok`, `error:<n>`, `error:mode`, or `busy:<why>` | `$H`, only while `homing_mode = manual`, where it moves nothing, or only the jog to the origin a manual home offset asks for, and answers once the head has stopped. Under every other method it answers `error:mode`: a homing session is a Grbl client's to start |
 | `envelope open\|apply` | `ok`, `error:homed`, or `busy:state` | The Setup page's bed check: `open` sets X's and Y's far edges to the axis travel plus 30 mm, and `apply` sets them from `envelope_x_mm` and `envelope_y_mm` again, without a home ([Homing](homing.md#the-far-edges)). Both need X and Y homed (`error:homed`), and the machine Idle with no armed window (`busy:state`) |
+| `tray in\|out` | `ok`, `error:saved`, `error:invalid`, or `busy:<why>` | Runs `M103 P0` or `M103 P1`, the crumb tray's mode ([The grblHAL driver](grblhal-driver.md#the-crumb-tray)), which moves nothing, and answers once the Z frame has changed. Needs Idle (`busy:state`), and is refused while a job waits at a package's M-code (`busy:mcode`). `error:saved` means the mode could not be saved, and did not change |
 | `mcodes <list>` | `ok` or `error:invalid` | The M-codes packages answer now: `-` for none, or numbers from 160 to 179, each once, comma separated. A list with any other form leaves the table as it was ([A package's M-code](extensions.md#a-packages-m-code)) |
 | `mcode_result <seq> ok\|fail [<words>]` | `ok`, `error:stale`, or `error:invalid` | The answer to the M-code `state` names under `seq`. The words are printable, with no brackets, at most 96 bytes; they go to the Grbl client in a `[MSG:]`. An answer under another `seq`, or a second one, is stale |
 | `sender out` | `ok`, `busy:state`, or `busy:sender` | Disconnects the Grbl client and keeps every client from the network out, only on an idle machine ([below](#keeping-the-sender-out)) |
@@ -59,9 +60,9 @@ controller was reset before the line's status came back. The `busy` reasons:
 | Reply | Meaning |
 |---|---|
 | `busy:released` | The X and Y motors are released. The core would refuse the jog as well (the release holds the alarm state); this reply says why |
-| `busy:state` | A jog needs Idle, or a port jog already in progress. `release`, `energize`, and `home` need Idle or Alarm |
+| `busy:state` | A jog needs Idle, or a port jog already in progress. `release`, `energize`, and `home` need Idle or Alarm; `tray` needs Idle |
 | `busy:sender` | The Grbl client sent a line with something in it within the last 0.3 s, has such a line waiting, or is in the middle of one. For `sender out`: the client is in the middle of a line, has one waiting or not yet answered, or sent one within the last 2 s |
-| `busy:mcode` | A job waits at an M-code a package answers: it is Idle there, and it is still the job |
+| `busy:mcode` | A job waits at an M-code a package answers: it is Idle there, and it is still the job. For a jog and for `tray` |
 
 Every port jog puts `[MSG:Panel jog]` on the Grbl client's console, and
 `$MD`, `$ME`, and `$H` report there as they do when the client sends them.
@@ -71,7 +72,7 @@ Every port jog puts `[MSG:Panel jog]` on the Grbl client's console, and
 `state`, `jog`, and `cancel` are the **package set**: what the panel's Jog
 card, a scoped token, or any other client of forgectrl's motion routes can
 reach.
-`release`, `energize`, `home`, and `envelope` are the **panel set**: they
+`release`, `energize`, `home`, `envelope`, and `tray` are the **panel set**: they
 belong to the operator's own control panel and to nothing else.
 `mcodes`, `mcode_result`, and `sender` are the **daemon set**: forgectrl's
 own M-code relay and its keep-out manager say them, and no route reaches
@@ -89,8 +90,10 @@ Under an open armed window, with `M3` modal and `S` above zero, an injected
 `G1` would fire. A jog cannot, and the reason is one site: the stream engine
 masks FIRE for as long as the core is jogging
 ([The grblHAL driver](grblhal-driver.md)). No other motion has that
-property. So the port never forms a line that does not begin with `$J=`,
-and `G0`, `G1`, `G2`, `G3`, `S`, `M3`, and `M4` are not in either set.
+property. So the port's only motion line begins with `$J=`, and `G0`,
+`G1`, `G2`, `G3`, `S`, `M3`, and `M4` are not in any set. The one g-code
+line it forms besides is `tray`'s `M103 P0` or `P1`, which moves nothing and
+carries no laser word.
 
 ## The sender goes first
 
@@ -176,6 +179,9 @@ Host tests on the null-sink controller build, in the driver's CI:
   `apply` and their refusals, and **the client's first line (never a status
   poll or an empty line) closing an open envelope before the core reads
   it**, as a soft reset and the port client going away do.
+- `tray_test.py`: the panel set's `tray`, with the Grbl client's response
+  count exact and the client told the mode, and its refusals during a
+  program and at a package's M-code.
 - `ctlport_test.py`'s keep-out: `sender out` refused during a dwell, within
   2 s of a line, and while a program moves; the quiet client disconnected
   after the message; a client from the network turned away with the session
@@ -195,4 +201,4 @@ bound, the release and the energize by their routes), `laser.port-dark` (a
 lit cut opens the armed window and leaves `M3` modal, and the port's jogs
 under it ship dark by the LASER_ON sample count, the HV current, and the
 head's beam detector), and `motion.release`; `exthost.sender-keep-out` for
-the keep-out.
+the keep-out; `motion.tray` for the tray.

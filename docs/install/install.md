@@ -81,7 +81,8 @@ accept ([The control panel](../usage/control-panel.md#the-address)). The
 setup then runs: the
 advisories, your account, the preferences, the machine facts, and the cloud
 decision ([Setup](../usage/setup.md)). No controller runs for
-a sender until the setup is complete.
+a sender until the setup is complete. The setup's sheet needs the crumb
+tray in ([Setup](../usage/setup.md#the-sheet)).
 
 Root has no password and works at the serial console only; SSH refuses root.
 SSH is off at every boot until you turn it on from the panel's System tab.

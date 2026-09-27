@@ -150,6 +150,11 @@ each with its value before, and the numbers behind the sentence sit under a
 fold. A question about the sheet waits half an hour for your answer and the
 page counts that down, so a careful look never loses a burn.
 
+**The crumb tray must be in.** The sheet goes on the tray, and the focus
+card measures the height above it. A card will not start while the panel
+says the tray is out: put the tray in and set Tray in on the Machine tab
+([The control panel](control-panel.md#machine)).
+
 **Do not move the sheet between the cards.** The placement sets one datum
 for every card, and each card is drawn from it. Open the lid and look as
 much as you like, with a loupe if you have one, but leave the sheet where
@@ -196,7 +201,8 @@ and every card again.
    distance from the reference, over the screw's scale, below the
    thickness is the focal height when the lens sits on its reference. That
    one number is written as `lens_hall_edge_z_mm`; it is what differs from
-   head to head. On the controller Z is the focal point's height above the
+   head to head, and it is measured above the tray, which is why the card
+   needs the tray in. On the controller Z is the focal point's height above the
    tray, so a job on 3 mm material runs at Z 3; a home puts the lens on its
    reference, sets Z from the number, and parks the focus at
    `lens_park_z_mm` (3 mm by default; yours to set on the Machine tab). The

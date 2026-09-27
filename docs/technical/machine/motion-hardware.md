@@ -90,8 +90,10 @@ up from its zero, where its hunt parks the lens: 4 full steps down from the
 hall edge. It runs about 2.8 half-steps per millimeter of material and
 saturates at 30 half-steps, its idea of the usable travel.
 
-In GRBL mode Z is the focal point's height above the tray: Z 0 focuses on
-the bed, Z 3 on the top of 3 mm material, and +Z is lens up. A home leaves
+In GRBL mode Z is the focal point's height above the tray, or above the
+floor with the tray out
+([The crumb tray](../forgefirm/grblhal-driver.md#the-crumb-tray)): Z 0
+focuses on the bed, Z 3 on the top of 3 mm material, and +Z is lens up. A home leaves
 the lens on the hall edge, sets Z to the edge's focal height on the step
 grid (ten half-steps, Z 3.42 mm, on the bench reference), and parks
 the focus at `lens_park_z_mm`, a user setting, 3 mm by default

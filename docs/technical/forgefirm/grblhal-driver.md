@@ -570,7 +570,9 @@ and the sender-goes-first rule are on
 ## The lens (Z)
 
 The driver's Z is the focal point's height above the tray: Z 0 focuses on
-the bed, Z 3 focuses 3 mm above it, on the top of 3 mm material. The lens is
+the bed, Z 3 focuses 3 mm above it, on the top of 3 mm material. With the
+crumb tray out it is the height above the floor of the cut area instead
+([below](#the-crumb-tray)). The lens is
 a 2 in lens under a collimated beam, so the focal point moves 1:1 with the
 lens and +Z is lens up; the travel is the lens carriage's 0.485 in
 ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)).
@@ -589,7 +591,7 @@ height). The park and the Z envelope keep to the head's free travel as the
 focus card found its stops (`lens_stop_below_steps`, `lens_stop_above_steps`),
 or, until it has or when the stops could not be found, to the fallback
 window of ten half-steps below the edge to twelve above; the lens is never
-driven onto a stop on a user's machine. The defaults are the bench
+driven onto a stop on a user's machine. The defaults are the
 bench reference's, placeholders until the card has run. The homing
 session answers the service's lens hunt as done without moving the lens;
 the lens reference is the session's own, after the service goes quiet.
@@ -616,6 +618,52 @@ all three axes. Beyond the free travel, referenced, the same refusal. The
 panel's Machine tab shows the reach, and Z reads its height while X and Y
 still show as unreferenced
 ([Homing](homing.md#the-lens-reference-at-every-start)).
+
+### The crumb tray
+
+The crumb tray comes out for work taller than it allows. The work then sits
+on the floor of the cut area, `tray_offset_mm` below the tray (1.35 in,
+34.29 mm, by default, as measured on the bench reference; held to 13 to
+60 mm), and Z is the focal height above that floor. `M103 P1` sets the tray
+out and `M103 P0` sets it in; any other `P`, a missing `P`, or an axis word
+on the line is an error (28, 39, 31) and changes nothing. The M-code is
+synchronized: the planner drains, and the switch waits for the kernel to
+finish playing the move before it, the wait a package's M-code makes
+([A package's M-code](extensions.md#a-packages-m-code)), before the frame
+changes. The Grbl client is told `[MSG:Tray out]` or `[MSG:Tray in]`, also
+when the mode it asked for already stands.
+
+Nothing moves: the driver moves the numbers. The Z position, the home
+position, the Z envelope (a referenced one, or the one pinned where an
+unreferenced lens stands), and the anchor's Z all move by the offset in
+whole lens half-steps, the offset times `$102`, rounded (1.35 in is 100
+half-steps, 34.22 mm), so nothing drifts by rounding. The lens reference at
+a controller's start and a gfcloud home take the edge in the frame of the
+mode that stands. The park after a home is counted from the edge, so the
+lens parks in the same place in both modes and only the Z it reports
+differs: on the bench reference with the defaults, Z 3.08 with the tray in
+and Z 37.30 with it out. The offset is larger than the lens's whole travel,
+so the two modes' Z ranges never overlap: a program written for the other
+mode that commands Z stops at the Z soft limit instead of running out of
+focus.
+
+The mode persists across a soft reset, a controller restart, and a reboot:
+the marker `/data/forgefirm/tray.out` means the tray is out. The controller
+is its only writer. It writes the marker, synced, before the frame changes,
+so a mode that cannot be saved does not change, and a job that asked for it
+is held with a message. forgectrl reads the marker for the panel, and
+refuses a change of `tray_offset_mm` while the tray is out, so the offset in
+force never changes under a live frame. The panel's switch is the controller
+port's `tray` op ([The controller port](controller-port.md)). The setup
+needs the tray in ([Setup](../../usage/setup.md#the-sheet)).
+
+Host tests: `tray_test.py` on the null-sink controller build, in the
+driver's CI (the shift and its envelope, the errors, the wait for the move
+before it, the port's `tray` op and its refusals, the mode across a soft
+reset and a restart, the offset's range, an unreferenced lens, and a camera
+home in both modes), and `lens_home_test` for the offset on the step grid.
+On the bench, the release acceptance test `motion.tray`
+([Release acceptance](../../developers/acceptance.md)).
 
 ## Where the driver sits in the safety design
 

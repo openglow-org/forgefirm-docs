@@ -36,7 +36,8 @@ another, and computes where the head is; the machine moves to the home
 corner. The service's lens hunt is answered as done without moving the lens;
 after the session the lens takes its own reference on the hall sensor's edge,
 Z is set to the focal point's height above the tray at that edge, the number
-[Setup](setup.md#the-sheet) measured, and the lens then moves
+[Setup](setup.md#the-sheet) measured (above the floor, with the
+[crumb tray](control-panel.md#machine) out), and the lens then moves
 to the park height, `lens_park_z_mm` on the Machine tab (default 3 mm), so a
 home ends focused about 3 mm above the bed.
 

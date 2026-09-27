@@ -44,7 +44,9 @@ listens on TCP port 23 at your machine's address, shown below as
    session), `switches` (physical limit switches, planned), or `none` (`$H` is
    rejected). Run `$H` deliberately from the Console tab when you want a true
    machine origin ([Homing](homing.md)). Z is the focal point's height above
-   the tray: a Z of 3 focuses on the top of 3 mm material, and the job's Z
+   the tray, or above the floor with the tray out
+   ([The crumb tray](../technical/forgefirm/grblhal-driver.md#the-crumb-tray)):
+   a Z of 3 focuses on the top of 3 mm material, and the job's Z
    moves the lens. The lens never moves without a reference: before a home,
    any Z move is refused (a jog with an error, a job with the soft-limit
    alarm), and after one, a Z beyond the lens's free travel is refused the

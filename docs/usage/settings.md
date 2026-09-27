@@ -63,6 +63,7 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | `gfcloud_home_x/y` | 0 / 0 | Coordinates assigned after a successful camera home. Held to the axis travel either side of the origin. |
 | `manual_home_x/y` | 0 / 0 | The gantry stops are X0 Y0. |
 | `envelope_x_mm`, `envelope_y_mm` | unset (the axis travel) | Applies at the next home. |
+| `tray_offset_mm` | 34.29 (1.35 in) | How far Z moves up with the crumb tray out: the floor below the tray. 13 to 60 mm. Changes only while the tray is in ([The control panel](control-panel.md#machine)). |
 | `gfcloud_home_timeout_s` | 300 | How long a homing session may take before it alarms. |
 | `lid_policy` | `cancel` | `cancel` = factory behavior; `hold` = stock Grbl door parking. |
 | `xy_microsteps` | `32` | The X and Y microstep mode: `8` (the factory's), `16` or `32` (the default). The GRBL controller reads it at its start and derives `$100`/`$101`, its machine tick (28160 Hz at 8, doubled at 16, quadrupled at 32) and the kernel stop ramp from it, so nothing else needs typing; `$100`/`$101` are derived, never typed. Saving a change restarts an idle GRBL controller. Cloud mode runs at the service's own 8. 32 asks four times the step rate of 8 and depends on the machine ([The motion hardware](../technical/machine/motion-hardware.md)). |

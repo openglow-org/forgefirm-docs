@@ -137,6 +137,7 @@ costs one bounded error, never a pinned thread.
 | `POST /motion/cancel` | Cancels the jog in progress, if it is the port's |
 | `POST /motion/release`, `POST /motion/energize` | The X and Y motor release and its end (`$MD`, `$ME`, [Homing](homing.md#the-motor-release)). The panel's own: these and the next route are outside the operation set a jog client can reach ([The controller port](controller-port.md#three-operation-sets)) |
 | `POST /motion/home` | A manual home (`$H`), accepted only while `homing_mode = manual`, where it moves nothing, or only the jog to the origin a manual home offset asks for. 409 under every other method: a homing session is a Grbl client's to start |
+| `POST /motion/tray?tray=in\|out` | The crumb tray's mode (the port's `tray` op, [The grblHAL driver](grblhal-driver.md#the-crumb-tray)): moves nothing, 409 unless the controller is Idle. The panel's own, like the two above. `/status` reads the mode from the controller's marker as `lens.tray`, with `lens.tray_offset_mm`, and moves `lens.reach_min` and `reach_max` up by the offset on the lens step grid while the tray is out. A change of `tray_offset_mm` is refused (409) while the tray is out, and so is every setup card (`POST /wiz/<card>/start`) |
 | `GET /motion/sender`, `POST /motion/sender` | Keeping the Grbl sender out ([A package keeps the Grbl sender out](extensions.md#a-package-keeps-the-grbl-sender-out)). `GET` answers `{"holder": {"id", "for_s"} or null, "notice": {"id", "why": "stopped"} or null}`. The operator's `POST`: `out=0` lets the sender back in, `notice=clear` clears the notice. Only the extension host names a package (`id`), 403 for anybody else: `out=1` keeps the sender out for it and `out=0` ends that, both answering `{"out", "released"}` as `GET` with `id` does; 409 in words when the controller refuses (the machine is not idle, the sender is sending), another package holds it, the lease is taken, or the operator let the sender back in on this package's claim. No scoped token reaches the route (403) |
 | `POST /cool/state` | Controller job-state report, level-triggered at ~1 Hz; a loopback peer that presents the secret the supervisor handed the running controller, and nobody else ([Cooling engine](cooling-engine.md#job-state-reports)) |
 | `GET /cool/status` | Cooling-engine state: phase, verdict, `fire_ok`, `hold`, `resume_ok`, temps, report age, `gates_off`, the effective `limits`, `fan_gates`, `fire_watch`, `accel_watch`, `quiet_hold` |
@@ -660,7 +661,7 @@ for it with `unlock=1`. While the X and Y motors are released the controller
 refuses that `$X`, and the job ends at its first line.
 
 While anything holds the machine (a log export aside), `POST /motion/jog`,
-`/motion/release`, `/motion/energize`, and `/motion/home` are refused in the
+`/motion/release`, `/motion/energize`, `/motion/home`, and `/motion/tray` are refused in the
 holder's name: a job's pauses are not the panel's to jog in. A package that
 keeps the Grbl sender out is the one exception its own hold makes: the jogs
 the extension host sends in its name pass.
@@ -850,7 +851,7 @@ What asks the lease, and which holders refuse it:
 |---|---|
 | A diagnostic, a wizard, a recording, a posted job, an update job, a log export | Anybody else holds it |
 | `POST /mode`, `POST /boot`, `POST /system/reboot`, `POST /update/upload`, `POST /restore/factory-return` | Anybody holds it |
-| `POST /settings`, `POST /controller/start`, `POST /cool/quiet`, `POST /motion/jog`, `/motion/release`, `/motion/energize`, `/motion/home` | Anybody but a log export holds it. An export only reads, and a settings write does not disturb it; an update job locks the controls like a diagnostic does |
+| `POST /settings`, `POST /controller/start`, `POST /cool/quiet`, `POST /motion/jog`, `/motion/release`, `/motion/energize`, `/motion/home`, `/motion/tray` | Anybody but a log export holds it. An export only reads, and a settings write does not disturb it; an update job locks the controls like a diagnostic does |
 
 **One owner may run under a holder.** The cooling wizards run a diagnostic
 inside their own hold, and the sheet wizards a job: the inner owner names the

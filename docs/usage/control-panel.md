@@ -130,10 +130,18 @@ and the button blinks amber ([Modes](modes.md#what-the-supervisor-does-for-you))
 Shared settings: display units, the homing method and the post-homing position
 calibration, the X and Y motor release with the manual home beside it
 ([Homing](homing.md#manual-homing); both shown while the GRBL controller
-runs), the lens, the stepper drive (the X and Y microstep mode,
+runs), the lens, the crumb tray, the stepper drive (the X and Y microstep mode,
 [Settings](settings.md#settings-that-affect-motion)), and the cooling
 tunables. The cooling cards are the coolant loop, flow verification, and the
 airflow gates ([Cooling and fans](cooling-and-fans.md)).
+
+**The crumb tray.** While the GRBL controller runs, the Lens card says
+whether the tray is in or out, with a button that switches it. Take the
+tray out for taller work: Z is then the height above the floor of the
+machine instead of above the tray. Switching moves nothing. Floor below the
+tray is how far that is (1.35 in by default); change it with the tray in.
+The setup needs the tray in. The Status tab shows the mode beside the lens
+reach.
 
 ### GF Cloud
 
@@ -289,7 +297,7 @@ offset diagnostic's Apply button.
 | `GET /ext/catalog`, `POST /ext/catalog/refresh`, `POST /ext/catalog/get` | The catalog this machine keeps, fetching a fresh one, and fetching the version of one listed package that this firmware runs, to stage it as an upload ([Extensions](extensions/index.md#the-catalog)) |
 | `POST /ext/key`, `POST /ext/key/remove` | Add or remove a key you trust; adding one takes the machine's button held |
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever: stop halts the active controller and holds supervision suspended; start resumes it ([Modes](modes.md)) |
-| `POST /motion/jog?x=&y=&z=&feed=`, `POST /motion/cancel`, `GET /motion/state` | A bounded jog beside the Grbl client, its cancel, and the controller's own state; `POST /motion/release`, `/motion/energize`, and `/motion/home` are the panel's motor release and manual home ([forgectrl](../technical/forgefirm/forgectrl.md#http-api)) |
+| `POST /motion/jog?x=&y=&z=&feed=`, `POST /motion/cancel`, `GET /motion/state` | A bounded jog beside the Grbl client, its cancel, and the controller's own state; `POST /motion/release`, `/motion/energize`, and `/motion/home` are the panel's motor release and manual home, and `POST /motion/tray?tray=in\|out` its crumb tray switch ([forgectrl](../technical/forgefirm/forgectrl.md#http-api)) |
 | `GET /events` | The machine's events as a server-sent event stream, for a script: the lid, a job's arm, pause, and end, alarms, the cooling verdict ([forgectrl](../technical/forgefirm/forgectrl.md#the-event-stream)) |
 | `GET /cool/status` | Cooling-engine state: phase, verdict, temps, report age, `gates_off`, the effective `limits`, `fan_gates` |
 | `GET /grbl/settings` | The GRBL controller's `$$` view, while a GRBL controller runs |
