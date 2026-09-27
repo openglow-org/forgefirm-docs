@@ -307,8 +307,8 @@ native service's binary, which the machine does not: its architecture, its
 float ABI, the libraries it is linked against, and the newest C library
 symbol it needs, so that a binary the machine's loader would refuse is
 refused here first. `pack` lints
-first and packs nothing it refuses; the payload is the same bytes every
-time for the same files.
+first and packs nothing it refuses; the archive, signed or not, is the same
+bytes every time for the same files and the same key, on any day.
 
 ## Sign it
 
