@@ -440,7 +440,13 @@ detector, and the hardware safety chain does not include head presence).
 
 Who reads what:
 
-- **forgectrl** polls `EVIOCGSW` for `/status` (no exclusive grab).
+- **forgectrl** polls `EVIOCGSW` for `/status`, the events stream, and the
+  camera lid gate through one descriptor it keeps open (no exclusive grab).
+  Every close of an evdev descriptor waits out an RCU grace period, about
+  30 ms on the bench reference, so a hot path never opens the device per
+  read. A failed read drops the descriptor and reads once through a fresh
+  one; a read that still fails reports no switch active, which the lid
+  gate takes as open.
 - **The active controller** reads the button directly (the GRBL arm flow
   waits on code 2; the cloud client's event loop does the same in its mode).
   Button *meaning* is mode-specific by design; the reads stay in-process for

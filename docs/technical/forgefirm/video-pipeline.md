@@ -27,18 +27,29 @@ imx-media pipeline:
 | `GET /cam/stream?cam=lid\|head&fps=1..15&lamp=0..1023` | Multipart MJPEG, half the capture size in each axis (1296x972 on a 5 MP machine); `fps` paces this viewer alone, `lamp` lights the camera while a stream watches |
 | `GET /cam/h264?cam=lid\|head` | The same picture as H.264 in fragmented MP4 |
 | `GET /cam/snapshot?cam=lid\|head&res=full\|half&q=1..100` | Single JPEG, default full (2592x1944 on a 5 MP machine) |
-| `GET /cam/status` | JSON: running/cam/clients/frames/fps/fps_cap/encoder/buffers, the sensor, the frame sizes, the lid gate, the health counters |
+| `GET /cam/status` | JSON: running/cam/clients/frames/fps/fps_cap/encoder/buffers, the sensor, the frame sizes, the lid gate, the health counters, the stream's per-stage timing |
 | `GET /?action=stream` / `/?action=snapshot` | mjpg-streamer-compatible aliases (lid) |
 
-The stream demosaics each 2x2 BGGR quad to one pixel straight into planar
-YUV420 and encodes on the i.MX6 CODA960 VPU JPEG encoder: 15 fps at
+The stream demosaics each 2x2 BGGR quad to one pixel straight into YUV
+4:2:0 and encodes on the i.MX6 CODA960 VPU JPEG encoder: 15 fps at
 1296x972 on a 5 MP machine, sensor-limited. Snapshots use a bilinear
-demosaic and libjpeg, which is also the automatic fallback encoder.
+demosaic and libjpeg, which is also the automatic fallback encoder. Each
+MJPEG part is closed by the delimiter that opens the next, so a viewer that
+finds a part's end by its boundary (a browser's image element) shows a frame
+as soon as it arrives rather than when the next one starts.
 
-Capture buffers are requested non-coherent (CPU-cached) so the demosaic can
-read frames in place. On kernels whose capture queue lacks cache-hint
-support the daemon falls back to uncached buffers with a bounce copy;
-`/cam/status` reports which as `"buffers"`.
+The capture buffers are **coherent (uncached) while the GPU demosaics the
+stream, and CPU-cached when the processor does**. A cached buffer is
+cache-maintained over its whole 5 MB at every frame, part of it inside the
+receiver's end-of-frame interrupt with every other interrupt held off, 4.5 ms
+a frame on the bench reference; on the GPU path nothing on the processor
+reads the frame, so that work buys nothing. The processor's demosaic needs
+the cached mapping, so a GPU that fails or never comes up makes the next
+capture start ask for cached buffers. A snapshot from coherent buffers takes
+a bulk copy first, tens of milliseconds against a still's second or two. On
+kernels whose capture queue lacks cache-hint support the daemon uses uncached
+buffers with that copy throughout. `/cam/status` reports which as
+`"buffers"`.
 
 The capture pipeline is held open while clients are active and fully
 released after 10 s idle, so one-shot V4L2 users can still grab. The
@@ -155,8 +166,9 @@ and H.264 from its BIT processor, two independent engines, so serving both
 at once does not double any cost that matters. The demosaic that feeds them
 runs as fragment shaders on the SoC's GC880 GPU when the image ships the GL
 stack (reported as `"convert": "gpu"` in `/cam/status`), reading the sensor
-frame and writing the encoder's buffer directly, so a stream frame never
-crosses the CPU at all; without the GPU it falls back to the NEON demosaic.
+frame and writing a picture the IPU crops into each encoder's buffer, so a
+stream frame never crosses the CPU at all; without the GPU it falls back to
+the NEON demosaic.
 Stills are demosaiced and encoded on the CPU, which is most of why a
 full-resolution one takes a couple of seconds.
 
@@ -204,7 +216,7 @@ implementations, each probed at runtime and each falling back to the next:
 
 | Stage | First choice | Fallback | Switch |
 |---|---|---|---|
-| Demosaic (stream) | GC880 GPU fragment shaders ([`src/gpu_debayer.c`](https://github.com/openglow-org/forgectrl/blob/main/src/gpu_debayer.c)): capture dmabuf in, encoder dmabuf out, CPU untouched | NEON superpixel ([`src/debayer.c`](https://github.com/openglow-org/forgectrl/blob/main/src/debayer.c)), then scalar | `FORGECTRL_NO_GPU`, `FORGECTRL_NO_NEON` |
+| Demosaic (stream) | GC880 GPU fragment shaders ([`src/gpu_debayer.c`](https://github.com/openglow-org/forgectrl/blob/main/src/gpu_debayer.c)): capture dmabuf in, NV12 out for the IPU to crop into each encoder ([`src/ipu_copy.c`](https://github.com/openglow-org/forgectrl/blob/main/src/ipu_copy.c)), CPU untouched | NEON superpixel ([`src/debayer.c`](https://github.com/openglow-org/forgectrl/blob/main/src/debayer.c)), then scalar | `FORGECTRL_NO_GPU`, `FORGECTRL_NO_NEON` |
 | MJPEG frames | CODA960 JPEG unit ([`src/vpu_jpeg.c`](https://github.com/openglow-org/forgectrl/blob/main/src/vpu_jpeg.c)) | libjpeg | `FORGECTRL_NO_VPU` |
 | H.264 stream (`/cam/h264`, fragmented MP4 via [`src/vpu_h264.c`](https://github.com/openglow-org/forgectrl/blob/main/src/vpu_h264.c) + [`src/mp4mux.c`](https://github.com/openglow-org/forgectrl/blob/main/src/mp4mux.c)) | CODA960 BIT processor | none: the endpoint answers 503 and MJPEG remains | `FORGECTRL_NO_H264` |
 | fps cap | CSI hardware frame skip (frames dropped before DMA) | software pacing in the worker | `FORGECTRL_NO_HW_SKIP` |
@@ -216,22 +228,31 @@ Measured on the bench reference at 1296x972, one viewer
 
 | Path | Per frame | Result |
 |---|---|---|
-| NEON demosaic to YUV420, then the VPU JPEG unit | convert 18 to 20 ms, encode 7 ms, dequeue and copy about 0 | 15.0 fps, the sensor's own rate; daemon about 41 % of the core |
-| GPU demosaic, IPU crop, then the VPU | render 64 ms behind a fence, IPU copy 14 ms, encode 7 ms | 13.8 fps; daemon about 14 % of the core |
-| Both encoders serving at once | two copies and two encodes, 33 ms, all off the processor | 9.8 fps |
+| GPU demosaic, IPU crop, then the VPU JPEG unit | render 16 ms, crop 12 ms, encode 6.5 ms | 15.0 fps, the sensor's own rate; camera worker about 4 % of the core; capture end to publication 67 ms |
+| Both encoders serving at once | render 23 ms, two crops 25 ms, JPEG encode 6.5 ms, the H.264 encode at publication | 15.0 fps; capture end to publication 89 ms |
+| NEON demosaic to YUV420, then the VPU JPEG unit | convert 17 ms, encode 6.5 ms | 15.0 fps; camera worker about 30 % of the core; capture end to publication 72 ms |
 
-The render is the expensive stage and it is hidden: a frame renders behind an
-EGL fence while the previous frame is cropped, encoded and published, so the
-measured fence stall is 7 to 9 ms of the 64 ms render. Luma from the GPU path
-is bit-clean against the processor's demosaic.
+Capture end to publication is the stream's own latency, from the receiver's
+end-of-frame stamp to the JPEG handed to viewers. A frame is published once
+the frame after it has come back clean ([Frame health](#frame-health)), so it
+is at least a frame period, 67 ms at 15 fps; the render, the crop and the
+encode together take about half of that. The render's completion is a fence
+the camera worker polls beside the capture queue, so a frame goes into the
+GPU as it arrives, and a frame still waiting when a newer one arrives is
+passed over rather than served late. Luma from the GPU path is within one
+count of the processor's demosaic (the one-shot comparison
+`FORGECTRL_GPU_CHECK` runs).
 
-Two facts sit behind the numbers. **Capture buffers are requested
-CPU-cached**, so the demosaic reads the frame in place; the uncached
-alternative costs a bulk copy out of the buffer first, which is 34 ms a frame
-at this resolution and roughly doubles the whole per-frame cost. And **the
-chroma passes point-sample** rather than box-average: box-averaging four
-superpixels is 32 dependent fetches per fragment and cost 49 ms per chroma
-pass against the luma pass's 41 ms for the whole plane.
+Three facts sit behind the numbers. **The render is bound by its texture
+fetches**, so the raw frame binds four Bayer bytes to a texel (two superpixels
+of one row, two raw rows to a texture row), every fetch coordinate is
+computed in the vertex stage rather than per fragment, and one pass writes Cb
+and Cr together as NV12: four luma bytes take four fetches, and so do two
+chroma sites. **The chroma point-samples** rather than box-averaging its 2x2
+block, which costs more fetches; the processor path keeps the box. And **the
+processor path keeps cached capture buffers**: an uncached frame costs a
+34 ms bulk copy before the demosaic can read it, which roughly doubles its
+per-frame cost.
 
 A full-resolution still is 2.4 s warm and 2.7 s cold, because five megapixels
 of demosaic and JPEG happen on the processor.
@@ -240,8 +261,8 @@ The GPU path loads Mesa with `dlopen` (no build-time GL dependency); an
 image without Mesa, a kernel without etnaviv, or any refused probe lands on
 the NEON path with the reason logged once. The two CODA engines are
 independent, so MJPEG and H.264 clients can be served concurrently; both
-encoder OUTPUT buffers are exported as dmabufs, and the GPU renders into
-them directly. Snapshots always use the CPU bilinear demosaic. `/cam/status`
+encoder OUTPUT buffers are exported as dmabufs, and the IPU crops the GPU's
+picture into them. Snapshots always use the CPU bilinear demosaic. `/cam/status`
 reports the active choices (`convert`, `encoder`, `hw_fps_skip`, `h264`).
 H.264 viewers count toward engine arbitration and idle exactly like MJPEG
 viewers, and a joining H.264 viewer forces an IDR so it can start decoding
@@ -260,11 +281,32 @@ again. The ladder is
 [`src/camhealth.c`](https://github.com/openglow-org/forgectrl/blob/main/src/camhealth.c),
 covered by a host test.
 
-`GET /cam/status` carries the running totals since the daemon started:
+**A stream frame is published only once the frame after it has come back
+clean.** The receiver flags the next buffer to complete after it reports lost
+sync, which need not be the buffer holding the torn frame, so a flagged frame
+withholds both its neighbors: the frame before it, unless a clean frame
+already vouched for it, and the frame after it. On a clean stream this costs
+only the part of a frame period the pipeline does not already spend; during a
+run of errors the viewer gets fewer frames and no torn ones. A snapshot is
+taken the same way, from a frame the next one vouches for, and H.264 encodes a
+frame only at its publication, since a frame it has encoded cannot be taken
+back. `FORGECTRL_FLAG_EVERY=N` flags every Nth frame the way the receiver
+flags a torn one, a bench drill for the ladder and this gate.
+
+`GET /cam/status` carries the running totals since the daemon started, and
+the stream's timing while a viewer watches:
 
 ```json
-"health": { "captured": 41230, "corrupt": 0, "restarts": 0 }
+"health": { "captured": 41230, "corrupt": 0, "restarts": 0, "withheld": 0 },
+"timing": { "latency_ms": 67.1, "convert_ms": 15.8, "copy_ms": 11.9, "encode_ms": 6.3, "skipped": 3 }
 ```
+
+`withheld` counts the stream frames not published because a neighbor came
+back flagged. `timing` holds means over the last two seconds of streaming,
+zeros while nothing streams: capture end to publication, the demosaic (the
+GPU render or the processor's), the IPU crop, and the JPEG encode, with
+`skipped` counting the frames passed over because a newer one was already
+waiting.
 
 A nonzero `corrupt` on a machine that is otherwise working is a real signal
 (a marginal camera ribbon, a mistimed D-PHY), even though those frames never
@@ -328,9 +370,10 @@ one person is standing at the machine:
 
     That coexistence is not free, and it is worth knowing why. The step
     producer runs `SCHED_FIFO`, which covers a userspace competitor for the
-    single core, but it does not cover the camera: the per-frame cache
-    maintenance over a multi-megabyte capture buffer is kernel-context work
-    that no userspace priority can preempt. What made it comfortable was
-    taking work off that path rather than raising a priority further, the
-    GPU demosaic and the hardware frame skip above
+    single core, but it does not cover kernel work: a CPU-cached capture
+    buffer is cache-maintained over its whole 5 MB every frame, part of it in
+    the receiver's end-of-frame interrupt, which no userspace priority can
+    preempt. What keeps it comfortable is taking work off that path rather
+    than raising a priority further: the GPU demosaic, the coherent capture
+    buffers that go with it, and the hardware frame skip above
     ([the grblHAL driver](grblhal-driver.md#real-time-design)).
