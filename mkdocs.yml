@@ -132,7 +132,6 @@ nav:
       - Extensions:
         - usage/extensions/index.md
         - Visual alignment: usage/extensions/alignment.md
-        - Notifications and automation: usage/extensions/automation.md
       - Settings: usage/settings.md
       - Logging: usage/logging.md
       - Diagnostics: usage/diagnostics.md
@@ -160,7 +159,6 @@ nav:
           - forgectrl: technical/forgefirm/forgectrl.md
           - The remote API: technical/forgefirm/remote-api.md
           - Extension packages: technical/forgefirm/extensions.md
-          - Notifications and automation: technical/forgefirm/automation.md
           - The cooling engine: technical/forgefirm/cooling-engine.md
           - The video pipeline: technical/forgefirm/video-pipeline.md
           - Cloud mode: technical/forgefirm/cloud-mode.md
