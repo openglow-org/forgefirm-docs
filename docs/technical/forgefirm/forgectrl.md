@@ -94,6 +94,33 @@ client only; every other client is redirected to HTTPS. The console banner
 machine's own name, `forgefirm-<xxxx>`, from the last four hex digits of its
 MAC address (`forgefirm-hostname`); there is no mDNS responder on the image.
 
+The HTTPS listener chooses the cipher, not the client: a browser on a
+desktop CPU lists AES-GCM first, and the board's Cortex-A9 has no AES
+instructions. ChaCha20-Poly1305 comes first, then AES-128-GCM and
+AES-256-GCM, then the rest of GnuTLS's `NORMAL` cipher set, so every client
+that connected before still connects. The records are sealed in the
+kernel: after the handshake, GnuTLS hands the connection's keys to the
+socket (kernel TLS, [Image and BSP](image-and-bsp.md#kernel-configuration)).
+There ChaCha20-Poly1305 runs in NEON, and AES-GCM runs its AES on the CAAM
+crypto engine with its GHASH in NEON. A cipher kernel TLS does not take
+(AES-256-CCM, the CBC suites) stays in GnuTLS.
+
+On the bench reference, with the head camera's MJPEG stream at about
+1.36 MB/s over Wi-Fi, the whole CPU was busy for:
+
+| Transport | CPU busy |
+|---|---|
+| HTTP | 25.5 % |
+| HTTPS, ChaCha20-Poly1305 sealed in the kernel | 27.2 % |
+| HTTPS, AES-128-GCM sealed in the kernel (AES on the CAAM) | 28.2 % |
+| HTTPS, ChaCha20-Poly1305 in GnuTLS | 29.0 % |
+| HTTPS, AES-128-GCM in GnuTLS | 51.1 % |
+
+The kernel on this board cannot change a connection's keys (TLS 1.3 key
+update needs Linux 6.14), so a client that sends a key update has that
+connection closed; browsers do not send one. The release acceptance test
+`forgectrl.tls-records` checks the choice and the sealing from the outside.
+
 Every state-changing call is behind forgectrl's auth layer: the panel
 token plus origin checks, and, once the setup has created the account, a
 login session. The session is a cookie, HTTPS only, with a 12 h idle expiry.
