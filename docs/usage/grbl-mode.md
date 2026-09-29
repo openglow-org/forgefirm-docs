@@ -141,6 +141,18 @@ disagree about whether the machine is armed.
 The controller clamps any feed faster than its limits: travels run up to
 200 mm/s (`$110`/`$111` = 12000 mm/min).
 
+## The crumb tray: M103
+
+You can remove the crumb tray when your work is too tall to fit on it. 
+`M103 P1` sets the tray out and `M103 P0` sets it back in. With the tray out, Z is
+automatically adjusted to the focal height above the floor of the machine instead of above the tray.
+The console answers `[MSG:Tray out]` or `[MSG:Tray in]`, even when the mode
+was already set, so jobs you normally run without the tray can run this command
+at every start. The machine remembers the mode through restarts, and the control
+panel's Lens card shows it and switches its state ([The control panel](control-panel.md#machine)). 
+The distance to the floor is the `tray_offset_mm` setting ([Settings](settings.md)),
+and the details are in [The grblHAL driver](../technical/forgefirm/grblhal-driver.md#the-crumb-tray).
+
 ## M-codes an extension answers
 
 M160 to M179 belong to extension packages. When a package you installed
