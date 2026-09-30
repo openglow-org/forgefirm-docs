@@ -132,6 +132,7 @@ nav:
       - Extensions:
         - usage/extensions/index.md
         - Visual alignment: usage/extensions/alignment.md
+        - Serializer: usage/extensions/serializer.md
       - Settings: usage/settings.md
       - Logging: usage/logging.md
       - Diagnostics: usage/diagnostics.md
