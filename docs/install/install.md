@@ -16,7 +16,7 @@ need, and [Regulatory and legal](index.md#regulatory-and-legal) before you begin
 
 !!! warning "Beta"
 
-    ForgeFIRM is in beta: expect problems, and expect frequent updates.
+    ForgeFIRM is in beta: It's stable, but you may still hit the occasional bug, and expect frequent updates.
     Upgrade whenever a newer release is available ([Updating](updating.md)).
 
 !!! warning "Install the gantry stops first"
@@ -35,6 +35,8 @@ Log in at the factory console ([Serial access](serial-access/index.md); login
 curl -fL https://raw.githubusercontent.com/openglow-org/forgefirm/master/scripts/install-forgefirm.sh --output /tmp/install-forgefirm.sh
 sh /tmp/install-forgefirm.sh
 ```
+
+If you receive a certificate error, wait a few moments and try again. Your device hasn't set its clock yet.
 
 For an offline install, place a `forgefirm.fw` on `/data` beforehand and
 pass its path:
