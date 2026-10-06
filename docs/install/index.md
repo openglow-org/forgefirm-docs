@@ -12,7 +12,7 @@ to update, and how to recover. Read [Safety](../safety/index.md) first, and
 !!! warning "Beta"
 
     **ForgeFIRM is in beta.** Every release below 0.1.0 is a beta release.
-    Expect problems, and expect frequent updates. Upgrade whenever a newer
+    It's stable, but you may still hit the occasional bug, and expect frequent updates. Upgrade whenever a newer
     release is available ([Updating](updating.md)), and report what you find
     ([Community forum](https://community.openglow.org)). Releases come only
     from the project's GitHub releases page.
