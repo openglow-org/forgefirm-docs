@@ -16,7 +16,7 @@ need, and [Regulatory and legal](index.md#regulatory-and-legal) before you begin
 
 !!! warning "Beta"
 
-    ForgeFIRM is in beta: It's stable, but you may still hit the occasional bug, and expect frequent updates.
+    ForgeFIRM is in beta: It's stable, but you may still hit the occasional bug, and expect there to be frequent updates
     Upgrade whenever a newer release is available ([Updating](updating.md)).
 
 !!! warning "Install the gantry stops first"
