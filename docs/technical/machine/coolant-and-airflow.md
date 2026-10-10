@@ -46,7 +46,7 @@ shorted, not as a temperature.
 | Piece | What it does | Control |
 |---|---|---|
 | Exhaust blower | pulls smoke out of the enclosure | `thermal/exhaust_pwm` (0 to 65535) |
-| Two intake fans | feed clean air in behind it | `thermal/intake_pwm` (0 to 65535); one output drives both fans |
+| Intake fans, two or one | feed clean air in behind it | `thermal/intake_pwm` (0 to 65535); one output drives every intake fan |
 | Air assist (in the head) | blows the cut line clear at the focal point | `head/air_assist_pwm` (0 to 1023); the factory firmware never sets it below 204, so the fan is never off |
 | Purge air (in the head) | keeps the optics clean by purging smoke from the lens cavity; on whenever the machine is on | `head/purge_air` (0 = off, 1 = on) |
 
@@ -57,6 +57,22 @@ exhaust (`thermal/tach_exhaust`), each intake (`thermal/tach_intake_1`,
 the period between tach pulses. The purge-air fan has no tachometer and
 reports its current instead (`head/purge_air_current`). The period units and
 RPM formulas are on [Sensors](sensors.md).
+
+### One intake fan or two
+
+Machines are built with two intake fans or with one. The bench reference has
+two. A Pro from 2021 has one, the same make and model of fan as the bench
+reference's, on the intake 1 tach. Its intake 2 tach never reads a pulse,
+which is what a tach with no fan on it reads: the kernel reads 0 below
+10 Hz (300 rpm at 2 pulses per revolution). The factory firmware carries a
+per-machine list of intake tachs it does not watch (`intake_disabled_tachs`);
+no other fan has one.
+
+ForgeFIRM keeps the count in `cool_intake_fans`. The setup's airflow check
+finds a machine with one intake fan and writes it
+([Setup](../../usage/setup.md#the-checks)), and the airflow gates then leave
+the second intake out
+([the cooling engine](../forgefirm/cooling-engine.md#airflow-gates-a-fan-that-is-not-moving-the-air)).
 
 ### What the fans actually reach
 

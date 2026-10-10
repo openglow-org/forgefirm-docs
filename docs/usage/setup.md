@@ -77,7 +77,12 @@ keeps the values before and after.
    the floors: 55 percent of steady for `cool_tach_exhaust_min_rpm`,
    `cool_tach_intake_min_rpm`, `cool_tach_air_assist_min_rpm`, and
    `cool_purge_min_current`, and the slowest spin-up plus 5 s for
-   `cool_fan_grace_s`. A fan under 1000 rpm fails the check. The motion
+   `cool_fan_grace_s`. A fan under 1000 rpm fails the check. Some machines
+   are built with one intake fan
+   ([One intake fan or two](../technical/machine/coolant-and-airflow.md#one-intake-fan-or-two)):
+   when intake 2 never reads a pulse and intake 1 passes, the check says it
+   detected one intake fan, writes `cool_intake_fans` as `1`, and sets the
+   intake floor from intake 1; otherwise it writes `2`. The motion
    controller stops for the run.
 4. **Motion.** The rail comes up and the liveness probe runs. The lens finds
    its reference on the hall sensor, five passes that must agree. Then the

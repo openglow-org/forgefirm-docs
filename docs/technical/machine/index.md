@@ -25,7 +25,7 @@ What is common to all of them:
 - A 495 × 279 mm work area, and no limit or home switches as shipped
   ([Motion hardware](motion-hardware.md)).
 - A closed coolant loop with a pump, a radiator, two thermistors and an inline
-  heater; an exhaust blower, two intake fans, and air assist and purge air in
+  heater; an exhaust blower, two intake fans or one, and air assist and purge air in
   the head ([Coolant and airflow](coolant-and-airflow.md)).
 - Two cameras, one in the lid and one in the head, sharing one MIPI receiver
   through a hardware switch ([Cameras](cameras.md)).

@@ -46,7 +46,8 @@ the built-in values, shown as placeholders.
 | `cool_cooldown_s` | 15 s | 0 to 1800 s | | Smoke-clear phase at run duty after a job. |
 | `cool_cooldown_max_s` | 300 s | 0 to 1800 s | | Cap on the thermal cooldown phase. |
 | `cool_tach_exhaust_min_rpm` | 6400 rpm | 0 to 20000 | 5800 to 7000 | Exhaust fan floor at run duty. `0` turns the gate off. |
-| `cool_tach_intake_min_rpm` | 2290 rpm | 0 to 20000 | 2100 to 2500 | Intake fan floor, either intake. `0` turns the gate off. |
+| `cool_tach_intake_min_rpm` | 2290 rpm | 0 to 20000 | 2100 to 2500 | Intake fan floor, each intake fitted. `0` turns the gate off. |
+| `cool_intake_fans` | 2 | 1 or 2 | | The intake fans fitted. Some machines are built with one; the setup's airflow check finds it and writes `1`, and the second intake is then not checked ([Setup](setup.md#the-checks)). |
 | `cool_tach_air_assist_min_rpm` | 6000 rpm | 0 to 30000 | 5500 to 6600 | Air-assist fan floor. `0` turns the gate off. |
 | `cool_purge_min_current` | 300 raw | 0 to 1023 | 150 to 500 | Purge-air fan current floor (the fan has no tachometer; about 1 off, about 630 on). `0` turns the gate off. |
 | `cool_fan_grace_s` | 15 s | 0 to 120 s | 5 to 30 s | Spin-up window after the run profile is written, during which no floor counts. |

@@ -1084,7 +1084,9 @@ node), the kernel pages, and a live-board spot-check:
   the conversion is not verified, and it is never published as degrees.
 - The gates, on the bench: the coolant ceiling trips and turns off by value
   (`cooling.gate-off`); every fan floor trips on an unmeetable floor and on
-  an unplugged exhaust fan (`cooling.fan-gate-trips`); a hunt with its fans
+  an unplugged exhaust fan (`cooling.fan-gate-trips`); with one intake fan
+  set, intake 2 is published not fitted and never judged while intake 1
+  still trips (`cooling.intake-one-fan`); a hunt with its fans
   off is measured and not judged (`cloud.mode-switch`); the critical line
   faults over the ceiling's pause on a genuinely rising loop
   (`cooling.critical-tier`); and the header's limits reach the engine on a

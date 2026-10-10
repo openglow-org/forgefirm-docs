@@ -148,14 +148,14 @@ with the machine held quiet and a listener that died cannot leave it so.
 ### Airflow gates: a fan that is not moving the air
 
 Commanding a fan and getting airflow are two different things, and the
-machine can tell them apart: the exhaust, the two intakes, and the air assist
+machine can tell them apart: the exhaust, the intakes, and the air assist
 carry tachometers, and the purge-air fan in the head reports its current.
 While the run profile is applied, the engine holds every one of them to a
 floor, each floor the effective one (a header's tach window can raise it for
 a job).
 
 - **The floors** are settings: `cool_tach_exhaust_min_rpm`,
-  `cool_tach_intake_min_rpm` (either intake), `cool_tach_air_assist_min_rpm`,
+  `cool_tach_intake_min_rpm` (each intake fitted), `cool_tach_air_assist_min_rpm`,
   and `cool_purge_min_current`. Each ships at 55 percent of the steady speed
   that fan reaches at the cut profile on the bench reference (the measured
   speeds and spin-up times are on
@@ -209,10 +209,16 @@ a job).
   judges every fan afresh after the grace.
 - **A floor of zero is that gate off.** It still measures: the first
   reading in a job that would have tripped the shipped default is logged.
+- **A machine built with one intake fan** has nothing on the second intake
+  tach ([One intake fan or two](../machine/coolant-and-airflow.md#one-intake-fan-or-two)).
+  With `cool_intake_fans` at `1`, which the setup's airflow check writes,
+  intake 2 is measured and published as `not fitted` with no floor, and
+  never judged; intake 1 holds the intake floor alone, and every run start
+  logs the one intake fan. Any other value judges both intakes.
 
 Outside a run the gates read `idle`. `/cool/status` carries each fan's
 `reading`, `floor`, and `state` (`grace`, `ok`, `under`, `TRIPPED`, `off`,
-`unjudged`, or `idle`) as `fan_gates`.
+`unjudged`, `not fitted`, or `idle`) as `fan_gates`.
 
 ## Coolant flow verification
 
@@ -644,7 +650,7 @@ is on [Cooling and fans](../../usage/cooling-and-fans.md).
 | `cool_flow_check_s` | `flow` (flow verification) | 50 s | 0 to 300 s | 30 to 120 s | 0 |
 | `cool_flow_rise` | (tunes `flow`; set from flow calibrate) | 14.4 °C | 1 to 40 °C | 8 to 16 °C | never |
 | `cool_tach_exhaust_min_rpm` | `exhaust` | 6400 rpm | 0 to 20000 | 5800 to 7000 | 0 |
-| `cool_tach_intake_min_rpm` | `intake` (either tach) | 2290 rpm | 0 to 20000 | 2100 to 2500 | 0 |
+| `cool_tach_intake_min_rpm` | `intake` (each tach fitted) | 2290 rpm | 0 to 20000 | 2100 to 2500 | 0 |
 | `cool_tach_air_assist_min_rpm` | `air_assist` | 6000 rpm | 0 to 30000 | 5500 to 6600 | 0 |
 | `cool_purge_min_current` | `purge` (current, raw) | 300 | 0 to 1023 | 150 to 500 | 0 |
 | `cool_fan_grace_s` | (the spin-up window, no gate) | 15 s | 0 to 120 s | 5 to 30 s | never |
