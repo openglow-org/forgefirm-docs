@@ -21,7 +21,9 @@ fogs the optics.
 and two thermistors, one **upstream** of the tube and one **downstream** of a
 small inline heater. Pro machines are specified with a thermoelectric cooler
 (TEC) on the loop; the board cannot tell whether one is fitted, because the TEC
-output has no readback and no temperature sensor is connected to the TEC. The heater exists for diagnostics, not for warming the
+output has no readback and the TEC temperature input says nothing about it
+([Sensors](sensors.md#power-supply-and-tec-temperatures-picpwr_temp-pictec_temp)).
+The heater exists for diagnostics, not for warming the
 machine up: it is how the cooling engine proves the coolant is actually moving
 (see [the cooling engine](../forgefirm/cooling-engine.md)).
 
@@ -32,7 +34,7 @@ machine up: it is how the cooling engine proves the coolant is actually moving
 | TEC | `thermal/tec_on` (0 = off, 1 = on) | Pro machines only. Basic and Plus have no TEC fitted, and writing here does nothing on those. |
 | Upstream thermistor | `pic/water_temp_2` | 10 kΩ B3380 NTC; conversion on [Sensors](sensors.md). |
 | Downstream thermistor | `pic/water_temp_1` | Same sensor, downstream of the heater. |
-| TEC temperature | `pic/tec_temp` | No sensor connected on any machine examined, a TEC-fitted Pro included; reads the 1023 rail. Conversion unknown. |
+| TEC temperature | `pic/tec_temp` | A raw input; what it reads is on [Sensors](sensors.md#power-supply-and-tec-temperatures-picpwr_temp-pictec_temp). |
 
 **Coolant temperature is read, not guessed.** Both thermistors are converted
 with the factory's own beta-equation curve, checked against a thermometer
@@ -68,11 +70,19 @@ which is what a tach with no fan on it reads: the kernel reads 0 below
 per-machine list of intake tachs it does not watch (`intake_disabled_tachs`);
 no other fan has one.
 
-ForgeFIRM keeps the count in `cool_intake_fans`. The setup counts the
-intake fans before its checks, and its airflow check counts them again;
-until the count is known, no controller runs for a Grbl sender
+A silent intake 2 tach beside a turning intake 1 therefore reads the same
+on a machine built with one intake fan as on a machine with two whose
+second fan has stopped or come unplugged. ForgeFIRM keeps the count in
+`cool_intake_fans`. The setup's Intake fans step counts the intake fans
+before its checks, and where the tachs cannot tell, which is a silent
+intake 2 or an intake 1 that does not come up to speed, it asks the
+operator to look. Its airflow check goes by that count: a silent intake 2
+is one fan on a machine counted with one and a failed check on a machine
+counted with two, and both intakes turning set the count to two. Until the
+count is known, no controller runs for a Grbl sender
 ([Setup](../../usage/setup.md#the-gate)). With one intake fan, the airflow
-gates leave the second intake out
+gates leave the second intake out; with two, a silent intake 2 trips the
+airflow gate in every cut until it turns
 ([the cooling engine](../forgefirm/cooling-engine.md#airflow-gates-a-fan-that-is-not-moving-the-air)).
 
 ### What the fans actually reach

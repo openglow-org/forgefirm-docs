@@ -280,6 +280,9 @@ sweeps the lens onto the hall sensor's rising edge in the motion-verify
 window, and the controller reads the focal height of that edge out of
 `lens_hall_edge_z_mm`. Z is therefore referenced on every start, on its own,
 while X and Y wait for a home ([forgectrl](forgectrl.md#mode-supervision)).
+The one exception is a setup step that moves the lens and then cannot put
+it back on its edge
+([forgectrl](forgectrl.md#the-setup-burns-and-the-lens)).
 
 A lens that cannot reach its edge is a **hard fault**, not a fallback: the
 lens motor is wedged, the carriage is jammed, or the hall sensor is dead, and

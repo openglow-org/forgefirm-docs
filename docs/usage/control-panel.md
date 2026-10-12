@@ -74,12 +74,14 @@ where a job expects it, so check before you start one
 identity (the factory hostname derived from the serial in the fuses), whatever
 cloud identity override is set.
 
-While the setup recommends a step, a **Setup not finished** banner above
-every tab names each one, with a link to continue the setup
+Once the guided run of the setup has ended, a **Setup not finished**
+banner above every tab names each step the setup still recommends, with a
+link to continue the setup
 ([What the setup recommends](setup.md#what-the-setup-recommends)). You can
-dismiss it. This browser keeps the dismissal, and the banner comes back
-when a step that was not in the dismissed list is recommended, for example
-after a part change.
+dismiss it. This browser keeps the dismissal for the recommendations the
+banner showed, each one a step and its reason. The banner comes back when
+a step is recommended anew, or for a new reason, for example after a part
+change.
 
 **Units** are a display-only preference (`ui_units`): the machine stores and
 exchanges metric values, and the panel converts at its edge.

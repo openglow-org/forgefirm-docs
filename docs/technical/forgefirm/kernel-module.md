@@ -737,9 +737,7 @@ previous write.
 
 Read, ASCII, 0-1023
 
-Thermoelectric cooler temperature input. The conversion is not
-characterized, and with no sensor connected (every machine examined, a
-TEC-fitted Pro included) the reading rails at 1023; see
+Thermoelectric cooler temperature input, a raw count. What it reads is on
 [Sensors](../machine/sensors.md#power-supply-and-tec-temperatures-picpwr_temp-pictec_temp).
 
 ### water_temp_1

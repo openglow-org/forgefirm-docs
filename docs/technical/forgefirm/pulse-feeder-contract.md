@@ -84,12 +84,19 @@ Writing "1" switches the device to the "run" state from "idle" and starts
 executing the loaded program. Every run started this way resets the laser
 duty to about 100 % (see [Power bytes](#power-bytes)).
 
-A run requested on an empty ring is refused with `-ENODATA` (logged at debug
-level only). A feeder meets it as an answer, not a fault: a run it requested
-while the device was still running a tail was refused as busy, and by the
-time it asks again the device has played the new bytes as a continuation.
-The grblHAL step backend takes `idle` with `-ENODATA` as "already played"
-([grblHAL driver](grblhal-driver.md)).
+A run requested while the device is running is refused with `-EPERM`, as
+it is in the fault state. A run requested on an empty ring is refused with
+`-ENODATA`, logged at debug level. A live feeder meets `-ENODATA` most
+often at a job's end: the device refuses its run with `-EPERM` while it
+still plays a tail, the feeder asks again once the device reads idle, and
+by then the device has usually played the new bytes as a continuation of
+that tail. `-ENODATA` is not always that benign: a head sync that fails
+(the module cannot read the engine's place in the ring) also reads as an
+empty ring, and the module logs its own error first
+(`context fetch failed`). The grblHAL step backend keeps its run request
+while `state` reads `running`, asks again once it reads `idle`, and takes
+`idle` with `-ENODATA` as "already played", a failed head sync included;
+the kernel log carries that error ([grblHAL driver](grblhal-driver.md)).
 
 ### stop
 

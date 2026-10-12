@@ -53,9 +53,13 @@ The setup runs in these steps:
 7. **Intake fans.** The fans run as they do in a cut for about 20 seconds
    while the machine counts its intake fans
    ([One intake fan or two](../technical/machine/coolant-and-airflow.md#one-intake-fan-or-two)),
-   and the count is written as `cool_intake_fans`. When intake 1 does not
-   come up to speed, the step asks you how many intake fans the machine
-   has: **One** or **Two**. Nothing moves, and the laser stays locked.
+   and the count is written as `cool_intake_fans`. When intake 2 gives no
+   reading, or intake 1 does not come up to speed, the step asks you how
+   many intake fans the machine has: look at the back of the machine and
+   choose **One** or **Two**. The machine cannot tell one fan from a second
+   fan that has stopped, so it asks. When intake 2 gave no reading and you
+   choose **Two**, every cut stops with an airflow fault until intake 2
+   turns. Nothing moves, and the laser stays locked.
 8. **Coolant flow.** The flow calibration, fifteen to twenty-five minutes.
    When the bands are too close to separate, the heater duty steps up from
    40 to 55 to 70 percent and the trial repeats. The threshold and the duty
@@ -114,10 +118,11 @@ keeps the values before and after.
    `cool_fan_grace_s`. A fan under 1000 rpm fails the check. Some machines
    are built with one intake fan
    ([One intake fan or two](../technical/machine/coolant-and-airflow.md#one-intake-fan-or-two)):
-   when intake 2 never reads a pulse and intake 1 passes, the check says it
-   detected one intake fan, writes `cool_intake_fans` as `1`, and sets the
-   intake floor from intake 1; otherwise it writes `2`. The motion
-   controller stops for the run.
+   the check goes by the machine's count from the Intake fans step. When
+   intake 2 never reads a pulse, a one-fan machine has its intake floor set
+   from intake 1, and a two-fan machine fails the check. When both intakes
+   turn, the check sets the count to two. The motion controller stops for
+   the run.
 4. **Motion.** The rail comes up and the liveness probe runs. The lens finds
    its reference on the hall sensor, five passes that must agree. Then the
    controller starts in loopback posture and the head jogs 50 mm each way on
@@ -149,8 +154,10 @@ keeps the values before and after.
    reach, or a slip), the check writes a reduced travel that clears the
    stops on any head, says so in its result, and asks you to open an issue
    at github.com/openglow-org/forgefirm or post on community.openglow.org so
-   the head can be looked at. About three minutes. The lens and its travel
-   are on
+   the head can be looked at. About three minutes. However the check ends,
+   the lens goes back to its reference
+   ([forgectrl](../technical/forgefirm/forgectrl.md#the-setup-burns-and-the-lens)).
+   The lens and its travel are on
    [The motion hardware](../technical/machine/motion-hardware.md#the-lens-and-its-travel).
 
 One more check, **Flow check**, is the short form of the flow calibration
@@ -180,9 +187,10 @@ anything. An abort sets the envelope back as well.
 ## The laser burns
 
 Two steps fire the laser: **Focus**, which the setup recommends, and
-**Laser floor**, which is optional. Each stands on its own: it runs on its
-own scrap of wood, and you can run it at any time from the Setup tab. You
-need a flat scrap of any wood, and calipers or a ruler for its thickness.
+**Laser floor**, which is optional. Each runs on its own scrap of wood, and
+you can run it again at any time from the Setup tab. Laser floor needs
+Focus to have run first ([Laser floor](#laser-floor)). You need a flat
+scrap of any wood, and calipers or a ruler for its thickness.
 
 The laser fires only after your press on the machine's button, every
 cooling gate stands, and a lid opened during a burn cancels it. Eye
@@ -220,11 +228,19 @@ Each step asks, in order:
    of the cut area: as far left as it goes, its top edge at the top of the
    cut area. Focus needs at least 78 x 68 mm (3.1 x 2.7 in), Laser floor
    86 x 68 mm (3.4 x 2.7 in). Close the lid.
-4. **The thickness.** The scrap's thickness, in your units.
+4. **The thickness.** The scrap's thickness, in your units, as a plain
+   number such as `3.2`: not `1/8`, and with no unit after it. It must be
+   more than 0 and at most 30 mm (1.18 in). For Laser floor it must also
+   be inside the lens's reach: the step names the range and asks again.
 5. **The arm.** Continue, then press the button when it lights white.
 
 Each step burns its box 10 mm from the head's home in X and Y. The program
-declares X0 Y0 at the head, and its last moves bring the head back home.
+declares X0 Y0 at the head with `G92`, and its last moves bring the head
+back home. A burn clears any G92 origin when it ends, also one your sender
+set, so set yours again after a burn. If a burn cannot clear it, its log
+says so: send `G92.1` before your next job. A burn that stops part way
+also puts the lens back on its reference
+([forgectrl](../technical/forgefirm/forgectrl.md#the-setup-burns-and-the-lens)).
 Open the lid and look at the burn as much as you like, with a loupe if you
 have one, but do not move the scrap until the step is done.
 
@@ -233,13 +249,13 @@ have one, but do not move the scrap until the step is done.
 Twelve lines burn heavy across the box, numbered 1 to 12 from the top, the
 lens stepped evenly from the top of the travel the Lens travel check
 measured to the bottom ([The checks](#the-checks)). Until that check has
-run, or when it could not find the stops, the lines span the reduced travel
-instead, and the page says so. Every line marks; pick the narrowest dark
-one, with the crispest edges, by its number. The depth of focus spans a few
-lines, so several adjacent lines will look the same: choose every one that
-does, and the middle of that run is the pick. A pick on the first or the
-last line is refused: the focus lies outside the ladder, and a scrap nearer
-1/8 in (3 mm) puts it inside.
+run on this head, or when it could not find the stops, the lines span the
+reduced travel instead, and the page says so. Every line marks; pick the
+narrowest dark one, with the crispest edges, by its number. The depth of
+focus spans a few lines, so several adjacent lines will look the same:
+choose every one that does, and the middle of that run is the pick. A pick
+on the first or the last line is refused: the focus lies outside the
+ladder, and a scrap nearer 1/8 in (3 mm) puts it inside.
 
 The lens is a 2 in lens under a collimated beam, so it moves with its focal
 point, and every head's lens screw is the same: the pick's distance from
@@ -256,6 +272,9 @@ on the page are in your units. The lens and its travel are on
 [The motion hardware](../technical/machine/motion-hardware.md#the-lens-and-its-travel).
 
 ### Laser floor
+
+Run Focus first: the floor burns at the focus that Focus measures, and the
+step does not start until Focus has run, and run again after a new head.
 
 Twelve rungs burn across the box from 2 to 24 percent pulse density, the
 floor and the dose curve off for the rungs. Pick the faintest rung that
@@ -305,29 +324,27 @@ then on. A tool that uses the panel token without a login is never held back.
 ## What the setup recommends
 
 Every step after the choice is recommended, never required: the machine
-runs for a Grbl sender without it. The machine recommends a step:
+runs for a Grbl sender without it. The machine recommends a step that has
+not run yet, a step that this release asks for again, and a step that
+something asks for: a fault or a thin margin the machine saw, a part you
+replaced ([What changed](#what-changed)), or a different head at boot. Each
+recommendation comes with its reason. The full list of what recommends a
+step is on [forgectrl](../technical/forgefirm/forgectrl.md#setup-and-the-gate).
 
-- that has not run yet;
-- that this release asks for again, at a newer version than the one it ran
-  at;
-- **Coolant flow** after two coolant flow faults in a row, and after a
-  **Flow check** that fails or shows a thin margin: it is recommended
-  again, and the controllers keep running;
-- **Airflow** when a fan starts a job within 10 percent of its floor;
-- the steps of a head change when the machine boots with a different head
-  ([What changed](#what-changed)), Your machine among them: it is
-  recommended again, and the controllers keep running;
-- the steps the **What changed?** menu names for a change
-  ([What changed](#what-changed)).
+A required step can be recommended again too, for example after a fault or
+a part change. It still counts as done: the controllers keep running, and
+the setup page does not send you back to it.
 
 Laser floor and Bed size are optional: never recommended for not having
 run, only when something asks for them, as a tube change asks for Laser
 floor. A run of a step clears its recommendation.
 
-The control panel shows a **Setup not finished** banner while anything is
-recommended, and the Setup tab lists each step with its reason
-([The control panel](control-panel.md#setup)). When the guided run ends with
-nothing recommended, the button lights solid green.
+Once the guided run has ended, the control panel shows a **Setup not
+finished** banner while anything is recommended. You can dismiss it
+([The control panel](control-panel.md#the-page)). The Setup tab lists each
+recommended step with its reason
+([The control panel](control-panel.md#setup)). When the guided run ends
+with nothing recommended, the button lights solid green.
 
 ## What changed
 
@@ -345,7 +362,10 @@ recommends the steps that measure or prove the new part:
 | A cover off (belts, drivers, wiring, switches) | Switches, Motion |
 
 The head change is also found on its own: a machine that boots with a
-different head recommends the same steps.
+different head recommends the same steps. It also sets aside the lens
+travel the old head measured, so until Lens travel runs, the lens keeps to
+the reduced travel that clears the stops on any head
+([forgectrl](../technical/forgefirm/forgectrl.md#setup-and-the-gate)).
 
 ## The record
 
@@ -426,12 +446,10 @@ controllers. A later release that changes a document, or asks for one of
 the required steps again, closes the gate again until you accept it or
 run the step.
 
-While the gate is closed, `GET /mode` reports the controller as `gated`,
-and its `why` names what is missing: `the advisories are not accepted`,
-`no account exists`, `setup required:` with the steps not done (for
-example `setup required: preferences, machine, cloud, cooling.flow`), or
-`the intake fans are not counted`. The panel's Status tab shows a banner
-with a link to the setup.
+While the gate is closed, the panel's Status tab shows a banner that says
+what is missing, with a link to the setup. What the machine reports while
+the gate is closed, in its own words, is on
+[forgectrl](../technical/forgefirm/forgectrl.md#setup-and-the-gate).
 
 ## Cloud mode
 

@@ -35,7 +35,7 @@ What differs:
 | | Basic and Plus | Pro |
 |---|---|---|
 | Remote-interlock connector (J8) | factory-jumpered, so the loop always reads closed | brought out for an external lockout chain |
-| Thermoelectric cooler (TEC) on the coolant loop | not fitted; the TEC temperature reading sits at the 1023 rail | specified; the board cannot detect whether one is fitted |
+| Thermoelectric cooler (TEC) on the coolant loop | not fitted | specified; the board cannot detect whether one is fitted ([Coolant and airflow](coolant-and-airflow.md#the-coolant-loop)) |
 
 Independently of the model, two camera-sensor variants exist. Standard machines
 carry the **5 MP OV5648**; "HD" machines carry the **8 MP OV8856**. The 5 MP

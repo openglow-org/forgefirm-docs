@@ -151,7 +151,7 @@ costs one bounded error, never a pinned thread.
 | `GET /setup`, `GET /wiz`, `GET /wiz/record`, `GET /advisories/<id>`, `POST /wiz/advisories/accept`, `POST /wiz/advisories/press`, `GET /wiz/advisories/press`, `POST /wiz/advisories/press/cancel`, `POST /wiz/account`, `POST /wiz/preferences`, `POST /wiz/machine`, `POST /wiz/cloud`, `POST /wiz/complete` | The setup ([Setup](../../usage/setup.md#the-routes)); an advisory's `ETag` is its hash; `GET /wiz` carries the what-changed menu (`changes`) |
 | `GET /wiz/record?download=1`, `GET /wiz/record.html`, `POST /wiz/changed` (`what`) | The record as a download named after the sheet id; the printable summary (`recordhtml.c`: one page, no script, every value escaped, the steps in catalog order with the sentence, the settings written with their values before, and the numbers); a replaced part or a service mapped to the steps it recommends again (`setup.c`: the table of changes, each naming the steps that measure or prove the new part; a run of a step clears its flag). The record routes take a login session or the token |
 | `POST /wiz/<id>/start`, `POST /wiz/<id>/answer` (`seq`, `value`), `POST /wiz/<id>/abort`, `POST /wiz/<id>/takeover`, `GET /wiz/dark`, `GET /wiz/shot?cam=lid\|head` | The checks (the dark wizards) and the laser burns (the live wizards): one runs at a time on a worker thread; the status carries the phase, the progress, the time so far, the log, the open prompt with its sequence number and how long it waits (`timeout_s`, `since_s`), the result (a burn's carries a `summary` sentence), the settings the wizard wrote with their values before (`applied`), and the run's ownership (`owned`: a login session drives it; `mine`: the requester's); the login session that started a run answers and aborts it, another session is refused (409) until it takes the run over, and a requester with no session (a tool with the token) is never held back; the shot is the cameras check's last snapshot |
-| `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A laser burn's preview (the drawing the daemon streams) and its program body, for `laser.focus` and `laser.floor`; the live wizards stream their programs through the daemon's own sender (`jobstream.c`: lines in flight up to half the controller's RX ring, ok per line, a $ command, M102 and the program end sent alone as barriers, the emission witnesses sampled at 25 Hz) in loopback posture, with the lens referenced on its hall sensor first; each program declares X0 Y0 at the head's home and its tail brings the lens back to its reference and the head home, and the focus burn's result is the focus model in the lens's own half-steps ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)) |
+| `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A laser burn's preview (the drawing the daemon streams) and its program body, for `laser.focus` and `laser.floor`; the live wizards stream their programs through the daemon's own sender (`jobstream.c`: lines in flight up to half the controller's RX ring, ok per line, a $ command, M102 and the program end sent alone as barriers, the emission witnesses sampled at 25 Hz) in loopback posture, with the lens referenced on its hall sensor first; each program's frame and tail are under [The setup burns and the lens](#the-setup-burns-and-the-lens), and the focus burn's result is the focus model in the lens's own half-steps ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)) |
 | `GET /status` | Machine operational status as JSON: state, position with `homed_axes` naming the axes that carry a reference and `home_source` naming what set it (`gfcloud`, `manual`, or `startup` for the lens reference alone), `motors_released` (the release marker stands, [Homing](homing.md#the-motor-release)), `lease` (who has the machine, [The machine lease](#the-machine-lease)), `sender_out` (the package that keeps the Grbl sender out, and the notice when one stopped while it did, as `GET /motion/sender` answers), fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
 | `GET /settings` | Current settings as JSON, plus `machine_id` (the fuse-derived identity), the firmware version, `tls_fingerprint`, and the `gates` table: range, recommended band, off end, and state per gate setting |
 | `POST /settings?key=value&...` | Set any subset of known keys. An empty value clears a key to its built-in default. Refused (409) unless the machine is idle. `cloud_enabled=1` from 0 takes `phrase=I UNDERSTAND` (400 without it); `cloud_enabled=0` takes `homing_mode` to `none` and `controller_mode` to `grbl` when they point at the cloud |
@@ -335,7 +335,11 @@ again.
 The record is `/data/forgefirm/setup.json`. It holds the advisories
 with their hashes and acceptance times, the account name, and the machine
 facts. It also holds each wizard's completed version with its results and
-applied settings, and the flags. The sheet id is derived from the serial with the salt in
+applied settings, and the flags. A completed run of a step in the image's
+step table is recorded at the table's version when that is higher than the
+wizard's own (`setup_wizard_done`), so a step that ran never reads as
+undone to the gate or to the recommended list, which compare the record
+with the table. The sheet id is derived from the serial with the salt in
 `/data/forgefirm/sheet.salt`; it never reveals the serial. The account
 record is `/data/forgefirm/users`. The record grows with every result, so
 its routes hand out a malloc'd dump, never a fixed buffer; the sanitized
@@ -367,7 +371,9 @@ the step runs, and `GET /wiz` lists the required steps the gate waits for
 as `missing`, from which the setup page opens the first; a flag on a
 required step (a different head flags
 `machine`, two coolant flow faults in a row flag `cooling.flow`) recommends
-it and leaves the gate open. `GET /mode` reports `controller: gated` with `why`
+it and leaves the gate open, and the setup page (`wizard.js`) counts a
+required step that ran as done whatever its flag, so a flag never holds the
+guided run. `GET /mode` reports `controller: gated` with `why`
 naming the first of them missing (`the advisories are not accepted`, `no
 account exists`, `setup required:` with the steps not done, `the intake
 fans are not counted`), and the panel's Status tab shows a banner. A
@@ -380,15 +386,30 @@ Every other step is recommended, never required. `GET /wiz` lists
 names every step and the version it wants, and marks the required ones: a
 step that is not required reads `not run yet` when it has not run and
 `this release asks for it again` when it ran at an older version, and a
-conditional step (the cloud header) counts only where its fact holds; the
-laser floor and the bed size are not in the table. The
+conditional step (the cloud header) counts only where its fact holds.
+Four steps are not in the table, so none of them is recommended for not
+having run: the laser floor (`laser.floor`) and the bed size
+(`motion.envelope`), which are offered; the intake fan count
+(`airflow.intakes`), which the gate holds by the `cool_intake_fans`
+setting instead; and the Flow check (`cooling.flow-verify`). The
 flags add what the machine asks for itself, each with its reason: the
-cooling engine's (two coolant flow faults in a row; a fan within 10
-percent of its floor at a job's start), the setup's Flow check (a failure
-to separate the bands, a thin margin), the head check at boot (a different
-head raises the head change), and `POST /wiz/changed`. A completed run of
+cooling engine's (two coolant flow faults in a row; a fan that runs within
+10 percent of its floor in a job, once for each fan in a run session), the
+setup's Flow check (a failure to separate the bands, a thin margin), the
+head check at boot, and `POST /wiz/changed`. A completed run of
 a step clears its flag, and a flag on a step this build does not have is
-left out.
+left out. The panel's **Setup not finished** banner shows the list
+([The control panel](../../usage/control-panel.md#the-page)).
+
+The head check at boot (`wiz.c`) compares the head's serial hash with the
+record's. A different head raises the head change, the steps
+`POST /wiz/changed` names for `head`. It also clears the lens window the
+old head measured (`lens_stop_below_steps`, `lens_stop_above_steps`), so
+the lens keeps the fallback window until Lens travel runs on the new head
+([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)),
+and it writes the new head's facts into the record, so the change is
+applied once. A head change named through `POST /wiz/changed` flags the
+steps and nothing else.
 
 `cloud_enabled` (0 or 1, default 0) is set by the cloud step. While it is
 0, the GF Cloud tab, the Factory cloud button, and the gfcloud homing
@@ -399,6 +420,35 @@ acknowledgment, and `cloud_enabled=0` takes `homing_mode` and
 `controller_mode` off the cloud as the step does. Which settings point at
 the cloud, the words of each refusal, and what each falls back to come from
 the table of [built-in extensions](#built-in-extensions).
+
+#### The setup burns and the lens
+
+The hardware wizards are the checks (the dark validation) and the laser
+burns (the live wizards). The laser floor burn turns `laser_floor_density`
+and `laser_dose_curve` off for its rungs, the originals kept in
+`/data/forgefirm/curverec.saved` so a daemon restart puts them back.
+
+A burn (`wizlive.c`) puts the lens on its hall edge (`lenshome.c`), which
+writes the reference marker the controller takes its Z frame from, and
+then starts the controller in loopback posture. Each program declares its
+origin at the head's home with the lens on that edge
+(`G92 X0 Y0 Z<edge>`). Its tail brings the lens back to the edge and the
+head home, clears the origin (`G92.1`), and ends (`M2`). The controller
+stores a G92 offset and restores it at its next start, where it shifts a
+sender's own work offsets, so the origin ends with the program.
+
+A session that does not play its program to the end clears the origin
+itself, best effort (`$X`, then `G92.1`), and logs a line when it cannot.
+Then, with the pulse engine idle and the controller stopped, it puts the
+lens back on its hall edge before the controller restarts. The Lens travel
+check does the same on every exit, because an abort stops its stop finder
+wherever the lens stands. A hunt that cannot find the edge leaves no
+marker, and the controller holds Z unreferenced (Z moves are refused,
+[The grblHAL driver](grblhal-driver.md#the-lens-z)) until the lens is
+referenced again: a camera home, a burn or a Lens travel check whose hunt
+finds the edge, or forgectrl's next start
+([Homing](homing.md#the-lens-reference-at-every-start)). A manual home
+keeps Z as it stands.
 
 ### The Extensions advisory
 
@@ -424,12 +474,6 @@ acceptance, and at every start while `ext_enabled` is 1, forgectrl puts it
 there too if it is missing. Nothing is taken away and nothing in the
 directory becomes listable: what is private in it is closed file by file,
 and landlock keeps a service out of all of it but its own two directories.
-
-The hardware
-wizards are the checks (the dark validation) and the laser burns (the live
-wizards). The laser floor burn turns `laser_floor_density` and
-`laser_dose_curve` off for its rungs, the originals kept in
-`/data/forgefirm/curverec.saved` so a daemon restart puts them back.
 
 ## Switches and button
 
@@ -1118,8 +1162,9 @@ node), the kernel pages, and a live-board spot-check:
 - Switch bits 0 to 3, 5, and 6 are verified against physical state; bits 4
   and 7 are characterized from live readings (see the switch section).
 - Sensor conversions are verified against live raws: the coolant beta-3380
-  output matches the `/status` values; `tec_temp` reads railed at 1023, no
-  sensor connected; the tach periods produce plausible RPM in all three
+  output matches the `/status` values; `tec_temp` reads as
+  [Sensors](../machine/sensors.md#power-supply-and-tec-temperatures-picpwr_temp-pictec_temp)
+  describes; the tach periods produce plausible RPM in all three
   unit and pole variants. `pwr_temp` stays a raw count by decision: its
   heatsink cannot be reached with a thermometer while the machine runs, so
   the conversion is not verified, and it is never published as degrees.

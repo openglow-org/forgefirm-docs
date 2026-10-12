@@ -253,7 +253,8 @@ additionally require the physical button held
 ([forgectrl](forgectrl.md#http-api)).
 
 **The record in the log.** Every forgectrl start logs the version that
-runs and its slot (`update: running <version> from slot b`), so the
+runs, its slot, and its root device as the kernel command line names it
+(`update: running <version> from slot <slot> (root=<device>)`), so the
 forgectrl log shows each change of firmware, whatever route it took: the
 panel, or `fwup` and `ffboot` at the console. Each update job logs what it
 sets out to do and how it ended: `update: the apply finished: slot b,
