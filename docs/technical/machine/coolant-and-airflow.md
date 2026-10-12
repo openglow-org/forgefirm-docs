@@ -21,7 +21,7 @@ fogs the optics.
 and two thermistors, one **upstream** of the tube and one **downstream** of a
 small inline heater. Pro machines are specified with a thermoelectric cooler
 (TEC) on the loop; the board cannot tell whether one is fitted, because the TEC
-output has no readback. The heater exists for diagnostics, not for warming the
+output has no readback and no temperature sensor is connected to the TEC. The heater exists for diagnostics, not for warming the
 machine up: it is how the cooling engine proves the coolant is actually moving
 (see [the cooling engine](../forgefirm/cooling-engine.md)).
 
@@ -32,7 +32,7 @@ machine up: it is how the cooling engine proves the coolant is actually moving
 | TEC | `thermal/tec_on` (0 = off, 1 = on) | Pro machines only. Basic and Plus have no TEC fitted, and writing here does nothing on those. |
 | Upstream thermistor | `pic/water_temp_2` | 10 kΩ B3380 NTC; conversion on [Sensors](sensors.md). |
 | Downstream thermistor | `pic/water_temp_1` | Same sensor, downstream of the heater. |
-| TEC temperature | `pic/tec_temp` | Pro only; conversion unknown; rails at 1023 without a TEC. |
+| TEC temperature | `pic/tec_temp` | No sensor connected on any machine examined, a TEC-fitted Pro included; reads the 1023 rail. Conversion unknown. |
 
 **Coolant temperature is read, not guessed.** Both thermistors are converted
 with the factory's own beta-equation curve, checked against a thermometer

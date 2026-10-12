@@ -489,8 +489,10 @@ Two gates sit below the operating window:
 
 `thermal/tec_on` is a bare output with no readback, so presence cannot be
 detected. The TEC is driven only when `cool_tec_present` is `1` (the
-Machine tab's "TEC (Pro chiller)"; default `0`, and ForgeFIRM never touches
-the line otherwise). It is the operator's word, which also covers retrofits.
+Machine tab's "TEC (Pro chiller)", set by the setup's Your machine step;
+default `0`, and ForgeFIRM never touches the line otherwise). It is the
+operator's word, which also covers retrofits: the `tec_temp` input has no
+sensor connected either ([Sensors](../machine/sensors.md#power-supply-and-tec-temperatures-picpwr_temp-pictec_temp)).
 When present: hysteresis on the upstream reading, on above `cool_tec_on_c`
 (default 20 °C), off below `cool_tec_off_c` (default 18 °C), and only while
 the fans run (the run, smoke-clear, and thermal phases, or a forced

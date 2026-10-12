@@ -41,12 +41,13 @@ The setup runs in these steps:
    newer release.
 5. **Your machine.** Detected: the firmware, the build kind, the camera
    sensor, and the head. Asked: the model (Basic, Plus, or Pro) and, on a
-   Pro, whether it has the thermoelectric cooler. The step shows the sheet
-   id ([The sheet id](#the-sheet-id)).
+   Pro, whether it has the thermoelectric cooler (checked by default). The
+   machine cannot detect a TEC, so your answer is `cool_tec_present`. The
+   step shows the sheet id ([The sheet id](#the-sheet-id)).
 6. **Cloud mode.** Off by default. Turning it on asks you to type
    `I UNDERSTAND` again. Then it asks for the homing choice for GRBL mode
    and an optional identity override ([Cloud mode](cloud-mode.md)).
-7. **The checks.** Eight checks of the machine with the laser locked
+7. **The checks.** Seven checks of the machine with the laser locked
    ([The checks](#the-checks)).
 8. **Ready.**
 
@@ -100,18 +101,14 @@ keeps the values before and after.
    40 to 55 to 70 percent and the trial repeats. The threshold and the duty
    it was found at are written together: `cool_flow_rise` and
    `cool_flow_heater_pct`.
-8. **TEC.** On a Pro with the thermoelectric cooler: sixty seconds of drive
-   with the fans on; the cold side must fall by 1 C relative to the coolant,
-   or `cool_tec_present` is cleared with a warning.
-
-9. **Cloud header.** Only with cloud mode on. The machine starts in cloud
+8. **Cloud header.** Only with cloud mode on. The machine starts in cloud
    mode; you place any small design in the Glowforge app and press Print
    there. The check takes the numbers the service sends for this machine,
    cancels the print before it arms, logs the calibration-bearing tags
    beside the machine's own numbers, and returns to GRBL mode. Nothing is
    written to the settings ([Cloud mode](cloud-mode.md)).
 
-A tenth check, **Flow check**, is the short form of the flow calibration
+A ninth check, **Flow check**, is the short form of the flow calibration
 (about three minutes) for a re-run; the first run does not need it.
 
 ### Bed size

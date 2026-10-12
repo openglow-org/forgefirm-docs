@@ -146,10 +146,11 @@ heatsink cannot be reached with a thermometer while the machine runs), so
 ForgeFIRM reports this sensor as a raw count (`supply_raw`) and never as
 degrees.
 
-`tec_temp` (0 to 1023): the thermoelectric cooler temperature. The conversion
-is unknown (it does not use the coolant beta conversion). Pro machines only: on
-a Basic or Plus there is no TEC and no sensor, and the reading sits at the 1023
-rail. Report raw values as raw, never as trusted degrees.
+`tec_temp` (0 to 1023): the thermoelectric cooler temperature input. The
+conversion is unknown (it does not use the coolant beta conversion). No sensor
+is connected to it on any machine examined, TEC-fitted Pros included, and the
+reading sits at the 1023 rail, so it says nothing about whether a TEC is
+fitted. Report raw values as raw, never as trusted degrees.
 
 ## High-voltage supply (`pic/hv_current`, `pic/hv_voltage`)
 

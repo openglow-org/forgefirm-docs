@@ -1077,8 +1077,8 @@ node), the kernel pages, and a live-board spot-check:
 - Switch bits 0 to 3, 5, and 6 are verified against physical state; bits 4
   and 7 are characterized from live readings (see the switch section).
 - Sensor conversions are verified against live raws: the coolant beta-3380
-  output matches the `/status` values; `tec_temp` reads railed at 1023 on a
-  machine without a TEC; the tach periods produce plausible RPM in all three
+  output matches the `/status` values; `tec_temp` reads railed at 1023, no
+  sensor connected; the tach periods produce plausible RPM in all three
   unit and pole variants. `pwr_temp` stays a raw count by decision: its
   heatsink cannot be reached with a thermometer while the machine runs, so
   the conversion is not verified, and it is never published as degrees.
