@@ -7,7 +7,7 @@ title: Setup
 Setup is the first run of the control panel on a new ForgeFIRM
 install. It collects your consent, creates your account, records the
 machine's facts, decides whether cloud mode exists, and checks and measures
-the machine. The first steps, up to the count of the intake fans, are
+the machine. The first steps, through the coolant flow calibration, are
 required: no controller runs for a Grbl sender until they are done. Every
 step after them is recommended, never required. This page describes the steps, the button
 press, the record, what the setup recommends, and the gate. It also
@@ -56,17 +56,24 @@ The setup runs in these steps:
    and the count is written as `cool_intake_fans`. When intake 1 does not
    come up to speed, the step asks you how many intake fans the machine
    has: **One** or **Two**. Nothing moves, and the laser stays locked.
-8. **Continue or start.** The machine is yours to use from here. Choose
+8. **Coolant flow.** The flow calibration, fifteen to twenty-five minutes.
+   When the bands are too close to separate, the heater duty steps up from
+   40 to 55 to 70 percent and the trial repeats. The threshold and the duty
+   it was found at are written together: `cool_flow_rise` and
+   `cool_flow_heater_pct`. The step is required because the coolant's rise
+   differs from machine to machine: without it, a machine whose coolant
+   warms more with flow can have every cut stopped by the flow check.
+9. **Continue or start.** The machine is yours to use from here. Choose
    **Continue the setup**, which we recommend, or **Start using the
    machine**.
-9. **The checks.** Eight checks of the machine with the laser locked, nine
-   with cloud mode on ([The checks](#the-checks)).
-10. **Focus.** The laser burn that measures the head's focus
+10. **The checks.** Seven checks of the machine with the laser locked, eight
+    with cloud mode on ([The checks](#the-checks)).
+11. **Focus.** The laser burn that measures the head's focus
     ([The laser burns](#the-laser-burns)).
-11. **Ready.** What the setup found, the record
+12. **Ready.** What the setup found, the record
     ([The record](#the-record)), and **Open the control panel**.
 
-Steps 2 to 7 are required: no controller runs for a Grbl sender until they
+Steps 2 to 8 are required: no controller runs for a Grbl sender until they
 are done, and none of them can be skipped ([The gate](#the-gate)). Every
 step after the choice is recommended, and has **Finish later** in its
 footer. **Start using the machine** and **Finish later** end the
@@ -78,7 +85,8 @@ at any time to go on.
 A document that changes in a later release must be accepted again, and
 until it is, no controller runs for a Grbl sender. A later release can
 also ask for a step again: a required step then holds the controllers
-until you run it, and any other step is recommended. A step that is open
+until you run it, and `/setup` opens on it; any other step is
+recommended. A step that is open
 again is a link in the setup's rail, from any other step, and
 `/setup?step=advisories` opens it directly.
 
@@ -121,18 +129,13 @@ keeps the values before and after.
 6. **Coolant offset.** The air-assist offset diagnostic
    ([Diagnostics](diagnostics.md)), about six minutes, writes
    `cool_aa_offset_counts`.
-7. **Coolant flow.** The flow calibration, fifteen to twenty-five minutes.
-   When the bands are too close to separate, the heater duty steps up from
-   40 to 55 to 70 percent and the trial repeats. The threshold and the duty
-   it was found at are written together: `cool_flow_rise` and
-   `cool_flow_heater_pct`.
-8. **Cloud header.** Only with cloud mode on. The machine starts in cloud
+7. **Cloud header.** Only with cloud mode on. The machine starts in cloud
    mode; you place any small design in the Glowforge app and press Print
    there. The check takes the numbers the service sends for this machine,
    cancels the print before it arms, logs the calibration-bearing tags
    beside the machine's own numbers, and returns to GRBL mode. Nothing is
    written to the settings ([Cloud mode](cloud-mode.md)).
-9. **Lens travel.** The lens finds its reference on the edge of its hall
+8. **Lens travel.** The lens finds its reference on the edge of its hall
    sensor, the one position reference the head has. Then it finds its two
    stops by the head accelerometer, with every fan off: one half-step at a
    time from the reference, listening for the ring of each step, which dies
@@ -308,7 +311,8 @@ runs for a Grbl sender without it. The machine recommends a step:
 - that this release asks for again, at a newer version than the one it ran
   at;
 - **Coolant flow** after two coolant flow faults in a row, and after a
-  **Flow check** that fails or shows a thin margin;
+  **Flow check** that fails or shows a thin margin: it is recommended
+  again, and the controllers keep running;
 - **Airflow** when a fan starts a job within 10 percent of its floor;
 - the steps of a head change when the machine boots with a different head
   ([What changed](#what-changed)), Your machine among them: it is
@@ -410,8 +414,10 @@ it may do. See [Extensions](extensions/index.md).
 
 No controller runs for a Grbl sender until the required steps are done:
 the advisories (every document, then the button press), the account,
-Preferences, Your machine, Cloud mode, and the count of the intake fans.
-The count matters because a machine built with one intake fan would
+Preferences, Your machine, Cloud mode, Coolant flow, and the count of the
+intake fans. Coolant flow matters because the coolant's rise differs from
+machine to machine (step 8 of [The first run](#the-first-run)). The count
+matters because a machine built with one intake fan would
 otherwise stop every cut with an airflow fault. The Intake fans step
 counts them, and so does the Airflow check; setting Intake fans on the
 Machine tab gives the count too
@@ -423,9 +429,9 @@ run the step.
 While the gate is closed, `GET /mode` reports the controller as `gated`,
 and its `why` names what is missing: `the advisories are not accepted`,
 `no account exists`, `setup required:` with the steps not done (for
-example `setup required: preferences, machine, cloud`), or `the intake
-fans are not counted`. The panel's Status tab shows a banner with a link
-to the setup.
+example `setup required: preferences, machine, cloud, cooling.flow`), or
+`the intake fans are not counted`. The panel's Status tab shows a banner
+with a link to the setup.
 
 ## Cloud mode
 
@@ -481,7 +487,7 @@ stands.
 | Endpoint | Purpose |
 |---|---|
 | `GET /setup` | The setup page (also `/` until the guided run ends) |
-| `GET /wiz` | The setup state: `gate` and its `why`, `fans_counted`, `recommended` (each step's `id` and `reason`), every step with the version it completed at, and the what-changed menu; `extensions` lists the checks packages add (`pkg:<id>`, the title, done) |
+| `GET /wiz` | The setup state: `gate` and its `why`, `fans_counted`, `missing` (the required steps the gate waits for, a release's version bump among them), `recommended` (each step's `id` and `reason`), every step with the version it completed at, and the what-changed menu; `extensions` lists the checks packages add (`pkg:<id>`, the title, done) |
 | `GET /wiz/record`, `GET /wiz/record?download=1`, `GET /wiz/record.html` | The setup record, the same as a download named after the sheet id, and the printable summary |
 | `POST /wiz/changed` | A replaced part or a service (`what`: `tube`, `pump`, `coolant`, `fan`, `head`, `tray`, `service`); the steps it maps to are recommended |
 | `GET /advisories/<id>` | The text of one advisory; the `ETag` is its hash |

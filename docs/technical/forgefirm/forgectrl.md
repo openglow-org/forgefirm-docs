@@ -322,8 +322,9 @@ acceptance test `setup.cloud-disabled-surface`.
 ### Setup and the gate
 
 The first run of the panel is the setup: the advisories, the account, the
-preferences, the machine facts, the cloud decision, and the intake fan
-count, then the checks and the focus burn ([Setup](../../usage/setup.md)).
+preferences, the machine facts, the cloud decision, the intake fan count,
+and the coolant flow calibration, then the checks and the focus burn
+([Setup](../../usage/setup.md)).
 It is served at `/` until the guided run ends, finished or set aside
 (`POST /wiz/complete`, which takes an open gate), and at `/setup` at any
 time. The advisories step ends with one press of the machine's button,
@@ -354,12 +355,19 @@ does not light it), out when the panel is first served.
 The gate (`setup.c`): the supervisor spawns no controller for a sender until
 the advisories are accepted at their current hashes with the press
 recorded, an account exists, the step table's required steps
-(`preferences`, `machine`, `cloud`) are done at the versions it names, and
-`cool_intake_fans` has a value (the Intake fans step, the airflow check,
-or the operator wrote it). Nothing else is in it. A release that bumps a
-required step's version holds the gate again until the step runs; a flag
-on a required step (a different head flags `machine`) recommends it and
-leaves the gate open. `GET /mode` reports `controller: gated` with `why`
+(`preferences`, `machine`, `cloud`, `cooling.flow`) are done at the
+versions it names, and `cool_intake_fans` has a value (the Intake fans
+step, the airflow check, or the operator wrote it). Nothing else is in it.
+`cooling.flow` is the flow calibration, required because the flow bands
+differ from loop to loop and the default threshold sits under the flowing
+rise of some loops
+([The cooling engine](cooling-engine.md#each-loop-has-its-own-bands)). A
+release that bumps a required step's version holds the gate again until
+the step runs, and `GET /wiz` lists the required steps the gate waits for
+as `missing`, from which the setup page opens the first; a flag on a
+required step (a different head flags
+`machine`, two coolant flow faults in a row flag `cooling.flow`) recommends
+it and leaves the gate open. `GET /mode` reports `controller: gated` with `why`
 naming the first of them missing (`the advisories are not accepted`, `no
 account exists`, `setup required:` with the steps not done, `the intake
 fans are not counted`), and the panel's Status tab shows a banner. A

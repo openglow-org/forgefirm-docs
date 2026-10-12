@@ -247,7 +247,7 @@ operating point is measured rather than assumed:
 |---|---|---|
 | Heater duty | 40 % | Below about 40 %, natural convection sheds the heat well enough to *mimic* flow: dead-pump trials have looked healthier than a working pump. At 40 % heat input outruns convection, and it is the cheapest duty that does. |
 | Window | 50 s | Long enough for the bands to separate cleanly. |
-| Fault threshold | 14.4 °C rise | Midway between the observed flowing band and the observed stagnant band. |
+| Fault threshold | 14.4 °C rise | The default: midway between the flowing band and the stagnant band observed on the bench reference. Each loop gets its own ([below](#each-loop-has-its-own-bands)). |
 | Re-check interval | 150 s | A pump that stops mid-job is invisible otherwise. |
 
 The derivation of the operating point, from a 60-run design matrix, is on
@@ -271,6 +271,23 @@ A warmer loop sheds the heater's heat no worse with the pump on and holds it
 better with the pump off, so the threshold needs no warm-end value through
 27 C. Above that only a running tube warms this loop, and the check takes the
 tube's share off (below).
+
+### Each loop has its own bands
+
+The bands differ from loop to loop, and the 14.4 °C default is the bench
+reference's midpoint. On the bench reference the stagnant rise starts at
+about 16 °C. On an early Pro, at the same 40 percent heater duty, the
+coolant rose 15.8 to 16.2 °C with flow and 20.5 to 20.9 °C without: the
+default sits under that loop's flowing rise, so until the loop is
+calibrated the flow check reads good flow as no flow on every job. The
+flow calibration
+([Diagnostics: verifying and calibrating flow](#diagnostics-verifying-and-calibrating-flow))
+is therefore a required step of the setup: no controller runs for a sender
+until the calibration has written the loop's own threshold and the heater
+duty it was found at ([Setup](../../usage/setup.md#the-gate)). For the same
+reason the recommended band of `cool_flow_rise` is its whole legal range
+([Gate settings](#gate-settings-range-band-off-end)): no one loop's band
+judges another loop's value.
 
 ### Checks start from a settled loop
 
@@ -648,7 +665,7 @@ is on [Cooling and fans](../../usage/cooling-and-fans.md).
 | `cool_accel_y_alert` | `crash_y_alert` (head-accel Y high event; pause tier) | 112 | 0 to 255 | 85 to 145 | 0 |
 | `cool_accel_abort` | `crash_abort` (head-accel shared abort; fail tier) | 133 | 0 to 255 | 100 to 170 | 0 |
 | `cool_flow_check_s` | `flow` (flow verification) | 50 s | 0 to 300 s | 30 to 120 s | 0 |
-| `cool_flow_rise` | (tunes `flow`; set from flow calibrate) | 14.4 °C | 1 to 40 °C | 8 to 16 °C | never |
+| `cool_flow_rise` | (tunes `flow`; set from flow calibrate, which the setup requires: [each loop has its own bands](#each-loop-has-its-own-bands)) | 14.4 °C | 1 to 40 °C | 1 to 40 °C | never |
 | `cool_tach_exhaust_min_rpm` | `exhaust` | 6400 rpm | 0 to 20000 | 5800 to 7000 | 0 |
 | `cool_tach_intake_min_rpm` | `intake` (each tach fitted) | 2290 rpm | 0 to 20000 | 2100 to 2500 | 0 |
 | `cool_tach_air_assist_min_rpm` | `air_assist` | 6000 rpm | 0 to 30000 | 5500 to 6600 | 0 |

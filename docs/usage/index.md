@@ -26,7 +26,8 @@ partition on its first ForgeFIRM boot
 
 The first visit to the control panel runs the setup: the advisories, your
 account, the preferences, the machine facts, the cloud decision, the
-intake fan count, the checks, and the focus ([Setup](setup.md)). No
+intake fan count, the coolant flow calibration, the checks, and the focus
+([Setup](setup.md)). No
 controller runs for a Grbl sender until its first steps are done
 ([The gate](setup.md#the-gate)); the rest is recommended.
 

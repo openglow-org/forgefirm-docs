@@ -62,7 +62,8 @@ one, with an **Apply** button that writes it to `cool_flow_rise`.
 **When to calibrate:** after replacing coolant (a different blend carries heat
 differently), after changing or servicing the pump, if flow verify warns about
 thin margins, or if you see suspicions that you can trace to nothing real. The
-shipped default suits the factory loop; a rebuilt one may differ.
+setup's Coolant flow step runs it on every machine, because the right
+threshold differs from machine to machine ([Setup](setup.md#the-first-run)).
 
 ## Coolant offset
 

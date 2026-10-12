@@ -35,7 +35,7 @@ the built-in values, shown as placeholders.
 
 | Setting | Default | Legal range | Recommended | What it controls |
 |---|---|---|---|---|
-| `cool_flow_rise` | 14.4 °C | 1 to 40 °C | 8 to 16 °C | Downstream rise that counts as no-flow. Set this from **flow calibrate**; above the band the check can never fault. |
+| `cool_flow_rise` | 14.4 °C | 1 to 40 °C | 1 to 40 °C | Downstream rise that counts as no-flow. Set it from **flow calibrate**, which the setup requires ([Setup](setup.md#the-first-run)). The right value differs from machine to machine. |
 | `cool_flow_heater_pct` | 40 % | 0 to 100 % | | Heater duty during a check. Raising it separates the bands further at the cost of warming the loop more. |
 | `cool_flow_check_s` | 50 s | 0 to 300 s | 30 to 120 s | Length of a check window. `0` turns flow verification off (below, "Turning a gate off"). |
 | `cool_recheck_s` | 150 s | 0 to 3600 s | 60 to 600 s | How often checks repeat during a job. `0` turns the mid-job re-check off (below, "Turning a gate off"): a pump that stops mid-job is then undetected until the next job start. |
