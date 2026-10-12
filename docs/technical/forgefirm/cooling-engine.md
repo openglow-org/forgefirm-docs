@@ -132,8 +132,8 @@ print gets the fan profile the service designed for it and a lens hunt stays
 quiet.
 
 **The quiet hold.** A listening to the head accelerometer wants the machine
-quiet, because a running fan or pump is in the reading. The setup
-focus card's stop finder takes the engine's quiet hold for its listening:
+quiet, because a running fan or pump is in the reading. The setup's
+Lens travel check takes the engine's quiet hold for its listening:
 the air assist, exhaust, intake and purge fans off whatever the phase says,
 the pump still running (the finder was proven that way). The bench tools
 take the same hold through `POST /cool/quiet?on=1`, and with `pump=1` the
@@ -211,7 +211,7 @@ a job).
   reading in a job that would have tripped the shipped default is logged.
 - **A machine built with one intake fan** has nothing on the second intake
   tach ([One intake fan or two](../machine/coolant-and-airflow.md#one-intake-fan-or-two)).
-  With `cool_intake_fans` at `1`, which the setup's airflow check writes,
+  With `cool_intake_fans` at `1`, which the setup writes when it counts one,
   intake 2 is measured and published as `not fitted` with no floor, and
   never judged; intake 1 holds the intake floor alone, and every run start
   logs the one intake fan. Any other value judges both intakes.
@@ -300,10 +300,8 @@ which is a hair from a false suspicion.
 Two tunables ride with the flow gate and are not gates:
 `cool_laser_heat_cw` and `cool_laser_heat_density`, the tube's share of a
 heater rise in °C per raw-second of `pic/hv_current` under each power model
-(defaults 3.06e-5 and 2.36e-5, legal 0 to 2e-4; the setup sheet's
-flow-load card measures them, with the check held for the card so the
-heater does not swamp the tube's share: `cool_flow_check_hold`, released
-at the run's end or after ten minutes whatever happens). The model the controller
+(defaults 3.06e-5 and 2.36e-5, legal 0 to 2e-4; no setup step measures
+them, so the defaults stand). The model the controller
 reports with its job state selects which applies (density, on every
 machine), and density is assumed when the report carries none. The check
 reads its baseline as the mean of the settled window the gate verified and

@@ -68,10 +68,11 @@ which is what a tach with no fan on it reads: the kernel reads 0 below
 per-machine list of intake tachs it does not watch (`intake_disabled_tachs`);
 no other fan has one.
 
-ForgeFIRM keeps the count in `cool_intake_fans`. The setup's airflow check
-finds a machine with one intake fan and writes it
-([Setup](../../usage/setup.md#the-checks)), and the airflow gates then leave
-the second intake out
+ForgeFIRM keeps the count in `cool_intake_fans`. The setup counts the
+intake fans before its checks, and its airflow check counts them again;
+until the count is known, no controller runs for a Grbl sender
+([Setup](../../usage/setup.md#the-gate)). With one intake fan, the airflow
+gates leave the second intake out
 ([the cooling engine](../forgefirm/cooling-engine.md#airflow-gates-a-fan-that-is-not-moving-the-air)).
 
 ### What the fans actually reach

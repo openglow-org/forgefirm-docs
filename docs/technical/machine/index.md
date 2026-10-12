@@ -75,9 +75,9 @@ value a machine can measure for itself is a setting with a wide legal range,
 and the bench reference's measurement is only its shipped default: the fan
 floors, the coolant flow threshold, the tube's heat coefficients, the
 air-assist offset on the coolant readings, the laser floor and dose curve, and
-the head's lens reference height. The first run of the control panel measures
-them on your machine and writes your values
-([Setup](../../usage/setup.md)).
+the head's lens travel and reference height. The setup measures most of them
+on your machine and writes your values; the ones it leaves are on
+[Setup](../../usage/setup.md#the-other-laser-numbers).
 
 Where a number is a genuine constant, it is one because the mechanism makes it
 so, and the page says which: the lens screw's pitch, the step engine's byte

@@ -64,8 +64,10 @@ between "no light" and "full light" is below.
 The numbers in this section are the bench reference's
 ([The bench reference](index.md#the-bench-reference)). A tube is a consumable
 with a wide tolerance, and it ages, so treat the shape as general and the
-values as one machine's. The setup sheet measures the two that matter
-on yours ([Setup](../../usage/setup.md#the-sheet)).
+values as one machine's. On yours, the setup's Laser floor step measures
+the floor ([Setup](../../usage/setup.md#laser-floor)) and the panel's
+dose-curve recorder measures the curve
+([Diagnostics](../../usage/diagnostics.md#other-measurements-from-the-panel)).
 
 ### Two thresholds, far apart
 

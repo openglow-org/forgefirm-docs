@@ -25,9 +25,10 @@ partition on its first ForgeFIRM boot
 ([Upgrading from a legacy install](../install/legacy-migration.md)).
 
 The first visit to the control panel runs the setup: the advisories, your
-account, the preferences, the machine facts, and the cloud decision
-([Setup](setup.md)). Until the setup is complete, no
-controller runs for a sender.
+account, the preferences, the machine facts, the cloud decision, the
+intake fan count, the checks, and the focus ([Setup](setup.md)). No
+controller runs for a Grbl sender until its first steps are done
+([The gate](setup.md#the-gate)); the rest is recommended.
 
 At boot the machine-services daemon, `forgectrl`, starts. It starts the one
 controller that the `controller_mode` setting selects: the GRBL controller

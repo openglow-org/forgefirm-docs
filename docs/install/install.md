@@ -80,11 +80,11 @@ addresses. Open `https://<ip>/` in a browser and accept the browser's
 certificate warning once. To check the certificate
 first, open `http://<ip>/cert`: it shows the fingerprint with no warning to
 accept ([The control panel](../usage/control-panel.md#the-address)). The
-setup then runs: the
-advisories, your account, the preferences, the machine facts, and the cloud
-decision ([Setup](../usage/setup.md)). No controller runs for
-a sender until the setup is complete. The setup's sheet needs the crumb
-tray in ([Setup](../usage/setup.md#the-sheet)).
+setup then runs ([Setup](../usage/setup.md)). No controller runs for a
+Grbl sender until its first steps are done
+([The gate](../usage/setup.md#the-gate)); the rest is recommended. The
+setup's laser burns need the crumb tray in
+([Setup](../usage/setup.md#the-laser-burns)).
 
 Root has no password and works at the serial console only; SSH refuses root.
 SSH is off at every boot until you turn it on from the panel's System tab.

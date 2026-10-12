@@ -68,22 +68,23 @@ so such a count reads low by an even number at random). Going down, the
 sensor lets go four to six half-steps under the edge; the lens rings a
 little on every step, which is the jitter in that band. Where along the
 travel the edge sits differs from head to head, and that is the one
-per-head number for Z: the setup focus card references the lens on
+per-head number for Z: the setup's Focus burn references the lens on
 the edge, burns a ladder over the head's free travel, and the user's pick
-on the sheet's thickness gives the focal height when the lens is on the
-edge (`lens_hall_edge_z_mm`). The free travel itself is found by the head
-accelerometer: a free half-step rings, on every second step strongly, and
-at a stop the ring dies two to four steps before the rotor would slip, so
-the card steps toward each stop one half-step at a time, calls contact on
-the first quiet strong step, backs off two, and proves by the count back to
-the edge that nothing slipped (`lens_stop_below_steps`,
-`lens_stop_above_steps`; 14 below and 20 above on the bench reference
-machine). Nothing in ForgeFIRM drives the lens onto a stop on a user's
-machine; when the stops cannot be found on a head, every move keeps a
-fallback window, ten half-steps below the edge to twelve above, that clears
-both stops on any head whose edge sits within six half-steps of the bench
-bench reference's, and the user is told. See
-[Setup](../../usage/setup.md#the-sheet).
+on the scrap's thickness gives the focal height when the lens is on the
+edge (`lens_hall_edge_z_mm`). The free travel itself is found by the
+setup's Lens travel check, by the head accelerometer: a free half-step
+rings, on every second step strongly, and at a stop the ring dies two to
+four steps before the rotor would slip, so the check steps toward each stop
+one half-step at a time, calls contact on the first quiet strong step,
+backs off two, and proves by the count back to the edge that nothing
+slipped (`lens_stop_below_steps`, `lens_stop_above_steps`; 14 below and 20
+above on the bench reference). Nothing in ForgeFIRM drives the lens onto a
+stop on a user's machine; when the stops cannot be found on a head, every
+move keeps a fallback window, ten half-steps below the edge to twelve
+above, that clears both stops on any head whose edge sits within six
+half-steps of the bench reference's, and the user is told. See
+[Setup](../../usage/setup.md#the-checks) and
+[Focus](../../usage/setup.md#focus).
 
 The factory's focus law, from its own Z commands, is a count of full steps
 up from its zero, where its hunt parks the lens: 4 full steps down from the
@@ -101,7 +102,7 @@ the focus at `lens_park_z_mm`, a user setting, 3 mm by default
 below the tray: the tray comes out for tall work.
 
 The lens is never moved without a reference first: in GRBL mode a job's Z
-moves it within the free travel once a home, or a setup card, has
+moves it within the free travel once a home, or a setup burn, has
 referenced it, and the driver refuses Z otherwise.
 
 The lens rises only at the driver's drive current (`z_current` 0). At the
@@ -109,8 +110,8 @@ hold current (1) the motor lifts the lens two steps into the service's ramp
 (630, 164 and 115 ms, then 77 ms per step) and stalls; lowering works at
 either current (measured on the bench head with single steps at the ramp's
 timing). Every path that moves the lens sets the drive current first and the
-hold current after: the homing sweeps, the focus card, and the cloud client's
-motions.
+hold current after: the homing sweeps, the setup's Lens travel check and
+laser burns, and the cloud client's motions.
 
 The machine has **no limit or home switches** as it ships. What that means in
 practice, how each mode establishes an origin and how the machine behaves

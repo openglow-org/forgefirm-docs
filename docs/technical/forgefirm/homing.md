@@ -133,7 +133,7 @@ position on that axis, since the head stands there). Those two keys belong to
 this provider alone, as `manual_home_x` and `manual_home_y` belong to the
 manual one: no provider reads another's. Z is set to the park
 height: the runner leaves the lens on the hall's rising edge, whose focal
-height the focus card measured (`lens_hall_edge_z_mm`), then moves it the
+height the setup's Focus burn measured (`lens_hall_edge_z_mm`), then moves it the
 whole half-steps to `lens_park_z_mm` (default 3 mm), inside the window every
 head reaches without touching a stop
 ([The grblHAL driver](grblhal-driver.md#the-lens-z)).

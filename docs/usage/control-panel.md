@@ -74,6 +74,13 @@ where a job expects it, so check before you start one
 identity (the factory hostname derived from the serial in the fuses), whatever
 cloud identity override is set.
 
+While the setup recommends a step, a **Setup not finished** banner above
+every tab names each one, with a link to continue the setup
+([What the setup recommends](setup.md#what-the-setup-recommends)). You can
+dismiss it. This browser keeps the dismissal, and the banner comes back
+when a step that was not in the dismissed list is recommended, for example
+after a part change.
+
 **Units** are a display-only preference (`ui_units`): the machine stores and
 exchanges metric values, and the panel converts at its edge.
 
@@ -119,8 +126,9 @@ shows the reason beside the pad for a few seconds. While the X and Y motors are 
 The Status tab shows a standing banner while any cooling gate is turned off
 ([Cooling and fans](cooling-and-fans.md)), and a compatibility warning when the
 Glowforge service has moved past the firmware version cloud mode is tested
-against ([Cloud mode](cloud-mode.md)). While the setup gate holds
-the machine, the tab shows a banner with a link to continue the setup
+against ([Cloud mode](cloud-mode.md)). While the setup's gate holds the
+controllers (a required step of the setup is not done), the tab shows a
+banner that says which, with a link to the setup
 ([Setup](setup.md#the-gate)). While the motion check waits
 for the lid or the interlock to close, the tab shows a banner that says so,
 and the button blinks amber ([Modes](modes.md#what-the-supervisor-does-for-you)).
@@ -140,8 +148,8 @@ whether the tray is in or out, with a button that switches it. Take the
 tray out for taller work: Z is then the height above the floor of the
 machine instead of above the tray. Switching moves nothing. Floor below the
 tray is how far that is (1.35 in by default); change it with the tray in.
-The setup needs the tray in. The Status tab shows the mode beside the lens
-reach.
+The setup's laser burns need the tray in. The Status tab shows the mode
+beside the lens reach.
 
 ### GF Cloud
 
@@ -171,11 +179,12 @@ is open, except one you let keep running
 
 ### Setup
 
-The checks the setup ran, with the version each completed at and what the
-machine asks for again (required or recommended, with the reason), and a
-link to the setup to run one again ([Setup](setup.md)). The
-**What changed?** menu names a replaced part or a service, and the checks
-that depend on it are asked for again
+Every step of the setup, with the version it completed at, what the
+machine recommends and why (not run yet, this release asks for it again,
+or the reason the machine gives), and a link to run each step
+([What the setup recommends](setup.md#what-the-setup-recommends)). The
+**What changed?** menu names a replaced part or a service, and the steps
+that depend on it are recommended again
 ([What changed](setup.md#what-changed)). Below them, the cooling
 tools that take the hardware over (the active controller is suspended
 through the supervisor for the duration): verification and calibration
@@ -203,8 +212,9 @@ the serial console only. The machine's SSH host keys are made at the first
 start and kept on `/data`, so its fingerprint stays the same across
 updates. **Extensions** and **API tokens** are described below
 ([Extensions](#extensions), [Extension packages](#extension-packages),
-[API tokens](#api-tokens)). **Setup** shows the state of the setup and
-the certificate fingerprint, with a link to run a step again, the printable
+[API tokens](#api-tokens)). **Setup** shows the state of the setup (in
+progress, set aside with steps still recommended, or complete) and the
+certificate fingerprint, with a link to run a step again, the printable
 summary of the record, and the record itself as a download
 ([Setup](setup.md#the-record)).
 

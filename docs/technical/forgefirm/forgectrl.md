@@ -73,7 +73,7 @@ Parts of the contract live on their own pages:
   **diagnostics**, persisted **machine settings**, the **logging** tree, and
   the A/B **update system**.
 - **Setup.** The first run, the login, and the gate that
-  holds every controller until the setup is complete
+  holds every controller until the setup's required steps are done
   ([below](#setup-and-the-gate)).
 
 ## HTTP API
@@ -146,12 +146,12 @@ costs one bounded error, never a pinned thread.
 
 | Route | Purpose |
 |---|---|
-| `GET /` | The control panel ([Control panel](../../usage/control-panel.md)); the setup until it is complete |
+| `GET /` | The control panel ([Control panel](../../usage/control-panel.md)); the setup until the guided run ends |
 | `GET /login`, `POST /login`, `POST /logout` | The login page, the login (`name`, `password`), the sign-out |
 | `GET /setup`, `GET /wiz`, `GET /wiz/record`, `GET /advisories/<id>`, `POST /wiz/advisories/accept`, `POST /wiz/advisories/press`, `GET /wiz/advisories/press`, `POST /wiz/advisories/press/cancel`, `POST /wiz/account`, `POST /wiz/preferences`, `POST /wiz/machine`, `POST /wiz/cloud`, `POST /wiz/complete` | The setup ([Setup](../../usage/setup.md#the-routes)); an advisory's `ETag` is its hash; `GET /wiz` carries the what-changed menu (`changes`) |
-| `GET /wiz/record?download=1`, `GET /wiz/record.html`, `POST /wiz/changed` (`what`) | The record as a download named after the sheet id; the printable summary (`recordhtml.c`: one page, no script, every value escaped, the steps in catalog order with the sentence, the settings written with their values before, and the numbers); a replaced part or a service mapped to the wizards to run again (`setup.c`: the table of changes, required for the wizards whose settings were measured on the old part, recommended for the ones that prove it; a required flag never drops to recommended, and a run clears it). The record routes take a login session or the token |
-| `POST /wiz/<id>/start`, `POST /wiz/<id>/answer` (`seq`, `value`), `POST /wiz/<id>/abort`, `POST /wiz/<id>/takeover`, `GET /wiz/dark`, `GET /wiz/shot?cam=lid\|head` | The checks (the dark wizards) and the sheet cards (the live wizards): one runs at a time on a worker thread; the status carries the phase, the progress, the time so far, the log, the open prompt with its sequence number and how long it waits (`timeout_s`, `since_s`), the result (a live card's carries a `summary` sentence), the settings the wizard wrote with their values before (`applied`), and the run's ownership (`owned`: a login session drives it; `mine`: the requester's); the login session that started a run answers and aborts it, another session is refused (409) until it takes the run over, and a requester with no session (a tool with the token) is never held back; the shot is the cameras check's last snapshot |
-| `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A sheet card's preview (the drawing the daemon streams, from the record's facts) and its program body; the live wizards stream their programs through the daemon's own sender (`jobstream.c`: lines in flight up to half the controller's RX ring, ok per line, a $ command, M102 and the program end sent alone as barriers, the emission witnesses sampled at 25 Hz) in loopback posture, with the lens referenced on its hall sensor first; the focus card homes the lens on its bottom stop to place the hall edge in the carriage's travel, and its result is the focus model in the lens's own half-steps ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)) |
+| `GET /wiz/record?download=1`, `GET /wiz/record.html`, `POST /wiz/changed` (`what`) | The record as a download named after the sheet id; the printable summary (`recordhtml.c`: one page, no script, every value escaped, the steps in catalog order with the sentence, the settings written with their values before, and the numbers); a replaced part or a service mapped to the steps it recommends again (`setup.c`: the table of changes, each naming the steps that measure or prove the new part; a run of a step clears its flag). The record routes take a login session or the token |
+| `POST /wiz/<id>/start`, `POST /wiz/<id>/answer` (`seq`, `value`), `POST /wiz/<id>/abort`, `POST /wiz/<id>/takeover`, `GET /wiz/dark`, `GET /wiz/shot?cam=lid\|head` | The checks (the dark wizards) and the laser burns (the live wizards): one runs at a time on a worker thread; the status carries the phase, the progress, the time so far, the log, the open prompt with its sequence number and how long it waits (`timeout_s`, `since_s`), the result (a burn's carries a `summary` sentence), the settings the wizard wrote with their values before (`applied`), and the run's ownership (`owned`: a login session drives it; `mine`: the requester's); the login session that started a run answers and aborts it, another session is refused (409) until it takes the run over, and a requester with no session (a tool with the token) is never held back; the shot is the cameras check's last snapshot |
+| `GET /wiz/sheet.svg?card=<id>`, `GET /wiz/sheet.gcode?card=<id>` | A laser burn's preview (the drawing the daemon streams) and its program body, for `laser.focus` and `laser.floor`; the live wizards stream their programs through the daemon's own sender (`jobstream.c`: lines in flight up to half the controller's RX ring, ok per line, a $ command, M102 and the program end sent alone as barriers, the emission witnesses sampled at 25 Hz) in loopback posture, with the lens referenced on its hall sensor first; each program declares X0 Y0 at the head's home and its tail brings the lens back to its reference and the head home, and the focus burn's result is the focus model in the lens's own half-steps ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)) |
 | `GET /status` | Machine operational status as JSON: state, position with `homed_axes` naming the axes that carry a reference and `home_source` naming what set it (`gfcloud`, `manual`, or `startup` for the lens reference alone), `motors_released` (the release marker stands, [Homing](homing.md#the-motor-release)), `lease` (who has the machine, [The machine lease](#the-machine-lease)), `sender_out` (the package that keeps the Grbl sender out, and the notice when one stopped while it did, as `GET /motion/sender` answers), fans, coolant, switches, `gates_off`, `temps`, `sys`, the `grbl` block ([Telemetry](#telemetry)) |
 | `GET /settings` | Current settings as JSON, plus `machine_id` (the fuse-derived identity), the firmware version, `tls_fingerprint`, and the `gates` table: range, recommended band, off end, and state per gate setting |
 | `POST /settings?key=value&...` | Set any subset of known keys. An empty value clears a key to its built-in default. Refused (409) unless the machine is idle. `cloud_enabled=1` from 0 takes `phrase=I UNDERSTAND` (400 without it); `cloud_enabled=0` takes `homing_mode` to `none` and `controller_mode` to `grbl` when they point at the cloud |
@@ -322,12 +322,14 @@ acceptance test `setup.cloud-disabled-surface`.
 ### Setup and the gate
 
 The first run of the panel is the setup: the advisories, the account, the
-preferences, the machine facts, and the cloud decision
-([Setup](../../usage/setup.md)). It is served at `/` until
-it is complete and at `/setup` afterward. The advisories step ends with one
-press of the machine's button, requested by `POST /wiz/advisories/press`;
-the button breathes teal while it waits. A document that changes in a later
-release must be accepted again.
+preferences, the machine facts, the cloud decision, and the intake fan
+count, then the checks and the focus burn ([Setup](../../usage/setup.md)).
+It is served at `/` until the guided run ends, finished or set aside
+(`POST /wiz/complete`, which takes an open gate), and at `/setup` at any
+time. The advisories step ends with one press of the machine's button,
+requested by `POST /wiz/advisories/press`; the button breathes teal while
+it waits. A document that changes in a later release must be accepted
+again.
 
 The record is `/data/forgefirm/setup.json`. It holds the advisories
 with their hashes and acceptance times, the account name, and the machine
@@ -345,15 +347,40 @@ wizard holds the machine with the controller stopped (`wiz_controller_stop`
 in `wizdark.c` sets it, `wiz_controller_start` hands the LED back dark
 before the spawn, since the controller drives it for its arm wait);
 blinking amber while a check waits for the lid to close (`wiz_led_attention`),
-and for the password reset hold; solid green at completion, out when the
-panel is first served.
+and for the password reset hold; solid green when `POST /wiz/complete` ends
+the guided run with nothing recommended (a run set aside with steps left
+does not light it), out when the panel is first served.
 
-The gate: until the setup is complete, the supervisor spawns no controller.
-The same holds while a required step is out of date or a required flag is
-raised. `GET /mode` reports `controller: gated` with `why`, and the panel's
-Status tab shows a banner. The file `/run/forgefirm/setup-override`,
-created as root, lifts the hardware gate until the next reboot. It never
-lifts the advisories or the account, and the panel says so.
+The gate (`setup.c`): the supervisor spawns no controller for a sender until
+the advisories are accepted at their current hashes with the press
+recorded, an account exists, the step table's required steps
+(`preferences`, `machine`, `cloud`) are done at the versions it names, and
+`cool_intake_fans` has a value (the Intake fans step, the airflow check,
+or the operator wrote it). Nothing else is in it. A release that bumps a
+required step's version holds the gate again until the step runs; a flag
+on a required step (a different head flags `machine`) recommends it and
+leaves the gate open. `GET /mode` reports `controller: gated` with `why`
+naming the first of them missing (`the advisories are not accepted`, `no
+account exists`, `setup required:` with the steps not done, `the intake
+fans are not counted`), and the panel's Status tab shows a banner. A
+wizard's own controller (local posture, loopback only) passes. A gate that closes on a running controller stops it once the
+machine is idle, never mid-job. The `setup.flag` event reports the gate
+opening and closing ([The event stream](#the-event-stream)).
+
+Every other step is recommended, never required. `GET /wiz` lists
+`recommended`, each entry an `id` and a `reason`. The image's step table
+names every step and the version it wants, and marks the required ones: a
+step that is not required reads `not run yet` when it has not run and
+`this release asks for it again` when it ran at an older version, and a
+conditional step (the cloud header) counts only where its fact holds; the
+laser floor and the bed size are not in the table. The
+flags add what the machine asks for itself, each with its reason: the
+cooling engine's (two coolant flow faults in a row; a fan within 10
+percent of its floor at a job's start), the setup's Flow check (a failure
+to separate the bands, a thin margin), the head check at boot (a different
+head raises the head change), and `POST /wiz/changed`. A completed run of
+a step clears its flag, and a flag on a step this build does not have is
+left out.
 
 `cloud_enabled` (0 or 1, default 0) is set by the cloud step. While it is
 0, the GF Cloud tab, the Factory cloud button, and the gfcloud homing
@@ -391,11 +418,10 @@ directory becomes listable: what is private in it is closed file by file,
 and landlock keeps a service out of all of it but its own two directories.
 
 The hardware
-wizards are the checks (the dark validation) and the sheet (the live
-cards); a live card's laser keys (`laser_floor_density`,
-`laser_dose_curve`, `laser_corner_gamma`) may be overridden for its one
-job, the originals kept in `/data/forgefirm/curverec.saved` so a daemon
-restart puts them back.
+wizards are the checks (the dark validation) and the laser burns (the live
+wizards). The laser floor burn turns `laser_floor_density` and
+`laser_dose_curve` off for its rungs, the originals kept in
+`/data/forgefirm/curverec.saved` so a daemon restart puts them back.
 
 ## Switches and button
 
@@ -552,7 +578,7 @@ every 5 s.
 | `lease.changed` | `owner`, or `null` | The machine lease's innermost holder changes ([The machine lease](#the-machine-lease)) |
 | `button` | `pressed` | The button is pressed or let go, and nothing else is waiting for it: not while a job arms or runs, not under the machine lease (a wizard, a diagnostic), and not while this daemon waits for a press itself (the setup's, an install's). The button is looked at 25 times a second, so a short press is not lost |
 | `update.available` | `version` | The release check finds a release newer than the installed version, or one newer yet |
-| `setup.flag` | `gate_open`, `reason` | The setup's gate on the controllers opens or closes; `reason` says what keeps it closed |
+| `setup.flag` | `gate_open`, `reason` | The setup's gate on the controllers opens or closes; `reason` is the gate's `why` while it is closed |
 | `telemetry.tick` | `phase`, `verdict`, `fire_ok`, `down_c`, `up_c`, `state`, `lid` | Every 10 s: what the daemon already holds (the cooling engine's last word, the controller's state, the lid), with no sensor read of its own |
 | `bye` | `reason`: `replaced` | This stream is ending because the same address opened a newer one |
 
@@ -641,7 +667,7 @@ Three things run through it:
 | Run | Lease owner | Started by |
 |---|---|---|
 | The dose ladder | `recorder` | `POST /curve/record` ([below](#the-dose-curve-recorder)) |
-| A sheet card's program | `job:<wizard id>`, under the wizard's own hold | The sheet wizards ([Setup](../../usage/setup.md)) |
+| A laser burn's program | `job:<wizard id>`, under the wizard's own hold | The laser burns ([Setup](../../usage/setup.md#the-laser-burns)) |
 | A posted program | `job:<name>` | `POST /job` |
 | A package's job while it keeps the Grbl sender out | `job:<id>`, under the package's own `ext:<id>` | `POST /job` from the extension host, in the package's name |
 
@@ -665,7 +691,7 @@ the controller acknowledges `M2` only once every buffered motion has played,
 so every line acknowledged means the planner is empty; the runner then
 waits for the pulse engine to play the last of its ring (`cnc/state` idle)
 before the record says `done`, so `done` means the head has stopped. The
-ladder's and the sheet's witnesses are sampled at 25 Hz, and so are a posted
+ladder's and the laser burns' witnesses are sampled at 25 Hz, and so are a posted
 program's when it sets `lit_within_s`: it is judged by them, and at a lower
 rate a burn shorter than a sample period could read dark. Any other posted
 program is sampled at 5 Hz, since it may run for an hour and only the summary
@@ -685,7 +711,7 @@ last one, whoever started it:
 (the controller's error with the line that drew it, a timeout, `aborted`).
 `program` says whether the run is a posted program's. `POST /job/abort`
 stops a posted program with a soft reset, a controlled stop with the latch
-relocked, and waits for the run to end; the ladder and a sheet card are
+relocked, and waits for the run to end; the ladder and a laser burn are
 stopped where they were started, and the route says so. `POST
 /controller/stop` remains the operator's stop under any holder. An aborted
 job leaves the controller in its alarm state, as a Stop from any sender
@@ -705,8 +731,8 @@ what is refused beside it, the runner's `M2` and `$X`, the abort and its soft
 reset, a connected client's refusal with nothing sent, a run inside a
 wizard's hold, the ready and done hooks of a started run), `jobstream_test`
 for the sender, and the mock-parity test. On the bench, the release
-acceptance tests `motion.job` and `laser.recorder-dark`, and `setup.sheet`
-for the sheet wizards.
+acceptance tests `motion.job` and `laser.recorder-dark`, and `setup.focus`
+and `setup.floor` for the laser burns.
 
 ### The dose-curve recorder
 
@@ -873,7 +899,7 @@ An owner is a short name, `<what>:<which>`. A hold is one of five kinds:
 | `diag:<tool>` | `hardware` | A diagnostic: it stops the controller and drives the thermal hardware itself |
 | `wizard:<id>` | `hardware` | A setup wizard, for as long as its check runs |
 | `recorder` | `sender` | The dose-curve recorder, which is the Grbl sender for its own ladder |
-| `job:<name>` | `sender` | The [job runner](#the-job-runner), for a posted program (`job:<name>`) or a sheet card (`job:<wizard id>`, under the wizard) |
+| `job:<name>` | `sender` | The [job runner](#the-job-runner), for a posted program (`job:<name>`) or a laser burn (`job:<wizard id>`, under the wizard) |
 | `update:<job>` | `system` | An update job: `download`, `apply`, `restore`, `factory-return` |
 | `logs.export` | `export` | A log export, from its staging to the end of the download. It only reads the machine at rest |
 | `ext:<id>` | `extension` | An extension package, for as long as it keeps the Grbl sender out ([A package keeps the Grbl sender out](extensions.md#a-package-keeps-the-grbl-sender-out)). Its own jogs and its own job pass it |
@@ -887,7 +913,7 @@ What asks the lease, and which holders refuse it:
 | `POST /settings`, `POST /controller/start`, `POST /cool/quiet`, `POST /motion/jog`, `/motion/release`, `/motion/energize`, `/motion/home`, `/motion/tray` | Anybody but a log export holds it. An export only reads, and a settings write does not disturb it; an update job locks the controls like a diagnostic does |
 
 **One owner may run under a holder.** The cooling wizards run a diagnostic
-inside their own hold, and the sheet wizards a job: the inner owner names the
+inside their own hold, and the laser burns a job: the inner owner names the
 wizard it runs under, the lease lets it in under that holder and no other,
 and it releases before the wizard does. The cloud wizard switches the controller mode inside its own
 hold, which the mode switch allows for the holder and nobody else.

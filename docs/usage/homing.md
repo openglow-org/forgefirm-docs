@@ -36,7 +36,7 @@ another, and computes where the head is; the machine moves to the home
 corner. The service's lens hunt is answered as done without moving the lens;
 after the session the lens takes its own reference on the hall sensor's edge,
 Z is set to the focal point's height above the tray at that edge, the number
-[Setup](setup.md#the-sheet) measured (above the floor, with the
+[Setup](setup.md#focus) measured (above the floor, with the
 [crumb tray](control-panel.md#machine) out), and the lens then moves
 to the park height, `lens_park_z_mm` on the Machine tab (default 3 mm), so a
 home ends focused about 3 mm above the bed.
@@ -76,8 +76,8 @@ origin you calibrated lies inside the factory home; the soft limits then reach
 back to the home position, since the head stands there. Camera homing alone
 uses them: no other homing method reads them, and the panel shows them only
 while camera homing is the method. Z after a home is `lens_park_z_mm`, the
-focus height the lens parks at; the focus card measured where the hall edge
-sits in that frame. To calibrate: home, jog to
+focus height the lens parks at; the setup's Focus burn measured where the
+hall edge sits in that frame. To calibrate: home, jog to
 a known reference, and enter the measured offsets.
 
 Do not let a sender home automatically on connect: LightBurn's **Auto-home on

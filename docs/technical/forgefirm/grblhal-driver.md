@@ -217,8 +217,8 @@ at every spindle precompute, so `$35` is derived, never typed. S commands a
 light fraction, and `laser_dose_curve` maps it onto the density that
 delivers it; `laser_corner_gamma` is the corner rolloff under `M4`. `M102`
 reloads the three inside a job, synchronized behind every buffered motion,
-through the same spindle configuration the arm runs: the setup
-sheet's cards change them between their passes. The
+through the same spindle configuration the arm runs: the setup's Laser
+floor burn turns the floor and the curve off for its rungs that way. The
 analog rendering (continuous FIRE at a duty) is not selectable on a machine.
 It fires the tube's strike transient as a spot at every beam-on, and exists
 only as the host harness's conservatism reference. The settings and their
@@ -580,7 +580,7 @@ Every head shares the lens screw and its travel, so the Z scale is a
 constant: `$102` is 2.922 half-steps per millimeter (36 over the carriage's
 12.32 mm), about 0.34 mm a half-step. What differs from head to head is the
 step along the travel at which the hall sensor trips. That rising edge is
-the one reference the head has, and the setup focus card measures
+the one reference the head has, and the setup's Focus burn measures
 the one number the head needs: `lens_hall_edge_z_mm`, the focal height above
 the tray when the lens sits on it. A home in gfcloud mode leaves the lens on
 that edge, sets Z to the number, placed on the whole step the controller
@@ -588,11 +588,12 @@ counts (so the reported position and the home position agree), and then
 parks the focus at `lens_park_z_mm`, a user setting (default 3 mm; the runner
 takes the whole half-steps from the edge to the nearest step at the park
 height). The park and the Z envelope keep to the head's free travel as the
-focus card found its stops (`lens_stop_below_steps`, `lens_stop_above_steps`),
-or, until it has or when the stops could not be found, to the fallback
-window of ten half-steps below the edge to twelve above; the lens is never
-driven onto a stop on a user's machine. The defaults are the
-bench reference's, placeholders until the card has run. The homing
+setup's Lens travel check found its stops (`lens_stop_below_steps`,
+`lens_stop_above_steps`), or, until it has run or when the stops could not
+be found, to the fallback window of ten half-steps below the edge to twelve
+above; the lens is never driven onto a stop on a user's machine. The
+defaults are the bench reference's, placeholders until those steps have
+run. The homing
 session answers the service's lens hunt as done without moving the lens;
 the lens reference is the session's own, after the service goes quiet.
 The lens is in the pulse path like X and Y: a job's or a jog's Z moves it,
@@ -654,8 +655,8 @@ so a mode that cannot be saved does not change, and a job that asked for it
 is held with a message. forgectrl reads the marker for the panel, and
 refuses a change of `tray_offset_mm` while the tray is out, so the offset in
 force never changes under a live frame. The panel's switch is the controller
-port's `tray` op ([The controller port](controller-port.md)). The setup
-needs the tray in ([Setup](../../usage/setup.md#the-sheet)).
+port's `tray` op ([The controller port](controller-port.md)). The setup's
+laser burns need the tray in ([Setup](../../usage/setup.md#the-laser-burns)).
 
 Host tests: `tray_test.py` on the null-sink controller build, in the
 driver's CI (the shift and its envelope, the errors, the wait for the move
