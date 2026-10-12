@@ -84,6 +84,13 @@ Writing "1" switches the device to the "run" state from "idle" and starts
 executing the loaded program. Every run started this way resets the laser
 duty to about 100 % (see [Power bytes](#power-bytes)).
 
+A run requested on an empty ring is refused with `-ENODATA` (logged at debug
+level only). A feeder meets it as an answer, not a fault: a run it requested
+while the device was still running a tail was refused as busy, and by the
+time it asks again the device has played the new bytes as a continuation.
+The grblHAL step backend takes `idle` with `-ENODATA` as "already played"
+([grblHAL driver](grblhal-driver.md)).
+
 ### stop
 
 Write, ASCII, 1
