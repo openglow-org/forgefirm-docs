@@ -83,4 +83,6 @@ the air assist runs ([Cooling and fans](cooling-and-fans.md)).
 The **dose-curve recorder** on the GRBL tab measures your tube's own dose curve
 in one press. It is a laser job, not a diagnostic: it runs the ladder job
 itself, you press the physical button to start the fire, and every arm gate
-stands ([LightBurn, Power](lightburn.md#power)).
+stands ([LightBurn, Power](lightburn.md#power)). It measures with the head's
+beam sensor. If the sensor gives no output, the recording stops with a
+notice that says so; the machine keeps the curve it has and runs as before.

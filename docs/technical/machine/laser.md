@@ -168,9 +168,13 @@ The software-visible evidence that the tube fires, or may fire:
 - **`laser_enable`** is the state of the FIRE drive line: what the SoC
   requested, not what the chain did.
 - **The head beam detector** (`beam_detect_analog`, `beam_detect_digital`) is
-  the live emission witness ForgeFIRM reads during a job. It is a scatter
-  detector inside the head, ahead of the mirror that turns the beam down to
-  the work, so it sees the beam and not the material. See
+  a scatter detector inside the head, ahead of the mirror that turns the
+  beam down to the work, so it sees the beam and not the material. A Grbl or
+  cloud job does not read it. The jobs forgectrl runs itself (the setup's
+  burns, the dose-curve recorder, the job runner's jobs) read it, record
+  it, and log it at their end, and only the dose-curve recorder requires
+  it, because it measures with it. A head may give no output from it: none
+  fitted, or one that reads differently from the bench reference's. See
   [Sensors](sensors.md).
 - **`hv_current`** and **`hv_voltage`** are the supply's analog readings;
   every supply examined ties the voltage input to ground. `hv_current` is the

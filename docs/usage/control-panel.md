@@ -97,8 +97,8 @@ switches to the live stream on demand ([Cameras](cameras.md)).
 Position always shows. It is painted red while the machine is unreferenced and
 shown normally once a homing cycle anchors it ([Homing](homing.md)). The laser
 latch row is labeled *commanded*, with the sensed emission row beside it: the
-latch is the commanded state of the kernel lock, and the emission line is what
-the beam sensor sees. The switch card shows the safety-chain readbacks; HV
+latch is the commanded state of the kernel lock, and the emission line shows
+whether the laser output was on in the last second. The switch card shows the safety-chain readbacks; HV
 enable is the readback of the chain's HV_ENABLE output, on only while a run
 feeds the charge-pump watchdog with the lid closed
 ([The safing chain](../technical/machine/safing-chain.md)).

@@ -220,8 +220,9 @@ off, about 628 with it on.
   `head/beam_detect_digital`, 0 or 1): the analog and digital outputs of the
   beam detector in the head. It is a scatter detector in the beam path ahead
   of the mirror that turns the beam down to the work, so it sees the beam and
-  not the material. ForgeFIRM reads the analog output as the live emission
-  witness during a job (see [The laser](laser.md)). Measured on the bench
+  not the material. ForgeFIRM reads the analog output during the jobs
+  forgectrl runs itself, records and logs it, and requires it only to record
+  a dose curve (see [The laser](laser.md)). Measured on the bench
   reference: near **1834 dark**, and **2600 to 2890** during fire at `S300` to
   `S400`. Its response at low fire energies is unmeasured. How the detector
   works inside the head is below.

@@ -541,9 +541,10 @@ taken only when the single writer is provably absent.
 ## Witnesses
 
 Position counters are not proof of motion: the step-stream drives are open
-loop. The head accelerometer is the motion witness, and
-`beam_detect_analog` on the head is the live emission witness; the driver's
-own check of it once a second is under [Faults](#faults).
+loop. The head accelerometer is the motion witness, and the kernel's count
+of samples with the gated LASER_ON output active (`cnc/laser_on_sampled`)
+is the live emission witness; the driver's own check of it once a second is
+under [Faults](#faults). The driver does not read the head's beam detector.
 
 ## Homing handover
 

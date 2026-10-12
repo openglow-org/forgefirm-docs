@@ -190,9 +190,10 @@ seconds, prompts the press when the button lights white, and ends with the
 result in a sentence; the settings the step wrote, each with its value
 before, and the numbers behind the sentence sit under a fold. A question
 about the burn waits half an hour for your answer and the page counts that
-down, so a careful look never loses a burn. The tube current, the head
-thermopile, and the kernel's LASER_ON samples must all see the beam, or the
-step fails.
+down, so a careful look never loses a burn. The tube current and the
+kernel's LASER_ON samples must both see the beam, or the step fails. The
+head's beam sensor is recorded but not required: a head whose sensor gives
+no output still runs the step, and the step's log says so.
 
 **The crumb tray must be in.** The scrap goes on the tray, and Focus
 measures the height above it. A burn will not start while the panel says

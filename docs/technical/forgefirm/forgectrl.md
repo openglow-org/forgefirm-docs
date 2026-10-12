@@ -657,7 +657,11 @@ the first laser-on line waits for the press on the machine, and there is no
 emission path here that a Grbl client does not have. While a job plays, the
 sender samples the emission witnesses (`pic/hv_current`,
 `head/beam_detect_analog`, `cnc/laser_on_sampled`, the lid IR quartet), and
-the job's record carries what they saw.
+the job's record carries what they saw. A job that lit the tube logs them
+at its end: the tube current peak, the LASER_ON samples, and the beam
+sensor's dark level, peak, and rise. Nothing requires the beam sensor but
+the dose-curve recorder, so the log is where a head that reads differently
+shows.
 
 Every run takes the [machine lease](#the-machine-lease) as a `sender`: it is
 refused while a Grbl client is connected and while anything else holds the
@@ -746,7 +750,10 @@ measures the raw response; both are restored on every end path), streams the
 ladder (absolute from X0 Y0, one 100 mm line per rung, the operator's button
 press starting the fire with every arm gate standing), and samples
 `pic/hv_current` and `head/beam_detect_analog` at 25 Hz, segmenting on the
-dark gaps when the ladder has played. `GET /curve/status` reports the state
+dark gaps when the ladder has played. It logs each rung's beam sensor rise.
+A full-power rung that rises less than 100 counts as no output: the
+recording fails with the notice that the beam sensor gave no output, the
+curve in force stays, and the machine runs on it. `GET /curve/status` reports the state
 (`idle`, `waiting`, `recording`, `done`, `failed`), the fitted density:light
 points, and the ready `laser_dose_curve` value; `POST /curve/stop` ends or
 aborts; `GET /curve/ladder.gcode` serves the exact job the recorder streams,
