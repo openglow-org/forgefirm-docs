@@ -252,6 +252,15 @@ session, the panel token, and origin checks); unsigned installs
 additionally require the physical button held
 ([forgectrl](forgectrl.md#http-api)).
 
+**The record in the log.** Every forgectrl start logs the version that
+runs and its slot (`update: running <version> from slot b`), so the
+forgectrl log shows each change of firmware, whatever route it took: the
+panel, or `fwup` and `ffboot` at the console. Each update job logs what it
+sets out to do and how it ended: `update: the apply finished: slot b,
+version …`, or `update: the apply failed: …` with the reason. A boot
+selection, a reboot, and an upload log a line of their own. The log and
+its export are on [Logging](logging.md).
+
 **The factory return.** Every screen of the first-run setup carries a
 footer link, "Go back to the factory firmware"
 ([Setup](../../usage/setup.md#go-back-to-the-factory-firmware)).
