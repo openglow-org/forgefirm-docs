@@ -145,22 +145,31 @@ Each repository with host tests runs them on push and on pull request.
 
 ## Coverage currency
 
+The acceptance catalog is for what needs the machine: the safing chain,
+laser emission, coolant flow sensing, the real sensors and actuators, real
+motion and step timing, the pulse engine of the kernel on the SoC, the
+camera pipeline, the boot and the slots of the board, and the hardware
+crypto. It is also for what needs an operator to do something that
+automation cannot, such as a print from the Glowforge web app. A host test
+proves everything else, even when the bench is the quicker place to check
+it. A behavior whose inputs can be emulated is software: a coolant reading
+past a limit, a switch edge that only triggers a decision, a verdict file, a
+settings write.
+
 The release gate reads the coverage maps of the acceptance catalog. Thus
-each change is evaluated against the catalog, in addition to its unit tests:
+each change is evaluated in two ways:
 
-1. Does an acceptance test exercise the changed behavior? If not, add one or
-   extend one in the same change.
-2. Does the `covers` map of that test name the files that you touched? If
-   not, widen it in the same change.
+1. Which host test proves the change? If none does, add a case to the test
+   that owns the rule. A host test proves behavior. It does not pin message
+   wording, help text, field order, or markup unless the text is the
+   contract, and it does not prove a rule a second time.
+2. Does an acceptance test exercise the changed behavior on the hardware? If
+   it does, the `covers` map of that test names the files that you touched.
+   Widen it in the same change. Never add or extend an acceptance test for
+   behavior that a host test can prove.
 
-Exercise a gate or a limit through the settings API. Set a value that a
-healthy machine cannot meet. The engine reads it again at the next run
-start, and the teardown of the test restores it. Never use the `GFCOOL_*`
-environment overrides for this. They need a daemon restart, and they stay
-bench-only.
-
-A behavior change with no catalog consequence needs a sentence of
-justification in the commit message. A coverage gap is a defect. Under the
+A behavior change with no catalog consequence names its host test in the
+commit message. A coverage gap is a defect. Under the
 domain model, an uncovered path lets an inherited PASS stay valid across a
 change that must have invalidated it.
 
@@ -170,15 +179,39 @@ The mechanical floor is the coverage lint:
 python3 -m forgetest.coverage --manifest <manifest.json> [--enforce]
 ```
 
-It lists each manifest path that no test covers, minus the non-behavioral
-paths. Those are documentation, CI, the unit tests of the components, and
-licenses; the list is `NON_BEHAVIORAL` in `forgetest/forgetest/manifest.py`. It also
-lists each coverage entry that selects nothing. CI runs the lint on a
-manifest from the recipe pins (`scripts/manifest-from-tree.py`; no Yocto
-build is necessary) and fails the job on an uncovered path. On the board, run
-it against `/etc/forgefirm-manifest.json`. The lint proves that a file is
-*fingerprinted*. Whether the test *exercises* the change is the judgment of
-the author of the change (rule 1). The contract behind this, with the
+It lists each manifest path that neither an acceptance test nor a host test
+covers, minus the non-behavioral paths. Those are documentation, CI, the
+unit tests of the components, and licenses; the list is `NON_BEHAVIORAL` in
+`forgetest/forgetest/manifest.py`.
+
+A path that a host test proves, and that no acceptance test exercises on the
+hardware, has a row in `HOST_TESTED` in the same file: the component, a
+glob, the host test, and the CI workflow that runs it. The last two are each
+`<repository>:<path>`: a file of a component, or `forgefirm:` with a path in
+the `forgefirm` repository. The null-sink harnesses are `forgefirm:` files
+that the workflow of `grblhal-glowforge` runs. A host-tested path is in no
+fingerprint, so a change there makes no acceptance run necessary.
+
+The lint also lists:
+
+- each coverage entry and each host-tested row that selects nothing;
+- each row whose host test or workflow does not exist;
+- each row whose workflow does not run its host test. The workflow runs it
+  when its text names the test, or the built test binary, or discovers it:
+  a glob such as `tests/test_*.py`, `unittest discover`, or `pytest` on the
+  test's directory. A comment or a trigger's `paths` filter does not count.
+
+The lint reads a component's workflow at its pinned revision, from the
+sources that `scripts/manifest-from-tree.py` fetches (`--sources`, by
+default the checkout's `.manifest-cache`). CI runs the lint on a manifest
+from the recipe pins (no Yocto build is necessary) and fails the job on any
+of these. On the board, run it against `/etc/forgefirm-manifest.json`. There
+it has neither the checkout nor the sources, so it does not check the
+`forgefirm:` files or whether a workflow runs its test.
+
+The lint proves that a file is *fingerprinted*, or that a host test which
+CI runs answers for it. Whether the test *exercises* the change is the
+judgment of the author of the change. The contract behind this, with the
 catalog, the fingerprints, the campaigns, and the gate, is the
 [Acceptance](acceptance.md) page.
 

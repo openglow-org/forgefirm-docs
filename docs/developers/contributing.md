@@ -38,10 +38,10 @@ A feature or fix is not complete until it is proven. The order of preference:
 
 Also:
 
-- Evaluate each change against the acceptance catalog, and keep the coverage
-  maps current ([Test](testing.md), "Coverage currency"). A behavior change
-  with no catalog consequence gets a sentence of justification in the commit
-  message.
+- Add an acceptance test only for what needs the machine or an operator, and
+  keep the coverage maps of the catalog current ([Test](testing.md),
+  "Coverage currency"). A behavior change with no catalog consequence names
+  its host test in the commit message.
 - Push a source repository before you bump its pin. Verify the pin with
   `bitbake -c fetch` ([Release flow](release-flow.md)).
 - Kernel and BSP changes ride one image flash, in a batch. Validate a `.ko`
