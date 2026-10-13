@@ -427,6 +427,13 @@ each run, and at most every 30 s otherwise. What holds:
   attended. The arm press of a live test belongs to a person unless the
   bench configuration says `arm_press: true`. Then, and only with the jumper
   in, the fixture presses when the button lights, and the record says so.
+- **No press is ever held.** Every reader of the button catches a press of
+  a quarter second or less: forgetest reads the presence press as an edge
+  from the switches' input events, the controller's arm wait reads the
+  button every 50 ms, and forgectrl's own waits every 100 ms or less. A
+  press notice goes down the moment the controller takes the press (the
+  button goes out), so nobody presses again: a press during a job pauses
+  it.
 - **What the box still holds after a run is released** and recorded
   (`evidence.fixture.released`), before the post pass of the baseline. Thus
   a lid that a failed test left open never reaches the next test.
