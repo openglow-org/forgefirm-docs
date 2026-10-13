@@ -265,8 +265,9 @@ a machine with an account and no session: a held read and write, a
 capability not held, a route with none, the capability gone once the route's
 callback is over, plain HTTP from the LAN and from this host, the cameras,
 `?key=` from a camera-only token and from one that holds more, a stranger's
-token, the sink's silent form, closed reads), and the
-mock-parity test, which holds the mock's list and its route column to the C.
+token, the sink's silent form, closed reads, and the loopback peer check),
+and `test_routes`, which holds every route's capability column to the closed
+list.
 On the bench, the release acceptance test `forgectrl.tokens`.
 
 ### Built-in extensions
@@ -312,11 +313,10 @@ provider kinds (`runner-fd`: the driver forks a runner that inherits the
 pulse device; `supervised`: the supervisor's own controller) are
 compile-time words of the image.
 
-Host tests: `builtin_test` (the table over a real settings file: the cloud
-entry, a cloud selection refused while the cloud is off, the request's
-own enable, the sweep and what it leaves alone, the list in each state) and
-the mock-parity test, which reads the table out of `builtin.c` and holds the
-mock's copy, its refusals, and its sweep to it. On the bench, the release
+The host test is `builtin_test` (the table over a real settings file: the
+cloud entry, a cloud selection refused while the cloud is off, the request's
+own enable, the sweep and what it leaves alone, the list in each state). On
+the bench, the release
 acceptance test `setup.cloud-disabled-surface`.
 
 ### Setup and the gate
@@ -783,12 +783,13 @@ holder's name: a job's pauses are not the panel's to jog in. A package that
 keeps the Grbl sender out is the one exception its own hold makes: the jogs
 the extension host sends in its name pass.
 
-Host tests: `jobrun_test` (the program check and every offense with its line
-number, a program played as `job:<name>` with the lease held as a sender,
-what is refused beside it, the runner's `M2` and `$X`, the abort and its soft
-reset, a connected client's refusal with nothing sent, a run inside a
-wizard's hold, the ready and done hooks of a started run), `jobstream_test`
-for the sender, and the mock-parity test. On the bench, the release
+The host test is `jobrun_test` (the program check and every offense with its
+line number, a program played as `job:<name>` with the lease held as a
+sender, what is refused beside it, the runner's `M2` and `$X`, the abort and
+its soft reset, a connected client's refusal with nothing sent, a run inside
+a wizard's hold, the ready and done hooks of a started run, and the sender
+under it: an error that stops a run at its line, a lit run's witnesses, the
+generator's pacing, the abort's soft reset). On the bench, the release
 acceptance tests `motion.job` and `laser.recorder-dark`, and `setup.focus`
 and `setup.floor` for the laser burns.
 
@@ -1010,10 +1011,9 @@ leaves the kernel idle, which is exactly the case the lease exists for.
 Host tests: `lease_test` (one holder and its refusal, an owner under a
 holder and under no other, release by the innermost owner alone, the sender
 kind beside a connected client, the `/status` document, sixteen threads
-asking at once with one winner), `super_test` case K (a mode switch refused
+asking at once with one winner) and `super_test` case K (a mode switch refused
 by a holder, allowed for the holder itself, refused for a caller that names
-a hold it does not have), and the mock-parity test, which holds the panel
-mock's words, document, and refusals to `lease.c`. On the bench, the release
+a hold it does not have). On the bench, the release
 acceptance test `forgectrl.lease`.
 
 ## Pulse-device ownership
@@ -1179,7 +1179,7 @@ node), the kernel pages, and a live-board spot-check:
   live print (`cloud.pause-resume`). These are acceptance catalog tests
   ([Acceptance](../../developers/acceptance.md)). With one intake fan set,
   intake 2 is published not fitted and never judged while intake 1 still
-  trips: `cool_intake_test`, a host test in forgectrl's CI.
+  trips: `cool_flow_test`, a host test in forgectrl's CI.
 
 The channels and the ownership rules are drilled on hardware, operator
 present:

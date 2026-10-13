@@ -377,9 +377,8 @@ API calls from the page go to one of two backends:
 - **The built-in mock** (`--mock`, or automatically without `GF_HOST`):
   in-memory settings, status, diagnostics, slots, logs, and a placeholder
   camera. The mock does the same token check as the daemon on the
-  state-changing calls, and its tables and reply shapes are the daemon's:
-  a host test in the forgectrl repository (`tests/test_devserver_mock.py`)
-  reads them out of the C sources and holds the mock to them.
+  state-changing calls. Its tables and reply shapes are copies of the
+  daemon's, kept by hand, so they can fall behind the daemon's.
 
 ```sh
 cp .env.example .env            # then fill in GF_HOST / GF_TOKEN
