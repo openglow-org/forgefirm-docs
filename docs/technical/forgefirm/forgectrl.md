@@ -383,7 +383,8 @@ opening and closing ([The event stream](#the-event-stream)).
 
 Every other step is recommended, never required. `GET /wiz` lists
 `recommended`, each entry an `id` and a `reason`. The image's step table
-names every step and the version it wants, and marks the required ones: a
+names the steps it tracks, each with the version it wants, and marks the
+required ones: a
 step that is not required reads `not run yet` when it has not run and
 `this release asks for it again` when it ran at an older version, and a
 conditional step (the cloud header) counts only where its fact holds.
@@ -408,8 +409,9 @@ old head measured (`lens_stop_below_steps`, `lens_stop_above_steps`), so
 the lens keeps the fallback window until Lens travel runs on the new head
 ([The motion hardware](../machine/motion-hardware.md#the-lens-and-its-travel)),
 and it writes the new head's facts into the record, so the change is
-applied once. A head change named through `POST /wiz/changed` flags the
-steps and nothing else.
+applied once. A head change named through `POST /wiz/changed` does the
+same: the steps, the lens window, and the head facts, so the next boot
+does not apply it again.
 
 `cloud_enabled` (0 or 1, default 0) is set by the cloud step. While it is
 0, the GF Cloud tab, the Factory cloud button, and the gfcloud homing
