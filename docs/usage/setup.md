@@ -88,9 +88,9 @@ at any time to go on.
 
 A document that changes in a later release must be accepted again, and
 until it is, no controller runs for a Grbl sender. A later release can
-also ask for a step again: a required step then holds the controllers
-until you run it, and `/setup` opens on it; any other step is
-recommended. A step that is open
+also ask for a step again. Preferences, Your machine, Cloud mode, and
+Coolant flow then hold the controllers until you run them, and `/setup`
+opens on the first; any other step is recommended. A step that is open
 again is a link in the setup's rail, from any other step, and
 `/setup?step=advisories` opens it directly.
 
@@ -236,8 +236,9 @@ Each step asks, in order:
 
 Each step burns its box 10 mm from the head's home in X and Y. The program
 declares X0 Y0 at the head with `G92`, and its last moves bring the head
-back home. A burn clears any G92 origin when it ends, also one your sender
-set, so set yours again after a burn. If a burn cannot clear it, its log
+back home. A burn that gets as far as its program clears any G92 origin
+when it ends, also one your sender set, so set yours again after a burn. If
+a burn cannot clear it, its log
 says so: send `G92.1` before your next job. A burn that stops part way
 also puts the lens back on its reference
 ([forgectrl](../technical/forgefirm/forgectrl.md#the-setup-burns-and-the-lens)).
@@ -273,8 +274,10 @@ on the page are in your units. The lens and its travel are on
 
 ### Laser floor
 
-Run Focus first: the floor burns at the focus that Focus measures, and the
-step does not start until Focus has run, and run again after a new head.
+Run Focus first: the floor burns at the focus that Focus measures. The
+step does not start until Focus has run, nor while the setup recommends
+Focus again, as it does after a new head or a new tray
+([What changed](#what-changed)).
 
 Twelve rungs burn across the box from 2 to 24 percent pulse density, the
 floor and the dose curve off for the rungs. Pick the faintest rung that
@@ -436,14 +439,17 @@ No controller runs for a Grbl sender until the required steps are done:
 the advisories (every document, then the button press), the account,
 Preferences, Your machine, Cloud mode, Coolant flow, and the count of the
 intake fans. Coolant flow matters because the coolant's rise differs from
-machine to machine (step 8 of [The first run](#the-first-run)). The count
-matters because a machine built with one intake fan would
+machine to machine (step 8 of [The first run](#the-first-run)). The gate
+waits for that step itself: a **Flow calibrate** applied from
+[Diagnostics](diagnostics.md) writes the threshold but does not count as
+the step. The count matters because a machine built with one intake fan would
 otherwise stop every cut with an airflow fault. The Intake fans step
 counts them, and so does the Airflow check; setting Intake fans on the
 Machine tab gives the count too
 ([Cooling and fans](cooling-and-fans.md#settings)). Nothing else holds the
-controllers. A later release that changes a document, or asks for one of
-the required steps again, closes the gate again until you accept it or
+controllers. A later release that changes a document, or asks again for
+Preferences, Your machine, Cloud mode, or Coolant flow, closes the gate
+again until you accept it or
 run the step.
 
 While the gate is closed, the panel's Status tab shows a banner that says

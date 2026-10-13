@@ -183,7 +183,8 @@ is open, except one you let keep running
 
 Every step of the setup, with the version it completed at, what the
 machine recommends and why (not run yet, this release asks for it again,
-or the reason the machine gives), and a link to run each step
+or the reason the machine gives), and a link to run each step but the
+advisories and the account
 ([What the setup recommends](setup.md#what-the-setup-recommends)). The
 **What changed?** menu names a replaced part or a service, and the steps
 that depend on it are recommended again

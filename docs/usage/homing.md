@@ -35,9 +35,9 @@ Glowforge service. The service takes a lid image, moves the head, takes
 another, and computes where the head is; the machine moves to the home
 corner. The service's lens hunt is answered as done without moving the lens;
 after the session the lens takes its own reference on the hall sensor's edge,
-Z is set to the focal point's height above the tray at that edge, the number
-[Setup](setup.md#focus) measured (above the floor, with the
-[crumb tray](control-panel.md#machine) out), and the lens then moves
+and Z is set to the focal point's height at that edge: above the tray, the
+number [Setup](setup.md#focus) measured, or above the floor when the
+[crumb tray](control-panel.md#machine) is out. The lens then moves
 to the park height, `lens_park_z_mm` on the Machine tab (default 3 mm), so a
 home ends focused about 3 mm above the bed.
 

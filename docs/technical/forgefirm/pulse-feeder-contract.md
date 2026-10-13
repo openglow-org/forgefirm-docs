@@ -93,10 +93,11 @@ by then the device has usually played the new bytes as a continuation of
 that tail. `-ENODATA` is not always that benign: a head sync that fails
 (the module cannot read the engine's place in the ring) also reads as an
 empty ring, and the module logs its own error first
-(`context fetch failed`). The grblHAL step backend keeps its run request
-while `state` reads `running`, asks again once it reads `idle`, and takes
-`idle` with `-ENODATA` as "already played", a failed head sync included;
-the kernel log carries that error ([grblHAL driver](grblhal-driver.md)).
+(`context fetch failed`). The grblHAL step backend
+([grblHAL driver](grblhal-driver.md#from-g-code-to-pulse-bytes)) keeps its
+run request while `state` reads `running`, asks again once it reads `idle`,
+and takes `idle` with `-ENODATA` as "already played", a failed head sync
+included; the kernel log carries that error.
 
 ### stop
 

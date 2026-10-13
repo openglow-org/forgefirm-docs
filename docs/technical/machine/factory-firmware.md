@@ -133,7 +133,7 @@ count is the one that should be zero.
 | `AAw?`, `EFw?`, `IFw?` | **Declared ignored**: the warm-up phase fan profile. The run profile covers the warm-up hold, and every captured header sets the warm-up values equal to the run values. |
 | `PTmn`, `PTmx` | **Declared ignored**: the supply temperature window. The service sends the whole ADC range (a window that cannot trip) and the factory binds the pair to nothing; the supply's raw reading is watched per job by the engine instead. |
 | `BT??`, `HT??`, `LT??`, `IT??`, `FT??` | **Declared ignored**: the board, head, lid, interconnect and fused temperature ceilings, sent in a unit that is not millidegrees and not established. The chassis (board) sensor is watched per job; the other four locations have no sensor on this platform. |
-| `CTrn`, `CTrx` | **Declared ignored**: the coolant window in raw counts, older files only; `CMrn`/`CMrx` carry the same window. |
+| `CTrn`, `CTrx` | **Declared ignored**: the coolant window in raw counts. A hunt header carries it wide open (0 to 1023, a window no reading leaves) and no `CM` window; a cut or motion header carries `CMrn`/`CMrx` and no `CT`. |
 | `HA??` | **Declared ignored**: the head accelerometer thresholds. They are LIS2HH12 interrupt-generator register values, and forgectrl's crash watch runs the same mechanism on its own local knobs (the header defaults are the seeded values), so the per-job copies add nothing. |
 | `IR??` | **Declared ignored**: the lid IR flame thresholds. The lid IR channels read the lid lamp, so these absolute numbers are the prior for the lamp-aware fire watch (see [the cooling engine](../forgefirm/cooling-engine.md)), not a gate. |
 | `HIix`, `HIrx` | **Declared ignored**: the HV current caps. The sampled `LASER_ON` witness covers the idle case, and HV current is ranged in every job's log line. |
@@ -163,9 +163,10 @@ board's own factory logs:
 - **Temperature, in two tiers.** A plain alert pauses; a `*_temp_critical`
   fails the machine. The units are per sensor: the coolant family is carried
   twice, once in raw counts with the thermistor's hot end as "min", and once
-  in millidegrees. A stock machine's live coolant window is 10 to 30 C at idle
-  and 5 to 35 C for warm-up and run, and `CMrx` 33000 on a cut is exactly the
-  33 C ceiling the machine ships with.
+  in millidegrees. The service sets the coolant window per job: a cut header
+  carries 10 to 50 C at idle, 7 to 31 C for warm-up and 5 to 33 C for the
+  run (`CMrx` 33000), a motion header 10 to 50 C in every phase, and a hunt
+  header no millidegree window at all.
 - **Coolant flow: the factory does not verify it.** The calorimetric flow
   controller in its firmware is never armed, and its heater is written only at
   phase changes. Nothing in the factory machine can tell a circulating loop

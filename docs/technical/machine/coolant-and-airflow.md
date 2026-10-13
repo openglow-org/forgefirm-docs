@@ -67,8 +67,9 @@ two. A Pro from 2021 has one, the same make and model of fan as the bench
 reference's, on the intake 1 tach. Its intake 2 tach never reads a pulse,
 which is what a tach with no fan on it reads: the kernel reads 0 below
 10 Hz (300 rpm at 2 pulses per revolution). The factory firmware carries a
-per-machine list of intake tachs it does not watch (`intake_disabled_tachs`);
-no other fan has one.
+setting that names the intake tachs it does not watch
+(`intake_disabled_tachs`, a bitmask, 0 by default); where a machine gets
+its value is not known. No other fan has one.
 
 A silent intake 2 tach beside a turning intake 1 therefore reads the same
 on a machine built with one intake fan as on a machine with two whose

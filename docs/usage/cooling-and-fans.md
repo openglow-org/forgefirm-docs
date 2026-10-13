@@ -105,7 +105,8 @@ flow verification at all, and a fan floor of 0 never trips. There is no other
 switch, and no list of names to get wrong. The ranges are wide on purpose: the
 shipped defaults and the recommended bands come from the bench reference, and
 a machine whose loop or sensors read differently changes the number rather than
-waiting for new firmware.
+waiting for new firmware. The one exception is `cool_flow_rise`, whose
+recommended band is its whole range: the setup measures each machine's own.
 
 A gate that is off is not a gate that is forgotten. The panel flags any value
 outside its recommended band beside the field and says "this gate is OFF" at

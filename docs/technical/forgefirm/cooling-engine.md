@@ -283,8 +283,11 @@ calibrated the flow check reads good flow as no flow on every job. The
 flow calibration
 ([Diagnostics: verifying and calibrating flow](#diagnostics-verifying-and-calibrating-flow))
 is therefore a required step of the setup: no controller runs for a sender
-until the calibration has written the loop's own threshold and the heater
-duty it was found at ([Setup](../../usage/setup.md#the-gate)). For the same
+until the setup's Coolant flow step has run, writing the loop's own
+threshold and the heater duty it was found at, and the setup record holds
+it (`cooling.flow`). A calibration applied from the Diagnostics tools
+writes the threshold but leaves the gate closed
+([Setup](../../usage/setup.md#the-gate)). For the same
 reason the recommended band of `cool_flow_rise` is its whole legal range
 ([Gate settings](#gate-settings-range-band-off-end)): no one loop's band
 judges another loop's value.
@@ -641,7 +644,10 @@ A gate is a comparison the engine makes against a setting. Every gate
 setting is a plain number on the Machine tab, and there is no separate
 switch for any gate: the one table in `src/gates.c` gives each its **legal
 range** (wide on purpose), its **recommended band** (the shipped default
-with the margin one machine's loop needs), and its **off end**,
+with the margin one machine's loop needs; for `cool_flow_rise`, the whole
+legal range, since
+[each loop has its own bands](#each-loop-has-its-own-bands)), and its
+**off end**,
 the end of the legal range at which the gate never trips. A value outside
 the band is legal and warned about; a value at the off end is legal and
 reported as the gate being off. The validators, the engine, the settings
