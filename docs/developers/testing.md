@@ -196,10 +196,21 @@ The lint also lists:
 
 - each coverage entry and each host-tested row that selects nothing;
 - each row whose host test or workflow does not exist;
-- each row whose workflow does not run its host test. The workflow runs it
-  when its text names the test, or the built test binary, or discovers it:
-  a glob such as `tests/test_*.py`, `unittest discover`, or `pytest` on the
-  test's directory. A comment or a trigger's `paths` filter does not count.
+- each row whose workflow does not check out the test's repository, or has
+  no step that runs the test. Only what a step's `run` commands execute
+  counts, each path resolved against the step's `working-directory` and
+  compared with the test's path in the workspace (where the workflow checks
+  its repository out). A command runs the test when it is the test (a
+  script run directly, or a C test's built binary, `<dir>/<stem>`); when
+  an interpreter (`python`, `bash`, `sh`) runs it, or a `for` loop runs
+  over it, by its path or a glob that matches the whole path
+  (`tests/test_*.py`); or when `unittest discover` starts in its directory
+  with a pattern its name matches, or `pytest` is given it or its
+  directory. `sudo`, `env` and variable assignments in front of a command
+  are passed over. An argument to any other command (`echo`, a build) does
+  not run a test, and neither does a comment, a step's name, or a
+  trigger's `paths` filter;
+- each row whose workflow should be readable and is not.
 
 The lint reads a component's workflow at its pinned revision, from the
 sources that `scripts/manifest-from-tree.py` fetches (`--sources`, by
@@ -207,7 +218,7 @@ default the checkout's `.manifest-cache`). CI runs the lint on a manifest
 from the recipe pins (no Yocto build is necessary) and fails the job on any
 of these. On the board, run it against `/etc/forgefirm-manifest.json`. There
 it has neither the checkout nor the sources, so it does not check the
-`forgefirm:` files or whether a workflow runs its test.
+`forgefirm:` files or whether a workflow runs its test, and it says so.
 
 The lint proves that a file is *fingerprinted*, or that a host test which
 CI runs answers for it. Whether the test *exercises* the change is the
