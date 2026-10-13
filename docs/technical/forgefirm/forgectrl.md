@@ -313,7 +313,7 @@ pulse device; `supervised`: the supervisor's own controller) are
 compile-time words of the image.
 
 Host tests: `builtin_test` (the table over a real settings file: the cloud
-entry, each refusal in the words the route has always said, the request's
+entry, a cloud selection refused while the cloud is off, the request's
 own enable, the sweep and what it leaves alone, the list in each state) and
 the mock-parity test, which reads the table out of `builtin.c` and holds the
 mock's copy, its refusals, and its sweep to it. On the bench, the release

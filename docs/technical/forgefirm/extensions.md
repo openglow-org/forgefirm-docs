@@ -499,7 +499,8 @@ A required hold is proven by host tests: forgeext's `holdkeep_test` takes
 the hold decision through every state, and its `run_test.py` keeps the
 hold file fresh and never clears it on a crash loop; forgectrl's
 `cool_flow_test` has the engine withhold fire on the hold and drop it on
-safe mode, extensions off, and a stale advisory.
+safe mode and extensions off, and `holds_test` has the reader stand on a
+stale required hold and drop a stale advisory one.
 `exthost.armed-freeze` opens a real armed window over it with a dark cloud
 print and samples the engine's flag, the group's state, the service's
 heartbeat, and the latch five times a second: frozen from 2 s in to the
