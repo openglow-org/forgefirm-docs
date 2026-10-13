@@ -204,8 +204,10 @@ The lint also lists:
   script run directly, or a C test's built binary, `<dir>/<stem>`); when
   an interpreter (`python`, `bash`, `sh`) runs it, or a `for` loop runs
   over it, by its path or a glob that matches the whole path
-  (`tests/test_*.py`); or when `unittest discover` starts in its directory
-  with a pattern its name matches, or `pytest` is given it or its
+  (`tests/test_*.py`); when `python -m unittest` is given its file or a
+  dotted name whose module is that file (`tests.test_x`,
+  `tests.test_x.Case.test_one`); or when `unittest discover` starts in its
+  directory with a pattern its name matches, or `pytest` is given it or its
   directory. `sudo`, `env` and variable assignments in front of a command
   are passed over. An argument to any other command (`echo`, a build) does
   not run a test, and neither does a comment, a step's name, or a
