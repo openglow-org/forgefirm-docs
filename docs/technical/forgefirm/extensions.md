@@ -495,9 +495,11 @@ The acceptance test `exthost.service` proves the host on the image with a
 reference package it builds and signs on the board: the confinement seen
 from inside the service (its API socket included), safe mode, a killed
 host, and the master switch.
-`exthost.hold-pause-tier` takes a required hold from the grant to the
-engine's verdict and out through each of the operator's exits, the
-package's own raise and clear over its API socket included.
+A required hold is proven by host tests: forgeext's `holdkeep_test` takes
+the hold decision through every state, and its `run_test.py` keeps the
+hold file fresh and never clears it on a crash loop; forgectrl's
+`cool_flow_test` has the engine withhold fire on the hold and drop it on
+safe mode, extensions off, and a stale advisory.
 `exthost.armed-freeze` opens a real armed window over it with a dark cloud
 print and samples the engine's flag, the group's state, the service's
 heartbeat, and the latch five times a second: frozen from 2 s in to the
@@ -650,10 +652,11 @@ turn, outside an armed window, and the new chain and the sandbox's ports
 are its. GET `/v0/self` names every destination a service may reach, its
 manifest's and then the operator's, and so does the bridge's `self`, so a
 package's page can show the operator what is still to be named.
-`exthost.operator-destinations` proves it on the image by dialing the
-machine's own DNS resolver on TCP port 53: refused inside the sandbox until
-the operator names it, connected once named, and refused again when it is
-taken away.
+forgeext's `run_test` proves it with a service that dials a peer: refused
+until the operator names the peer, connected once named (the service is
+started again, and the log says so), and refused again when it is taken
+away.
+`netrules_test` holds the rule to the named destination and nothing else.
 
 ### A change of owner
 
@@ -1022,10 +1025,7 @@ nothing answers, the wait with the head still and a port jog refused, the
 answer's words, a refusal and a timeout each holding the job, a reset
 ending the wait, and **a wait under an open armed window with `M3 S500`
 shipping no FIRE tick**. forgectrl's `mcode_test` and forgeext's `sdk_test`
-and `install_test` prove the relay and the host. On the machine,
-`exthost.mcode` runs dark jobs through a package that answers M160: the
-job waits with the head still and goes on after the answer, a job naming
-M161 stops at it with nothing moved, and a refusal holds the job.
+and `install_test` prove the relay and the host.
 
 ### A package's check on the Setup page
 

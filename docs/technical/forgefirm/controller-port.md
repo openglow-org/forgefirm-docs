@@ -194,11 +194,17 @@ refused operation leaving the socket untouched, one kept connection, a
 controller restart, and a port that never answers; `mcode_test` holds the
 daemon set to its one caller, and `senderout_test` the keep-out's claim.
 
+That the port ships dark under an open armed window is a host test:
+`ctlport_test.py`'s `test_port_dark`, against the null-sink controller in
+grblHAL-glowforge's CI. A lit cut leaves the window open with `M3 S500`
+modal. Then the port's jogs run: a short one, a long one and its cancel,
+four carrying injected words (`G1`, `S900 M3`, `M4`, `G2`), and one after a
+home. They ship steps and no FIRE tick, and the window stays open. The
+release, energize, home, and tray operations are requested in that same
+window and add no FIRE tick.
+
 On the bench, four release acceptance tests
 ([Release acceptance](../../developers/acceptance.md)): `motion.port-jog`
 (the jog beside a connected client, the cancel, the client going first, the
-bound, the release and the energize by their routes), `laser.port-dark` (a
-lit cut opens the armed window and leaves `M3` modal, and the port's jogs
-under it ship dark by the LASER_ON sample count, the HV current, and the
-head's beam detector), and `motion.release`; `exthost.sender-keep-out` for
-the keep-out; `motion.tray` for the tray.
+bound, the release and the energize by their routes) and `motion.release`;
+`exthost.sender-keep-out` for the keep-out; `motion.tray` for the tray.
