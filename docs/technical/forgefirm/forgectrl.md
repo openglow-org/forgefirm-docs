@@ -315,9 +315,9 @@ compile-time words of the image.
 
 The host test is `builtin_test` (the table over a real settings file: the
 cloud entry, a cloud selection refused while the cloud is off, the request's
-own enable, the sweep and what it leaves alone, the list in each state). On
-the bench, the release
-acceptance test `setup.cloud-disabled-surface`.
+own enable, the sweep and what it leaves alone, the list in each state).
+forgectrl's `tests/host_setup.sh` proves the same refusals through the
+running daemon's routes, `POST /settings` and `POST /mode`.
 
 ### Setup and the gate
 

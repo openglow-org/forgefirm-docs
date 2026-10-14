@@ -512,8 +512,7 @@ consent, the button held included. `exthost.page-call` carries a page's
 calls to its own service through the relay. `exthost.events` proves the one
 subscription and the poll a package reads it with. `exthost.platform`
 proves the image holds the sandbox ready before any of it runs.
-`setup.extensions-consent` proves the consent
-([Release acceptance](../../developers/acceptance.md)).
+forgectrl's `tests/host_setup.sh` proves the consent.
 
 ## The operator's door
 
