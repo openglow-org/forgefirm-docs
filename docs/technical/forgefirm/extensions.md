@@ -507,9 +507,11 @@ heartbeat, and the latch five times a second: frozen from 2 s in to the
 close with the heartbeat still, the freeze in place before the latch unlocks
 for the run, thawed within 3 s of the close, one process throughout.
 `exthost.package-routes` drives the operator's door against the host's
-own state, and `exthost.panel-install` installs through it at each tier's
-consent, the button held included. forgeext's `sdk_test.py` and forgectrl's
-`extpkg_test` carry a page's calls to its own service through the relay.
+own state. forgectrl's `extpkg_test` holds the consent each tier takes, a
+key's form, and the button an install and a key are passed, and its
+`tests/host_ext.sh` the upload sink on a host. forgeext's `sdk_test.py`
+and forgectrl's `extpkg_test` carry a page's calls to its own service
+through the relay.
 forgeext's `evfeed_test` and `run_test.py` and forgectrl's `events_test`
 prove the one subscription and the poll a package reads it with. `exthost.platform`
 proves the image holds the sandbox ready before any of it runs.
