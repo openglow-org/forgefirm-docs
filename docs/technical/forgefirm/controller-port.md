@@ -162,8 +162,8 @@ Host tests on the null-sink controller build, in the driver's CI:
 
 - `ctlport_test.py`: every reply routed to its source with the Grbl client's
   response count exact (CR LF clients and empty lines included); the
-  sender-goes-first hold; **a client polling `?` with an end of line behind
-  it (LF and CR LF): every port jog accepted, a 60 mm port jog run whole,
+  sender-goes-first hold; **a client polling `?` with a CR LF behind it:
+  every port jog accepted, a 60 mm port jog run whole,
   one `ok` per poll, and a real line still canceling a port jog**; the
   refusals; one client, and a reconnect right after a close; the dead-man;
   the port across a soft reset; and **every operation of both sets under an
@@ -175,7 +175,8 @@ Host tests on the null-sink controller build, in the driver's CI:
   wait at an M-code a package answers
   ([A package's M-code](extensions.md#a-packages-m-code)).
 - `envelope_test.py`: the far edges from `envelope_x_mm` and
-  `envelope_y_mm` and their bounds, the panel set's `envelope open` and
+  `envelope_y_mm` (their bounds are the driver's `lens_home_test`), the
+  panel set's `envelope open` and
   `apply` and their refusals, and **the client's first line (never a status
   poll or an empty line) closing an open envelope before the core reads
   it**, as a soft reset and the port client going away do.
@@ -184,10 +185,10 @@ Host tests on the null-sink controller build, in the driver's CI:
   program and at a package's M-code.
 - `ctlport_test.py`'s keep-out: `sender out` refused during a dwell, within
   2 s of a line, and while a program moves; the quiet client disconnected
-  after the message; a client from the network turned away with the session
-  unchanged, one from the loopback admitted; the keep-out outliving the
-  port's client; and `sender in` letting the network back in. The driver's `serial_test` holds
-  the peer classification and the drop.
+  after the message; the keep-out outliving the port's client; and
+  `sender in` letting the network back in. The driver's `serial_test` holds
+  the peer classification, the drop, and a client from the network turned
+  away with the session unchanged while one from the loopback is admitted.
 
 forgectrl's side is `grblport_test` in forgectrl's CI: the sets, a
 refused operation leaving the socket untouched, one kept connection, a

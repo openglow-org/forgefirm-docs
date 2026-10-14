@@ -662,7 +662,7 @@ laser burns need the tray in ([Setup](../../usage/setup.md#the-laser-burns)).
 Host tests: `tray_test.py` on the null-sink controller build, in the
 driver's CI (the shift and its envelope, the errors, the wait for the move
 before it, the port's `tray` op and its refusals, the mode across a soft
-reset and a restart, the offset's range, an unreferenced lens, and a camera
+reset and a restart, an unreferenced lens, and a camera
 home in both modes), and `lens_home_test` for the offset on the step grid.
 On the bench, the release acceptance test `motion.tray`
 ([Release acceptance](../../developers/acceptance.md)).
