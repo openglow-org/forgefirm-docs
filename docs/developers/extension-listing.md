@@ -152,8 +152,9 @@ The index's version is `YYYY.MMDD.N`, and it only goes up: a machine
 refuses an index older than the one it keeps. Without `--key`, `ffx index
 build` makes an unsigned index, which no machine keeps.
 
-The catalog's workflow publishes the index. After the check passes on a
-push to `main`, its publish job (`tools/publish.py`) does these steps:
+The catalog's workflow publishes the index. On a push to `main`, its
+publish job (`tools/publish.py`) waits until the check job and the
+firmware job have passed, and then does these steps:
 
 1. It builds the index of the tree. When its `index.json` is the one that
    the latest release carries, it publishes nothing. The release notes
