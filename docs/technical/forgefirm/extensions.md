@@ -95,7 +95,7 @@ is removed on every path out.
 
 The image's `/etc/forgefirm/keys/ext/forgefirm-ext.pub` is the key the
 catalog publishes as `keys/forgefirm-ext.pub`, and forgefirm's
-`forgetest-ci` compares the two files.
+`forgetest-ci` and the catalog's own check compare the two files.
 
 - The ids under `org.openglow.` and `org.forgefirm.` belong to the official
   tier: an archive that claims one and is not signed with the OpenGlow
@@ -229,10 +229,10 @@ handed over as an index is refused by the product gate. forgectrl's
 `extpkg_test` holds the catalog routes: the one address, the fetch with a
 stand-in for curl (https alone, and bounded), the refusals before anything
 is fetched, and nothing left staged. That the image holds the key the
-catalog publishes is the `forgetest-ci` comparison under
-[Trust tiers](#trust-tiers). No test requests the index's address, because
-GitHub counts every request of it as a download, and that count is the
-operators'.
+catalog publishes is the comparison of `forgetest-ci` and the catalog's own
+check under [Trust tiers](#trust-tiers). No test requests the index's
+address, because GitHub counts every request of it as a download, and that
+count is the operators'.
 
 ## The manifest
 

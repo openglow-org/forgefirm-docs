@@ -1014,8 +1014,9 @@ holder and under no other, release by the innermost owner alone, the sender
 kind beside a connected client, the `/status` document, sixteen threads
 asking at once with one winner) and `super_test` case K (a mode switch refused
 by a holder, allowed for the holder itself, refused for a caller that names
-a hold it does not have). On the bench, the release
-acceptance test `forgectrl.lease`.
+a hold it does not have). `tests/host_lease.sh` runs the lease against the
+daemon on a host: the switches check held at its first edge, six requests
+refused in its name, and `lease.changed` with the take before the free.
 
 ## Pulse-device ownership
 
