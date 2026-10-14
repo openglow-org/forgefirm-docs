@@ -260,10 +260,11 @@ what the machine answers.
 Host tests: `tokens_test` (the closed list, the token's shape, a store that
 holds a hash and never a token, the judgment in every shape of wrong, the
 deferred last-used write, a reload, a revoke, sixteen at most, a damaged
-store), `auth_scoped_test` (the guards with real requests from a LAN peer on
-a machine with an account and no session: a held read and write, a
-capability not held, a route with none, the capability gone once the route's
-callback is over, plain HTTP from the LAN and from this host, the cameras,
+store, the extension host's credential written 0600 holding exactly its
+two capabilities), `auth_scoped_test` (the guards with real requests from a
+LAN peer on a machine with an account and no session: a held read and write,
+a capability not held, a route with none, the capability gone once the
+route's callback is over, plain HTTP from the LAN and from this host, the cameras,
 `?key=` from a camera-only token and from one that holds more, a stranger's
 token, the sink's silent form, closed reads, and the loopback peer check),
 and `test_routes`, which holds every route's capability column to the closed
@@ -790,9 +791,11 @@ sender, what is refused beside it, the runner's `M2` and `$X`, the abort and
 its soft reset, a connected client's refusal with nothing sent, a run inside
 a wizard's hold, the ready and done hooks of a started run, and the sender
 under it: an error that stops a run at its line, a lit run's witnesses, the
-generator's pacing, the abort's soft reset). On the bench, the release
-acceptance tests `motion.job` and `laser.recorder-dark`, and `setup.focus`
-and `setup.floor` for the laser burns.
+generator's pacing, the abort's soft reset), and `curverec_test` the
+recorder's run on it (the lease and the record in its name, the dose keys
+overridden and restored, the abort route and a posted job refused, the
+stop). On the bench, the release acceptance test `motion.job`, and
+`setup.focus` and `setup.floor` for the laser burns.
 
 ### The dose-curve recorder
 
@@ -1172,16 +1175,16 @@ node), the kernel pages, and a live-board spot-check:
   unit and pole variants. `pwr_temp` stays a raw count by decision: its
   heatsink cannot be reached with a thermometer while the machine runs, so
   the conversion is not verified, and it is never published as degrees.
-- The gates, on the bench: the coolant ceiling trips and turns off by value
-  (`cooling.gate-off`); every fan floor trips on an unmeetable floor and on
-  an unplugged exhaust fan (`cooling.fan-gate-trips`); a hunt with its fans
-  off is measured and not judged (`cloud.mode-switch`); the critical line
-  faults over the ceiling's pause on a genuinely rising loop
-  (`cooling.critical-tier`); and the header's limits reach the engine on a
-  live print (`cloud.pause-resume`). These are acceptance catalog tests
-  ([Acceptance](../../developers/acceptance.md)). With one intake fan set,
-  intake 2 is published not fitted and never judged while intake 1 still
-  trips: `cool_flow_test`, a host test in forgectrl's CI.
+- The gates: the coolant ceiling, the floor, the warm-up gate and the
+  critical line trip with the reading past them and turn off by value; a
+  fan floor no fan meets trips after the grace and three ticks, and a
+  floor of zero is off; with one intake fan set, intake 2 is published not
+  fitted and never judged while intake 1 still trips: `cool_flow_test`,
+  with the settings' cross-checks in `cool_gate_test`, host tests in
+  forgectrl's CI. On the bench, a hunt with its fans off is measured and
+  not judged (`cloud.mode-switch`), and the header's limits reach the
+  engine on a live print (`cloud.pause-resume`): acceptance catalog tests
+  ([Acceptance](../../developers/acceptance.md)).
 
 The channels and the ownership rules are drilled on hardware, operator
 present:
@@ -1191,12 +1194,7 @@ present:
   down through smoke; an engine killed mid-flood leaves the run fans held,
   the heater dropped by the client, and the sender warned, with the posture
   rebuilt from level-triggered reports within about 2 s of restart;
-  over-temp hold and auto-resume inside a running cycle; a ceiling set just
-  over its legal minimum trips at the next run start, and a ceiling at its
-  top turns the gate off with `gates_off` and the run-start line saying so
-  (`cooling.gate-off`); an exhaust floor no fan reaches trips `AIRFLOW`
-  after the grace and three ticks, a purge current floor at the rail
-  likewise, and a floor of zero reads off (`cooling.fan-gate-trips`).
+  over-temp hold and auto-resume inside a running cycle.
 - **Armed windows.** The fallback rewrites the run duties when the verdict
   goes stale while armed; a controller killed mid-fire drops FIRE with the
   kernel ring's in-flight bytes (tens to about 170 ms, always riding real

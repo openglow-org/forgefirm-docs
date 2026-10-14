@@ -77,7 +77,9 @@ the driver:
     - the pause tier that resumes with no press, the fail tier that ends
       the job, a sender change that cancels a re-arm, a jog that does not
       hold the window open, and a press that counts only after the button
-      has been seen up.
+      has been seen up;
+    - a lid opened on a job the button holds: canceled, returned to its
+      start, and not resumed by a later press.
 
 ## The frame-isolation harness
 

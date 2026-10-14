@@ -214,7 +214,7 @@ The `cloud.*` job tests run **in cloud mode and stay there**. The first one
 switches from GRBL mode, once, and waits out the connect-time hunt. The
 following ones use the live session again. Nothing switches back after them.
 The tests that need GRBL mode (`motion.*`, `laser.*`,
-`cooling.fans-quiet-after-motion`, `cloud.mode-switch`) declare it, and the
+`cooling.fail-tier-stop`, `cloud.mode-switch`) declare it, and the
 runner switches back when one of them starts. Thus the mode changes only
 where the next test asks for it, never between tests of the same mode.
 `cloud.mode-switch` is the one round trip. It carries the two motions that
