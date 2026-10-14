@@ -93,6 +93,10 @@ is removed on every path out.
 | **Community** | A key the owner added under `/data/forgefirm/ext/keys/`, or the author's key that the [signed index](#the-signed-index) endorses for that package's id | The operator's typed consent |
 | **Unverified** | Nobody this machine trusts: unsigned, or signed by a key it does not hold | The machine button held, as for unsigned firmware |
 
+The image's `/etc/forgefirm/keys/ext/forgefirm-ext.pub` is the key the
+catalog publishes as `keys/forgefirm-ext.pub`, and forgefirm's
+`forgetest-ci` compares the two files.
+
 - The ids under `org.openglow.` and `org.forgefirm.` belong to the official
   tier: an archive that claims one and is not signed with the OpenGlow
   extension key is refused.
@@ -214,19 +218,21 @@ The hosting is not trusted; the signature and the version are. How a
 package is listed, and how the index is built and published, is the
 [listing policy](../../developers/extension-listing.md).
 
-The acceptance test `exthost.catalog` proves it on the image. On a scratch
-root, the machine's own `forgeext` keeps an index signed with a stand-in
-for the extension key, and the key it endorses makes that one id community
-and no other. Read back, a version that asks for a capability the firmware
-does not have is kept and not offered, and the offer is the newest version
-it runs. An older index is refused, and an index that withdraws the probe's
-version makes the probe refuse to install. On the machine's own root, the
-host refuses every index that key did not sign, and a package handed over
-as one. forgectrl's catalog routes refuse before they fetch, and leave
-nothing staged. The test never requests the index's address, because
+forgeext's `install_test.py` proves it on a scratch root, with a stand-in
+for the extension key passed as `--official-key`: the host keeps an index
+signed with that key and refuses one signed with any other, and the key it
+endorses makes that one id community and no other. Read back, a version
+that asks for a capability the firmware does not have is kept and not
+offered, and the offer is the newest version it runs. An older index is
+refused, a withdrawn version is refused in OpenGlow's words, and a package
+handed over as an index is refused by the product gate. forgectrl's
+`extpkg_test` holds the catalog routes: the one address, the fetch with a
+stand-in for curl (https alone, and bounded), the refusals before anything
+is fetched, and nothing left staged. That the image holds the key the
+catalog publishes is the `forgetest-ci` comparison under
+[Trust tiers](#trust-tiers). No test requests the index's address, because
 GitHub counts every request of it as a download, and that count is the
-operators'. The fetch itself is proven by forgectrl's host test with a
-stand-in for curl.
+operators'.
 
 ## The manifest
 
@@ -506,10 +512,12 @@ print and samples the engine's flag, the group's state, the service's
 heartbeat, and the latch five times a second: frozen from 2 s in to the
 close with the heartbeat still, the freeze in place before the latch unlocks
 for the run, thawed within 3 s of the close, one process throughout.
-`exthost.package-routes` drives the operator's door against the host's
-own state. forgectrl's `extpkg_test` holds the consent each tier takes, a
-key's form, and the button an install and a key are passed, and its
-`tests/host_ext.sh` the upload sink on a host. forgeext's `sdk_test.py`
+forgectrl's `extpkg_test` holds the operator's door's relay to the host's
+command line, the consent each tier takes, a key's form, and the button an
+install and a key are passed. Its `tests/host_ext.sh`, against a stand-in
+that is a live host, holds the door's refusal without the login, the
+host's list passed through with the host's own status, an action run as
+the host's command, and the upload sink. forgeext's `sdk_test.py`
 and forgectrl's `extpkg_test` carry a page's calls to its own service
 through the relay.
 forgeext's `evfeed_test` and `run_test.py` and forgectrl's `events_test`
@@ -1063,13 +1071,13 @@ machine lease: whatever it does to the machine it does through the
 package's own capabilities, under the lease like any other request of the
 package's. It can gate only the package's own work.
 
-`exthost.wizard` proves it on the image: the check listed, run through
-its prompt with the lease free, the operator's Yes reaching the service as
-`yes`, the result the package's summary and listed as done from its own
-answer, the machine's setup record and gate unchanged, an abort reaching
-the service, and a check of a package that is not installed refused.
-forgectrl's `wizpkg_test` holds each step to its form and runs a check
-end to end on stand-ins; forgeext's `sdk_test` runs the command against a
+forgectrl's `tests/host_ext.sh` proves it on a host, against a stand-in
+that is a live host: the check listed, run through its prompt with the
+lease free, the operator's Yes reaching the host as `yes`, the result the
+package's summary and listed as done from its own answer, the machine's
+setup record and gate unchanged, an abort reaching the host, and a check of
+a package that is not installed refused. forgectrl's `wizpkg_test` holds
+each step to its form; forgeext's `sdk_test` runs the command against a
 service.
 
 ### A package's camera
