@@ -676,8 +676,9 @@ lets go.
 
 The host test is `events_test` (the cap, every row of the table above as a
 state step, the stream over a scripted state, a slow reader, the idle
-sampler, the shutdown, and the extension host's own slot); on the bench, the
-release acceptance test `exthost.events`.
+sampler, the shutdown, and the extension host's own slot), and forgeext's
+`run_test.py` proves a package's subscription through the host: one stream
+while a package wants events, and none when no package does.
 
 ### Controller state reports
 

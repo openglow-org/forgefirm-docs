@@ -204,8 +204,11 @@ home. They ship steps and no FIRE tick, and the window stays open. The
 release, energize, home, and tray operations are requested in that same
 window and add no FIRE tick.
 
-On the bench, four release acceptance tests
+On the bench, three release acceptance tests
 ([Release acceptance](../../developers/acceptance.md)): `motion.port-jog`
 (the jog beside a connected client, the cancel, the client going first, the
 bound, the release and the energize by their routes) and `motion.release`;
-`exthost.sender-keep-out` for the keep-out; `motion.tray` for the tray.
+`motion.tray` for the tray. The keep-out is proven on a host: forgectrl's
+`senderout_test` holds the claim, the GRBL controller's `serial_test` the
+keep-out at the port, and forgeext's `run_test.py` a package's claim kept by
+the extension host.

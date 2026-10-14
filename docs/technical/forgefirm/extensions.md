@@ -508,9 +508,10 @@ close with the heartbeat still, the freeze in place before the latch unlocks
 for the run, thawed within 3 s of the close, one process throughout.
 `exthost.package-routes` drives the operator's door against the host's
 own state, and `exthost.panel-install` installs through it at each tier's
-consent, the button held included. `exthost.page-call` carries a page's
-calls to its own service through the relay. `exthost.events` proves the one
-subscription and the poll a package reads it with. `exthost.platform`
+consent, the button held included. forgeext's `sdk_test.py` and forgectrl's
+`extpkg_test` carry a page's calls to its own service through the relay.
+forgeext's `evfeed_test` and `run_test.py` and forgectrl's `events_test`
+prove the one subscription and the poll a package reads it with. `exthost.platform`
 proves the image holds the sandbox ready before any of it runs.
 forgectrl's `tests/host_setup.sh` proves the consent.
 
@@ -895,10 +896,10 @@ the body's being an object before anything runs, and the host's command
 `forgeext call` judges the rest; the kit's `ffx.serve()` (Python) and
 `ffx_serve_one()` (C) are the service's side
 ([Write an extension package](../../developers/extensions.md#a-page-and-its-own-service)).
-`exthost.page-call` proves the relay on the image, forgeext's `sdk_test`
-the socket, both clients of the kit, and a frozen service, and the
-frame-isolation harness that a page's call is its own package's whatever
-the message names.
+forgeext's `sdk_test.py` proves the socket, both clients of the kit, a
+frozen service, and a disabled package's refusal, forgectrl's
+`extpkg_test` the relay, and the frame-isolation harness that a page's call
+is its own package's whatever the message names.
 
 ### A package's jog
 
@@ -1175,8 +1176,9 @@ itself; that is its cue to finish, put the head back, and say
 
 forgectrl's `senderout_test` holds the claim, the staleness, the
 operator's release, and the notice; the GRBL controller's `serial_test`
-the keep-out at the port; `exthost.sender-keep-out` proves it on the
-image with a sender from the network.
+the keep-out at the port; forgeext's `run_test.py` the host's side, a
+package's claim carried with the host's token and kept fresh until the
+package is disabled.
 
 ### The firmware a package needs
 
