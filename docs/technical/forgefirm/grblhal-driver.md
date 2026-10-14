@@ -664,8 +664,6 @@ driver's CI (the shift and its envelope, the errors, the wait for the move
 before it, the port's `tray` op and its refusals, the mode across a soft
 reset and a restart, an unreferenced lens, and a camera
 home in both modes), and `lens_home_test` for the offset on the step grid.
-On the bench, the release acceptance test `motion.tray`
-([Release acceptance](../../developers/acceptance.md)).
 
 ## Where the driver sits in the safety design
 
