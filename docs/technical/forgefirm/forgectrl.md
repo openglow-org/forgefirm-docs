@@ -677,7 +677,7 @@ lets go.
 The host test is `events_test` (the cap, every row of the table above as a
 state step, the stream over a scripted state, a slow reader, the idle
 sampler, the shutdown, and the extension host's own slot); on the bench, the
-release acceptance tests `events.stream` and `exthost.events`.
+release acceptance test `exthost.events`.
 
 ### Controller state reports
 
