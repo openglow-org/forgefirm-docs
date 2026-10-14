@@ -121,7 +121,9 @@ addresses, MAC addresses, IPv4 and IPv6 addresses with loopback kept, hex of
 32 or more characters, base64-like strings of 40 or more). Placeholders are
 stable per value within a bundle, and the output is idempotent.
 `tests/sanitize_test.c` runs in CI and is the regression gate for both leaks
-and over-redaction. `tests/fflog_e2e.sh` proves the whole path on a host
+and over-redaction. Beside it, `tests/host_guard.sh` drives the three routes
+against a daemon on a host, and a file planted in the installer's directory
+comes back in the export without its MAC or IP address. `tests/fflog_e2e.sh` proves the whole path on a host
 against a private rsyslogd (emitter, relay, format, per-logger filtering)
 ([Test](../../developers/testing.md)).
 
