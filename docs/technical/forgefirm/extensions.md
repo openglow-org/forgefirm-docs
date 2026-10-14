@@ -657,7 +657,9 @@ forgeext's `run_test` proves it with a service that dials a peer: refused
 until the operator names the peer, connected once named (the service is
 started again, and the log says so), and refused again when it is taken
 away.
-`netrules_test` holds the rule to the named destination and nothing else.
+`netrules_test` holds the rule `net-allow` writes to the address it judged,
+and `scripts/sandbox-rules-test.py` in `forgefirm` proves on real traffic
+that such a rule opens one port to one account and nothing else.
 
 ### A change of owner
 
