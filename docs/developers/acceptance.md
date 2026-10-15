@@ -92,18 +92,20 @@ The **domain fingerprint** of a test is a hash of three things:
 - the `(component, path, blob-id)` triples that its coverage globs select in
   the image manifest;
 - the platform identity;
-- the hash of the implementation of the test. That is its function,
-  decorator included, plus the shared code of its suite module. The shared
-  code is everything in the module outside the `@test` functions.
+- the hash of the implementation of the test. That is its own text, from
+  its first decorator line through the end of its body, plus the shared
+  text of its suite module, plus the shared text of every suite module that
+  module imports with `from .x import`, transitively. The shared text of a
+  module is every line outside its `@test` functions, so the test text of
+  an imported module is not part of the hash. `implementation_sha` in
+  `forgetest/forgetest/catalog.py` computes it.
 
 A PASS recorded under fingerprint F applies to each build whose recomputed
 fingerprint is F. The same code computes it on the board and in the gate.
 
 The consequences:
 
-- A change to a covered file invalidates exactly the tests that cover it. A
-  panel-only change runs the core plus the panel tests again, not the
-  cooling drills.
+- A change to a covered file invalidates exactly the tests that cover it.
 - A platform change (the kernel, the device tree, the content of a layer)
   invalidates everything. Layer content is each file under `meta-forgefirm`,
   `meta-glowforge-bsp`, and `meta-openglow-core`, with three exceptions:
@@ -124,9 +126,9 @@ The consequences:
   fragments, init scripts, and a third-party pin with no manifest entry. A
   pin written into a recipe body instead of its pin file also invalidates
   everything; that is the safe direction.
-- A change in the body of a test invalidates the earlier passes of that test
-  and no other. A change to a helper that its module shares invalidates the
-  tests of that module.
+- A change to the own text of a test invalidates the earlier passes of that
+  test and no other. A change to shared text invalidates every test in that
+  module and every test in a module that imports it.
 - "Touched" is computed from the content hashes in the image. It is never
   declared by hand.
 
