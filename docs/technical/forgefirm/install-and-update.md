@@ -76,7 +76,9 @@ is on [Acceptance](../../developers/acceptance.md).
    `Glowforge firmware` under a factory key or unsigned. An extension
    package is refused in words that say what it is ("this archive is an
    extension package, not firmware") and is not kept. The extension host
-   holds the other door the same way.
+   holds the other door the same way. forgectrl's `fwproduct_test` holds
+   every product class, and `tests/host_update.sh` the upload route over a
+   stand-in fwup: nothing refused is staged.
 
 ## Slot-agnostic images and ffboot
 

@@ -268,8 +268,11 @@ route's callback is over, plain HTTP from the LAN and from this host, the camera
 `?key=` from a camera-only token and from one that holds more, a stranger's
 token, the sink's silent form, closed reads, and the loopback peer check),
 and `test_routes`, which holds every route's capability column to the closed
-list.
-On the bench, the release acceptance test `forgectrl.tokens`.
+list. forgectrl's `tests/host_routes.sh` runs the daemon on a host: a token
+is refused a route it was not given while the route's own token is served,
+the list and the store (mode 0600) hold neither token, and the extension
+host's credential, minted into a file of its own, takes a package's jog as
+`ext:<id>` while that package keeps the sender out and is refused a camera.
 
 ### Built-in extensions
 
@@ -452,6 +455,22 @@ referenced again: a camera home, a burn or a Lens travel check whose hunt
 finds the edge, or forgectrl's next start
 ([Homing](homing.md#the-lens-reference-at-every-start)). A manual home
 keeps Z as it stands.
+
+forgectrl's `tests/host_setup.sh` drives the checks on a host as the page
+drives them, on scripted readings: the sensors check (a judge that fails
+ends it with no result; at rest it asks nothing and writes no setting), the
+intake fans step (both tachs turning count two; a silent intake 2 asks for
+the count), the cameras check (each shot served as captured), the bed check
+(refused unhomed; the keys the ends less 1 mm; a Grbl client's line ends it
+with nothing written), and the Flow check (the diagnostic's phases and
+result as the check's, a thin margin flagging the calibration). It runs the
+floor burn with no laser fired: refused without Focus on the record; a
+thickness outside the lens window is not stored and is asked again, with no
+program line streamed, nothing armed, and the floor unwritten; the floor and
+the dose curve are off for the rungs and back after them; and a pick of 8
+writes the floor 10. `tests/wizard_walk.py` walks the bundled first-run page
+in headless Chrome against the dev server's mock, from the documents to
+**Start using the machine** landing on the panel.
 
 ### The Extensions advisory
 
@@ -794,8 +813,11 @@ under it: an error that stops a run at its line, a lit run's witnesses, the
 generator's pacing, the abort's soft reset), and `curverec_test` the
 recorder's run on it (the lease and the record in its name, the dose keys
 overridden and restored, the abort route and a posted job refused, the
-stop). On the bench, the release acceptance test `motion.job`, and
-`setup.focus` and `setup.floor` for the laser burns.
+stop), and `jobpost_test` the `POST /job` reader (the form's parts reach the
+runner's start, and a missing name, a `$` line with its line number, and a
+malformed boundary are refused with nothing started). On the bench, the
+release acceptance tests `exthost.motion-job` for a package's job and
+`setup.focus` for the laser burn.
 
 ### The dose-curve recorder
 
