@@ -814,7 +814,8 @@ frames nothing else.
 its dev server's mock serves it, installs a hostile package whose page tries
 every way out, and opens that page through the panel's own frame and bridge
 ([Test](../../developers/testing.md#the-frame-isolation-harness)).
-`forgectrl.panel-serves` holds the machine's own page to sending the header.
+forgectrl's `tests/host_routes.sh` holds the page the daemon serves to
+sending the header.
 
 **WebRTC is a documented leak.** It is outside the Content Security Policy
 in both browsers this project tests, and connection hints get past it at

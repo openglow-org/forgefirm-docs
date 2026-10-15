@@ -125,8 +125,9 @@ The verdict is on the page and in its title, and `--once` exits with it: 0
 for `PASS`, 1 for `FAIL`, 2 for `NORESULT`. Chrome and Firefox are the
 browsers this project tests, and either can run it headless on a
 throwaway profile. Firefox ignores a STUN server on loopback, so its WebRTC
-reading needs `--lan` and the workstation's LAN address. On a machine,
-`forgectrl.panel-serves` holds the served panel page to the same header.
+reading needs `--lan` and the workstation's LAN address. forgectrl's
+`tests/host_routes.sh` holds the panel page the daemon serves to the same
+header.
 
 ## Continuous integration
 
