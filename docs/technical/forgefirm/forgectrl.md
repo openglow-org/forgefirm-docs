@@ -468,9 +468,15 @@ floor burn with no laser fired: refused without Focus on the record; a
 thickness outside the lens window is not stored and is asked again, with no
 program line streamed, nothing armed, and the floor unwritten; the floor and
 the dose curve are off for the rungs and back after them; and a pick of 8
-writes the floor 10. `tests/wizard_walk.py` walks the bundled first-run page
-in headless Chrome against the dev server's mock, from the documents to
-**Start using the machine** landing on the panel.
+writes the floor 10. A prompt's options are text: the page shows each as
+written and binds its button to the value it carries, never building a
+handler from it, so an option a package's check writes (`wizpkg.c` passes
+anything printable) is posted back as written and runs as nothing.
+`tests/wizard_walk.py` walks the bundled first-run page in headless Chrome
+against the dev server's mock, from the documents to **Start using the
+machine** landing on the panel; on its way it answers a prompt whose
+options include one shaped like code and one with quotes, each shown as
+written, the code-shaped one posted as written and never run.
 
 ### The Extensions advisory
 

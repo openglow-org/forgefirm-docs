@@ -48,7 +48,10 @@ are the laser-stream rules and the armed-window walk:
     - no back-to-back power bytes;
     - FIRE only in cutting moves;
     - each stream ends FIRE-clear;
-    - no FIRE on a stepless gap;
+    - no FIRE on a stepless gap, read for either power model: no stepless
+      run lit for longer than a step interval, and no FIRE tick farther
+      than one from every step (the density dither splits a leaked fire
+      state into short bursts, so only its distance from a step shows it);
     - no FIRE leak across cycle churn;
     - the rapids after an M5 executed at idle ship dark;
     - the next job in the same process fires at the level where the
