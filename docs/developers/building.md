@@ -164,8 +164,8 @@ drills cycle the 40 V rail, so the machine must be idle.
 root login without a password, python3, gdb and strace, the acceptance tool
 `forgetest`, and the bench tools. A release image never has them. The debug
 features are in `forgefirm-image-dev.bb`, not in the kas configuration. Thus one build gives a hardened release image and a debug dev image.
-`release.sh` refuses a release rootfs that has a root entry without a
-password.
+The rootfs lint and `release.sh` hold the release image to its root policy
+([Image and BSP](../technical/forgefirm/image-and-bsp.md#the-images)).
 
 !!! note "The U-Boot binary"
 

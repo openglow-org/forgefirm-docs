@@ -497,10 +497,12 @@ that hold the `events` capability), and per service `id`, `state`
 `frozen`, `job_limited`, `healthy`, `hold` (`required` or `advisory`, when
 it has one), and `reason`.
 
-The acceptance test `exthost.service` proves the host on the image with a
-reference package it builds and signs on the board: the confinement seen
-from inside the service (its API socket included), safe mode, a killed
-host, and the master switch.
+forgeext's host tests prove the host. `sandbox_test` holds the
+confinement seen from inside a service: the pulse device, the settings
+file, and the setup record refused among the rest. `run_test.py` holds the
+API, safe mode, and the master switch, and runs the host under the init
+script's own wrapper: a host killed outright takes its services with it at
+once, comes back, and starts them again.
 A required hold is proven by host tests: forgeext's `holdkeep_test` takes
 the hold decision through every state, and its `run_test.py` keeps the
 hold file fresh and never clears it on a crash loop; forgectrl's

@@ -57,10 +57,10 @@ runs). Both build on the BSP's `glowforge-image`. The dev image adds a root
 login without a password, the python3 `mmap` and `ctypes` modules, gdb and
 strace, the acceptance tool `forgetest`, and the bench tools; a release
 image never has them (it does carry the interpreter and the modules the
-cloud controller and the homing runner import), and
-`release.sh` refuses a release rootfs whose `sshd_config` permits a root
-login or an empty password, and one whose root entry carries a password
-(root has none and works at the console only)
+cloud controller and the homing runner import). The release image's sshd
+refuses root and an empty password ([The rootfs lint](#the-rootfs-lint)),
+and `release.sh` refuses a release rootfs whose root entry carries a
+password (root has none and works at the console only)
 ([Build](../../developers/building.md)).
 
 The release image installs, on top of the BSP base:
@@ -131,9 +131,25 @@ too, and no campaign runs that image. The rules:
   ([The network](#the-network)).
 - **mdns**: there is no mDNS responder: no `/etc/avahi`, no `avahi-daemon`,
   no `libnss_mdns`, and no `mdns` source for host names.
+- **init-order**: runlevel 5 starts forgectrl before forgeext, and runlevel 6
+  stops grblhal before forgectrl and forgeext before forgectrl.
+- **logging**: a ForgeFIRM logging init script is on the image
+  (`forgefirm-logging` or `forgefirm-logrotate`).
+- **watchdog**: there is no userspace watchdog init script
+  (`/etc/init.d/watchdog`); the kernel feeds the hardware watchdog.
+- **read-only**: `/etc/default/rcS` sets `ROOTFS_READ_ONLY=yes`
+  ([The read-only root filesystem](#the-read-only-root-filesystem)).
+- **dhcpv6**: there is no DHCPv6 client (`udhcpc6`, `dhcp6c`, `odhcp6c`) in a
+  `bin` directory, and no `/usr/share/udhcpc/default6.script`.
+- **factory**: on the release image, no `/etc/fstab` line mounts anything
+  under `/factory/`.
 
 forgetest's `test_image.py` runs the lint on fixture trees: a tree that
-holds every rule passes, and a drift of each rule fails it.
+holds every rule passes, and a drift of each rule fails it. The acceptance
+test `image.health` keeps the live half on the machine: what is running,
+what is mounted, and what the boot rendered. `release.sh` keeps three
+checks of the release rootfs: the empty root shadow field, `/` mounted
+read-only in the fstab, and the sshd host keys under `/data`.
 
 ## The read-only root filesystem
 
@@ -168,8 +184,7 @@ What must last a reboot, or change at run time, is handled file by file:
 
 Everything else the daemons and the controllers write is under `/data`,
 `/run`, `/tmp`, or sysfs. The acceptance test `image.health` checks the
-mounts, and `release.sh` refuses a release rootfs whose fstab does not mount
-`/` read-only, mounts a factory slot, or keeps the host keys elsewhere.
+mounts ([The rootfs lint](#the-rootfs-lint) has the files fixed at build).
 
 **The dev image** also mounts the two factory rootfs slots read-only under
 `/factory/img1` and `/factory/img2`, a bench convenience for reading a
@@ -243,8 +258,9 @@ server without a bound, and `ifup` returns before the rest of the boot.
 
 The acceptance test `image.health` is the board check: `ifup` has returned
 for `wlan0`, the console login is up, `udhcpc` is running with `-b` and
-parent pid 1, no DHCPv6 client or its hook script is on the image,
-`disable_ipv6` is 0, `accept_ra` is on, and a link-local address is up.
+parent pid 1, no DHCPv6 client is running, `disable_ipv6` is 0,
+`accept_ra` is on, and a link-local address is up. No DHCPv6 client is on
+the image ([The rootfs lint](#the-rootfs-lint)).
 
 ## Kernel configuration
 
