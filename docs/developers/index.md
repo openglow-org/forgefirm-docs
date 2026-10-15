@@ -93,11 +93,15 @@ image's license manifest (every installed package with its license) and
 copies each package's license texts onto the rootfs, then packs both into
 `/usr/share/forgefirm/licenses.tar.gz` and removes the loose tree, so the
 texts the licenses ask to travel with the software travel with it at the
-cost of one compressed file. The control panel shows the manifest at
+cost of one compressed file. The pack step refuses a manifest that does not
+name `forgectrl`, `grblhal-glowforge`, and `kernel-module-glowforge`, and the
+image does not build. The control panel shows the manifest at
 `GET /licenses`, the "Licenses" link at the foot of every panel page,
 serves the bundle at `GET /system/licenses`, and the manifest alone at
-`GET /system/licenses/manifest`. Keep that step in every image you
-redistribute.
+`GET /system/licenses/manifest`. The three need no login: they are read
+routes, open while `panel_open_reads` is 1, the default
+([The control panel](../usage/control-panel.md#access)). Keep that step in
+every image you redistribute.
 
 Every release publishes its source too. The release build writes the source
 of each recipe of the image, and the pipeline packs it into the release

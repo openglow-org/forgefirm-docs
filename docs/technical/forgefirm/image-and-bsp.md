@@ -204,6 +204,24 @@ imx-vdoa, videobuf2, st-accel, st-sensors, ...) come along as package
 dependencies. Anything a driver loads by alias instead (the Wi-Fi ciphers)
 is built into the kernel by the config fragment.
 
+## The network
+
+The BSP layer's `/etc/network/interfaces` (`init-ifupdown` in
+`meta-openglow-core`) brings `wlan0` up with `inet dhcp` and
+`udhcpc_opts -x hostname:$(hostname)`, the machine's name in the DHCP
+request. It names no DHCPv6 client. IPv6 on `wlan0` is the kernel's own: it
+takes the router advertisement (prefix routes, the default route, SLAAC
+addresses) with no stanza and no client.
+
+init starts the rest of the boot, the console login included, only after
+the networking script returns, so the file starts nothing that waits on a
+server without a bound, and `ifup` returns before the rest of the boot.
+
+The acceptance test `image.health` is the board check: `ifup` has returned
+for `wlan0`, the console login is up, `udhcpc` is running with `-b` and
+parent pid 1, no DHCPv6 client or its hook script is on the image,
+`disable_ipv6` is 0, `accept_ra` is on, and a link-local address is up.
+
 ## Kernel configuration
 
 The kernel configuration is `imx_v6_v7_defconfig` with the fragment
