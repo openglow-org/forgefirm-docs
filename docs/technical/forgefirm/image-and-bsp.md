@@ -111,6 +111,30 @@ parsed by the getty that prints it, so a backslash or a percent sign in it
 is written twice. There is no pre-authentication banner: a client that has
 not logged in is told nothing about the machine.
 
+## The rootfs lint
+
+The last rootfs step of both images is `rootfs-lint.sh`, next to the image
+recipe in `meta-forgefirm`. It checks the image content that is fixed at
+build time, and a drift fails the build. The release image is held to it
+too, and no campaign runs that image. The rules:
+
+- **syslog**: rsyslog is the only logger ([The distro](#the-distro)).
+  `/usr/sbin/rsyslogd` is on the image, the `syslog` init script starts it,
+  and runlevel 5 starts that script. No `syslogd` or `klogd` is linked in a
+  `bin` directory, and no init script runs one.
+- **sshd**: each sshd configuration on the image (`sshd_config`, and
+  `sshd_config_readonly`, which the read-only rootfs runs) takes passwords
+  and sends no pre-authentication banner. On the release image it also
+  refuses root and an empty password; the dev image allows both. No file in
+  `sshd_config.d` sets these keywords, because an included value comes first.
+- **dhcp-name**: the `wlan0` DHCP stanza sends the machine's name
+  ([The network](#the-network)).
+- **mdns**: there is no mDNS responder: no `/etc/avahi`, no `avahi-daemon`,
+  no `libnss_mdns`, and no `mdns` source for host names.
+
+forgetest's `test_image.py` runs the lint on fixture trees: a tree that
+holds every rule passes, and a drift of each rule fails it.
+
 ## The read-only root filesystem
 
 Both images mount the root filesystem read-only. The booted slot (eMMC p1
