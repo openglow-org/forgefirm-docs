@@ -336,6 +336,19 @@ the bench tools see `GF_HOST` and `GF_TOKEN` too.
 | `FFLOG_STDERR` | unset | Echo the log lines to stderr, also when stderr is not a terminal (for harnesses) |
 | `FFLOG_CONF`, `FFLOG_SOCK` | `/data/forgefirm/forgefirm.conf`, `/dev/log` | The settings file and the syslog socket (for host tests) |
 
+Every other `GF_*`, `GFCOOL_*`, and `FORGECTRL_*` variable the daemon reads
+is a seam for its host tests: the machine paths (the data and run
+directories, the settings file, the sysfs root, the switch device and a
+switch word file, the pulse device, the LED tree, the lens sysfs and its
+cadence), the two controllers and sshd's init script, the release URLs, the
+extension host and its files, the log tree, and the `GFCOOL_*` bench
+overrides of the [cooling engine](../technical/forgefirm/cooling-engine.md).
+Nothing on a machine sets one. As it starts, the daemon logs one notice,
+`environment overrides in force:`, naming every variable of the whole set
+that is set, names only, so a log from a machine shows whether it ran under
+any override. The list in `src/main.c` is held to the sources by
+`tests/test_routes.py`.
+
 #### Work on the control panel
 
 The panel is a plain static page under `src/ui/`:
