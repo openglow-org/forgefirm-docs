@@ -824,7 +824,9 @@ runner's start, and a missing name, a `$` line with its line number, and a
 malformed boundary are refused with nothing started). A package's job is
 the reader's, and `tokens_test` holds the extension host's credential it
 arrives with (written mode 0600, holding exactly the host's capabilities).
-On the bench, the release acceptance tests `setup.focus` for the laser burn.
+On the bench, the release acceptance tests `setup.focus` for the laser burn,
+reading the kernel's LASER_ON count and the tube current from sysfs itself
+beside the burn's own witnesses.
 
 ### The dose-curve recorder
 
