@@ -349,6 +349,11 @@ that is set, names only, so a log from a machine shows whether it ran under
 any override. The list in `src/main.c` is held to the sources by
 `tests/test_routes.py`.
 
+`FORGECTRL_SSHD_INIT`, which the SSH switch runs in place of
+`/etc/init.d/sshd`, is run as a program with no shell and only as an
+absolute path of letters, digits, `/`, `.`, `_`, and `-`; any other value
+runs nothing and is refused in the log.
+
 #### Work on the control panel
 
 The panel is a plain static page under `src/ui/`:
