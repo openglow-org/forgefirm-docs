@@ -453,8 +453,11 @@ marker, and the controller holds Z unreferenced (Z moves are refused,
 [The grblHAL driver](grblhal-driver.md#the-lens-z)) until the lens is
 referenced again: a camera home, a burn or a Lens travel check whose hunt
 finds the edge, or forgectrl's next start
-([Homing](homing.md#the-lens-reference-at-every-start)). A manual home
-keeps Z as it stands.
+([Homing](homing.md#the-lens-reference-at-every-start)). A controller that
+does not stop in the supervisor's grace, or an engine that does not go idle,
+keeps the lens where it stands: the session steps nothing, drops the marker
+the same way, and hands the machine back. A manual home keeps Z as it
+stands.
 
 forgectrl's `tests/host_setup.sh` drives the checks on a host as the page
 drives them, on scripted readings: the sensors check (a judge that fails
