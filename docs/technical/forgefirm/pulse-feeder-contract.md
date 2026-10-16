@@ -90,14 +90,14 @@ it is in the fault state. A run requested on an empty ring is refused with
 often at a job's end: the device refuses its run with `-EPERM` while it
 still plays a tail, the feeder asks again once the device reads idle, and
 by then the device has usually played the new bytes as a continuation of
-that tail. `-ENODATA` is not always that benign: a head sync that fails
-(the module cannot read the engine's place in the ring) also reads as an
-empty ring, and the module logs its own error first
-(`context fetch failed`). The grblHAL step backend
+that tail. A run whose head sync fails (the module cannot read the
+engine's place in the ring) is refused with `-EIO`, never with `-ENODATA`:
+an unreadable ring is not an empty one, and the module logs the fetch's
+error (`context fetch failed`). The grblHAL step backend
 ([grblHAL driver](grblhal-driver.md#from-g-code-to-pulse-bytes)) keeps its
 run request while `state` reads `running`, asks again once it reads `idle`,
-and takes `idle` with `-ENODATA` as "already played", a failed head sync
-included; the kernel log carries that error.
+takes `idle` with `-ENODATA` as "already played", and takes any other
+refusal at `idle` as a stream fault ([Faults](grblhal-driver.md#faults)).
 
 ### stop
 
