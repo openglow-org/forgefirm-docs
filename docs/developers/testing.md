@@ -200,14 +200,20 @@ The lint also lists:
 
 - each coverage entry and each host-tested row that selects nothing;
 - each row whose host test or workflow does not exist;
-- each row whose workflow runs on no push or pull request: its `on:` names
-  neither event. A workflow on `workflow_dispatch`, `workflow_call` or
-  `schedule` alone runs on no change;
+- each row whose workflow's own `on:` names neither `push` nor
+  `pull_request`. The lint reads `on:` as a block mapping, a list, or one
+  scalar. It does not read a flow mapping (`on: {push: ...}`), and it does
+  not follow a `workflow_call` to the workflow that calls it, so it lists
+  such a workflow too;
 - each row whose workflow does not check out the test's repository, or has
-  no step that runs the test on every run. A step under an `if:` other than
-  `true`, or with a `continue-on-error:` other than `false`, on the step or
-  on its job, runs the test on some runs only, or fails without failing the
-  run; the lint counts it as no step, and such a checkout as no checkout.
+  no step that runs the test on every run. The lint does not evaluate a
+  condition. A step with an `if:` other than the literal `true`, or a
+  `continue-on-error:` other than the literal `false`, on the step or on its
+  job, counts as no step, even when the condition runs it on every run
+  (`always()`, `success()`). Such a checkout counts as no checkout. The
+  lint reads no other condition: not a job's `needs:`, and not an event's
+  `branches:` or `paths:` filter. A step that one of these keeps from a run
+  still counts, so there the lint is a floor.
   Only what a step's `run` commands execute counts, each path resolved
   against the step's `working-directory` and compared with the test's path
   in the workspace (where the workflow checks its repository out). A command
