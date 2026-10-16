@@ -337,17 +337,22 @@ the bench tools see `GF_HOST` and `GF_TOKEN` too.
 | `FFLOG_CONF`, `FFLOG_SOCK` | `/data/forgefirm/forgefirm.conf`, `/dev/log` | The settings file and the syslog socket (for host tests) |
 
 Every other `GF_*`, `GFCOOL_*`, and `FORGECTRL_*` variable the daemon reads
-is a seam for its host tests: the machine paths (the data and run
-directories, the settings file, the sysfs root, the switch device and a
-switch word file, the pulse device, the LED tree, the lens sysfs and its
-cadence), the two controllers and sshd's init script, the release URLs, the
-extension host and its files, the log tree, and the `GFCOOL_*` bench
-overrides of the [cooling engine](../technical/forgefirm/cooling-engine.md).
+is a seam for its host tests or a bench override. The seams are the machine
+paths (the data and run directories, the settings file, the sysfs root, the
+switch device and a switch word file, the pulse device, the LED tree, the
+lens sysfs and its cadence), the two controllers and sshd's init script,
+the release and catalog URLs, the extension host and its files, the log
+tree, and the host tests' stand-ins (the host-test switch, curl, the
+setup's snapshots, the fuse serial, the license bundle, the controller
+port, `/proc/stat`). The bench overrides are the `GFCOOL_*` tunables of the
+[cooling engine](../technical/forgefirm/cooling-engine.md), and
+`FORGECTRL_FLAG_EVERY`, a drill of the
+[video pipeline's frame health](../technical/forgefirm/video-pipeline.md#frame-health).
 Nothing on a machine sets one. As it starts, the daemon logs one notice,
 `environment overrides in force:`, naming every variable of the whole set
 that is set, names only, so a log from a machine shows whether it ran under
-any override. The list in `src/main.c` is held to the sources by
-`tests/test_routes.py`.
+any override. When none is set, the daemon logs no notice. The list in
+`src/main.c` is held to the sources by `tests/test_routes.py`.
 
 `FORGECTRL_SSHD_INIT`, which the SSH switch runs in place of
 `/etc/init.d/sshd`, is run as a program with no shell and only as an
