@@ -52,13 +52,13 @@ its reference, and the controller starts; nothing else to do.
 | The job pauses with a cooling message and resumes by itself | A pause-tier verdict held the job under the armed window and cleared | Nothing; the resume needs no press. |
 | Alarm 2 before a move, after `$H` | The move would leave the bed; the limits are on after a home | Fix the job's origin or size; `^X` then `$X` clears the alarm ([Homing](homing.md)). |
 | Error 15 on a jog | The jog would leave the bed after a home, or Z is unreferenced | Jog the other way; send an empty line before the next command. |
-| Alarm 17, "late events while the laser is armed" | The controller fell behind real time during an armed job and stopped it rather than play the burst | `$X`, re-home, start again. If it repeats, note what else the machine was doing (a camera stream, a diagnostic). |
+| Alarm 17, "late events while the laser is armed" in the `grblhal` log | The controller fell behind real time during an armed job and stopped it rather than play the burst | `^X` then `$X` clears the alarm (`$X` alone answers error 79); re-home, start again. If it repeats, note what else the machine was doing (a camera stream, a diagnostic). |
 | The console repeats the same error for every line | After a refused line the controller answers the next lines with that error until an empty line or a `$` command clears it | Send an empty line. |
 | Error 8 | A `$` command sent while the machine is busy | Wait for Idle. |
 | Error 20 | The controller refuses the value or the setting | Check the setting's range; the derived settings (`$100`, `$101`, `$102`, `$32`) are not yours to type ([Settings](settings.md)). |
 | Error 53 on `$H` | `homing_mode` is `switches`, which is planned | Set `homing_mode` to `gfcloud` ([Homing](homing.md)). |
 | Alarm after Stop, position declared lost | A soft reset aborts with a controlled deceleration; up to about 40 mm of in-flight difference | `$X`, jog the head clear, carry on in Current Position mode; re-home for a clean absolute frame ([LightBurn](lightburn.md)). |
-| Alarm with the latch relocked mid-job, "underrun" | The stream ran dry mid-job: a fault; position is invalidated | `$X`, then re-home before you trust coordinates ([Homing](homing.md)). |
+| Alarm 17 mid-job, "underrun" in the `grblhal` log | The stream ran dry mid-job: a fault; the laser is locked and the position is invalidated | `^X` then `$X` clears the alarm (`$X` alone answers error 79); then re-home before you trust coordinates ([Homing](homing.md)). |
 | ALARM:18 after `$H` | The homing session failed or ran past `gfcloud_home_timeout_s` (default 300 s) | Check the lid is closed and the machine has a signed-in service session; `$X` and try again. |
 | Error 5 on `$H` | `homing_mode` is `none` | Set `homing_mode` to `gfcloud` or `manual` on the Machine tab ([Homing](homing.md)). |
 | ALARM:11, every move refused, and `$X` answers error 9 | The X and Y motors are released (`$MD`) | Send `$ME` to energize them, or put the head in the home corner and send `$H` with `homing_mode = manual` ([Manual homing](homing.md#manual-homing)). |

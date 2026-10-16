@@ -468,8 +468,9 @@ The operator's table of what each stop does is on
   the run again, and takes the answer to that request as the answer.
   Armed, that case fails safe too.
 - **After any stream fault** (an underrun, a kernel fault, a refused run, a
-  write error) the alarm stands until `$X`. The unlock acknowledges the fault:
-  the kernel is stopped and re-armed, what the ring still held is cleared, and
+  write error) the alarm is critical: `$X` is refused (error 79) until a
+  soft reset. The reset acknowledges the fault: the kernel is stopped and
+  re-armed, and what the ring still held is cleared. Then `$X` unlocks, and
   the controller moves again without a restart. The position stays invalid
   until a re-home.
 - **The cooling verdict** has two tiers ([The cooling client](#the-cooling-client)):

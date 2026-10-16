@@ -132,7 +132,7 @@ disagree about whether the machine is armed.
 | Soft reset (`^X`) | Controlled deceleration into Alarm, latch relocked, machine position retained; `$X` clears the alarm. |
 | Press the button mid-job | Pause; press again to resume (below). |
 | Open the lid or the interlock loop | The job is **canceled**, not paused (below). |
-| Ring runs dry (underrun) | Motion stops instantly. Under a playing stream it is a fault, armed or not: alarm, latch relocked, position invalidated; re-home before trusting coordinates. An underrun met at a run start outside the armed window is acknowledged and the run is asked for once more. |
+| Ring runs dry (underrun) | Motion stops instantly. Under a playing stream it is a fault, armed or not: alarm, latch relocked, position invalidated; re-home before trusting coordinates. Outside the armed window, an underrun as motion starts raises no alarm and the job goes on, but the position is invalidated all the same: re-home before trusting coordinates ([Homing](homing.md)). |
 | Cooling verdict, pause tier (`OVERTEMP`, `COLD`, `WARMUP`, `SENSOR`, `FLAME`, `BUMP`, or a verdict gone stale) | Feed hold with the cut airflow on; the deceleration runs lit and the stop is dark. When the verdict clears, the job resumes on its own, with no press. |
 | Cooling verdict, fail tier (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`) | The job ends with alarm 3 and the laser locked; nothing resumes it. Resolve the verdict, `$X`, start again ([Cooling and fans](cooling-and-fans.md)). |
 | A move past the bed, after `$H` | Alarm 2 before any motion for a program move, error 15 for a jog: after a home the bed is the limit ([Homing](homing.md)). |
