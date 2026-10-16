@@ -769,11 +769,12 @@ mode=idle|run|cooldown & armed=0|1 [& model=density|analog]
   on, fans idle, heater off). `GET /cool/status` shows `armed` false from
   that point (`report_age_s` tells the age of the last report). The
   timeout holds the controllers' own rule inside it: a controller treats a
-  verdict older than 2 s as a hold and reports every second, so an engine
-  that stalls and returns with its last report still inside the 5 s keeps
-  the armed window acknowledged, and the job the controller held on its
-  stale verdict resumes with no press; a longer stall is the dead-man
-  below.
+  verdict older than 2 s as a hold and reports every second. The report
+  route records each report on the HTTP server's own threads, so a stall
+  of the engine's thread never ages the reports: the engine comes back to
+  an armed window it still acknowledges, and the job the controller held
+  on its stale verdict resumes with no press. Reports silent past the 5 s
+  are the dead-man below.
 - Silence with the armed window open, or with `cnc/state` still reading
   `running` (cloud mode preloads whole jobs, so the ring can play for
   minutes with no live feeder), is the **hung-controller dead-man**: the
