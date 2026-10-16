@@ -40,11 +40,17 @@ When a source repository changes:
    components are pinned in `meta-forgefirm`.
 3. Run `bitbake -c fetch <recipe>` to make sure that the pin resolves.
 
-Two couplings cross the repositories:
+Three couplings cross the repositories:
 
 - The CI of `grblHAL-glowforge` gets the laser harnesses from `forgefirm` at
   the head of `master`, unpinned. Push a harness change to `forgefirm` before
   the driver change that needs it.
+- `holds_wire_test` is built from both sides, unpinned: the CI of
+  `forgectrl` builds it against `forgeext` at the head of `main`, and the
+  `holds-wire` job of the CI of `forgeext` builds it against `forgectrl` at
+  the head of `main`. A change to the hold-file wire that needs both sides
+  fails the CI of whichever of the two repositories is pushed first, until
+  the other is pushed. Push the two together.
 - The page of the acceptance tool shares its theme and its vendored
   Bootstrap with the panel of forgectrl, byte for byte. Land a UI change in
   forgectrl first. Push it and pin it. Only then does the `forgefirm` CI
