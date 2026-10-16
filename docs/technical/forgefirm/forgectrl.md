@@ -465,9 +465,10 @@ ends it with no result; at rest it asks nothing and writes no setting), the
 intake fans step (both tachs turning count two; a silent intake 2 asks for
 the count), the intake-count prompt holding with the daemon's wall clock
 an hour behind (a preloaded clock stand-in), the cameras check (each shot
-served as captured), the bed check
-(refused unhomed; the keys the ends less 1 mm; a Grbl client's line ends it
-with nothing written), the Flow check (the diagnostic's phases and
+served as captured; a lid nobody closes ends it with its reason), the bed
+check (refused unhomed; homed, a lid nobody closes ends it with its reason
+before the envelope opens; the keys the ends less 1 mm; a Grbl client's line
+ends it with nothing written), the Flow check (the diagnostic's phases and
 result as the check's, a thin margin flagging the calibration), and the
 flow calibration at its first rung (the rung's duty goes to its
 diagnostic alone: the settings file is untouched while it runs, after an
