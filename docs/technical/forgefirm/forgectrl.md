@@ -464,18 +464,18 @@ drives them, on scripted readings: the sensors check (a judge that fails
 ends it with no result; at rest it asks nothing and writes no setting), the
 intake fans step (both tachs turning count two; a silent intake 2 asks for
 the count), the intake-count prompt holding with the daemon's wall clock
-an hour behind (a preloaded clock stand-in), the cameras check (each shot
-served as captured; a lid nobody closes ends it with its reason), the bed
-check (refused unhomed; homed, a lid nobody closes ends it with its reason
-before the envelope opens; the keys the ends less 1 mm; a Grbl client's line
-ends it with nothing written), the Flow check (the diagnostic's phases and
-result as the check's, a thin margin flagging the calibration), and the
-flow calibration at its first rung (the rung's duty goes to its
-diagnostic alone: the settings file is untouched while it runs, after an
-abort, and after the daemon is killed mid-rung and started again). It
-runs the
-floor burn with no laser fired: refused without Focus on the record; a
-thickness outside the lens window is not stored and is asked again, with no
+an hour behind, the page's count with it, and expiring by itself on the
+monotonic clock with its reason (a preloaded clock stand-in), the cameras
+check (each shot served as captured; a lid nobody closes ends it with its
+reason), the bed check (refused unhomed; homed, a lid nobody closes ends it
+with its reason before the envelope opens; the keys the ends less 1 mm; a
+Grbl client's line ends it with nothing written), the Flow check (the
+diagnostic's phases and result as the check's, a thin margin flagging the
+calibration), and the flow calibration at its first rung (the rung's duty
+goes to its diagnostic alone: the settings file is untouched while it runs,
+after an abort, and after the daemon is killed mid-rung and started again).
+It runs the floor burn with no laser fired: refused without Focus on the
+record; a thickness outside the lens window is not stored and is asked again, with no
 program line streamed, nothing armed, and the floor unwritten; the floor and
 the dose curve are off for the rungs and back after them; and a pick of 8
 writes the floor 10. A prompt's options are text: the page shows each as
