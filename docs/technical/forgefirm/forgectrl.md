@@ -479,11 +479,16 @@ writes the floor 10. A prompt's options are text: the page shows each as
 written and binds its button to the value it carries, never building a
 handler from it, so an option a package's check writes (`wizpkg.c` passes
 anything printable) is posted back as written and runs as nothing.
-`tests/wizard_walk.py` walks the bundled first-run page in headless Chrome
-against the dev server's mock, from the documents to **Start using the
-machine** landing on the panel; on its way it answers a prompt whose
-options include one shaped like code and one with quotes, each shown as
-written, the code-shaped one posted as written and never run.
+`tests/wizard_walk.py` walks the first-run page twice. Once as bundled, in
+headless Chrome against the dev server's mock, from the documents to
+**Start using the machine** landing on the panel; on its way it answers a
+prompt whose options include one shaped like code and one with quotes, each
+shown as written, the code-shaped one posted as written and never run. And
+once, from `tests/host_setup.sh`, against the page the daemon serves,
+through a relay of the walk's own (`--daemon`), the button pressed by the
+switch word and the flow calibration run on the scripted loop: `GET /wiz`
+must carry every field the page reads, the page's required steps must be
+the setup's, and the run ends on the panel with the setup complete.
 
 ### The Extensions advisory
 
