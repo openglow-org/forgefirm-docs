@@ -413,11 +413,10 @@ a program. This does not prevent the Z axis from moving when commanded by
 Bits: 0: X Axis, 1: Y1 Axis, 2: Y2 Axis, 3: Z Axis
 
 A program streamed with a bit set counts that axis's steps and never makes
-them (with bit 3 set, a print burns every line at one height). The
-controllers set the lock: [the grblHAL driver](grblhal-driver.md#the-lens-z)
-keeps every axis in the pulse path from its start, and the cloud client
-lifts bit 3 for each motion and sets it back at idle
-([Cloud mode](cloud-mode.md#what-is-different-about-the-motion-path)).
+them (with bit 3 set, a print burns every line at one height). Each
+controller sets the lock as its own page says:
+[the grblHAL driver](grblhal-driver.md#the-lens-z) and
+[the cloud client](cloud-mode.md#what-is-different-about-the-motion-path).
 
 ### position
 
