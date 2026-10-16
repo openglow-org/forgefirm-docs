@@ -358,10 +358,12 @@ any override. When none is set, the daemon logs no notice. The list in
 `/etc/init.d/sshd`, is run as a program with no shell and only as an
 absolute path of letters, digits, `/`, `.`, `_`, and `-`; any other value
 runs nothing and is refused in the log. `GF_PULSE_DEV` must be an absolute
-path; the broker refuses any other form the way it refuses a device it
-cannot open, and no controller starts until it is fixed.
-`GF_SWITCH_WORD_FILE` must be an absolute path; any other form reads as the
-switches being unreadable, which the motion gate takes as open.
+path: the broker refuses any other form as it refuses a pulse device that it
+cannot open ([Mode supervision](../technical/forgefirm/forgectrl.md#mode-supervision)).
+`GF_SWITCH_WORD_FILE` must be an absolute path: any other form reads as a
+switch device that cannot be read, which the
+[motion-liveness gate](../technical/forgefirm/forgectrl.md#mode-supervision)
+takes as open.
 
 #### Work on the control panel
 
