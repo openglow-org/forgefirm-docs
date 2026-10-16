@@ -789,7 +789,10 @@ plus rename) at ~1 Hz and on every verdict change:
 ```
 
 - `ts_mono` is `CLOCK_MONOTONIC` seconds. **Readers must treat a missing
-  file or `ts_mono` older than 2 s as `fire_ok=false, hold=true`.** A body
+  file or `ts_mono` older than 2 s as `fire_ok=false, hold=true`.** The
+  engine prints it to the millisecond, rounded down, so a reader on the
+  same clock never sees a stamp from its future; a stamp ahead of the
+  reader's clock is no verdict, like one older than 2 s. A body
   without its closing brace is a torn read, not a verdict; an absent
   `fire_ok`, `hold`, `resume_ok`, or `armed` key takes the fail-safe value
   (`false`, `true`, `false`, `false`). The publisher never writes a document
