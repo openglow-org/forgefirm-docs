@@ -826,9 +826,10 @@ The host test is `jobrun_test` (the program check and every offense with its
 line number, a program played as `job:<name>` with the lease held as a
 sender, what is refused beside it, the runner's `M2` and `$X`, the abort and
 its soft reset, a connected client's refusal with nothing sent, a run inside
-a wizard's hold, the ready and done hooks of a started run, and the sender
-under it: an error that stops a run at its line, a lit run's witnesses, the
-generator's pacing, the abort's soft reset), and `curverec_test` the
+a wizard's hold, the ready and done hooks of a started run, a program that
+must light witnessed every tick, and the sender under it: an error that
+stops a run at its line, a lit run's witnesses, the generator's pacing, the
+witness rate against the ticks, the abort's soft reset), and `curverec_test` the
 recorder's run on it (the lease and the record in its name, the dose keys
 overridden and restored, the abort route and a posted job refused, the
 stop), and `jobpost_test` the `POST /job` reader (the form's parts reach the
