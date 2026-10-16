@@ -963,7 +963,8 @@ forgectrl takes it **from a loopback peer only**. `FORGEEXT_HOST_TOKEN_FILE`,
 set and not empty, names the file instead; it exists for the host tests, and
 nothing on a machine sets it. As it starts, the host logs one notice,
 `environment overrides in force:`, naming that variable and any `FFLOG_*`
-one ([Logging](logging.md)) that is set, names only.
+one ([Build](../../developers/building.md#forgectrl)) that is set, names
+only. When none is set, the host logs no notice.
 
 The panel token is deliberately not used for this: it reaches every route,
 so a flaw in the host or its broker would reach every route too.
