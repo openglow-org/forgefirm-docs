@@ -207,7 +207,7 @@ be read is not idle either: the gates fail closed
 ([The kernel module](kernel-module.md#state)).
 
 **Never poll the Grbl TCP socket for status.** A connection there displaces
-the sender's session (LightBurn). Position comes from the kernel step
+the Grbl sender's session. Position comes from the kernel step
 counters anchored through `/run/grblhal.homed`, written by the controller.
 The anchor carries the three coordinates and the axes they reference, so a
 lens reference anchors Z alone and a completed home anchors all three; an
