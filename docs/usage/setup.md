@@ -65,7 +65,8 @@ The setup runs in these steps:
    40 to 55 to 70 percent and the trial repeats. The threshold and the duty
    it was found at are written together: `cool_flow_rise` and
    `cool_flow_heater_pct`. A calibration that ends before its threshold is
-   found, by an abort or a failure, leaves `cool_flow_heater_pct` as it was.
+   found, for any reason, a power loss included, leaves
+   `cool_flow_heater_pct` as it was.
    The step is required because the coolant's rise differs from machine to
    machine: without it, a machine whose coolant warms more with flow can
    have every cut stopped by the flow check.

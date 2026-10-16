@@ -469,8 +469,10 @@ served as captured), the bed check
 (refused unhomed; the keys the ends less 1 mm; a Grbl client's line ends it
 with nothing written), the Flow check (the diagnostic's phases and
 result as the check's, a thin margin flagging the calibration), and the
-flow calibration aborted at its first rung (the heater duty as it was:
-unset stays unset, a seeded one comes back). It runs the
+flow calibration at its first rung (the rung's duty goes to its
+diagnostic alone: the settings file is untouched while it runs, after an
+abort, and after the daemon is killed mid-rung and started again). It
+runs the
 floor burn with no laser fired: refused without Focus on the record; a
 thickness outside the lens window is not stored and is asked again, with no
 program line streamed, nothing armed, and the floor unwritten; the floor and
