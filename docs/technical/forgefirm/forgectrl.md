@@ -462,8 +462,10 @@ ends it with no result; at rest it asks nothing and writes no setting), the
 intake fans step (both tachs turning count two; a silent intake 2 asks for
 the count), the cameras check (each shot served as captured), the bed check
 (refused unhomed; the keys the ends less 1 mm; a Grbl client's line ends it
-with nothing written), and the Flow check (the diagnostic's phases and
-result as the check's, a thin margin flagging the calibration). It runs the
+with nothing written), the Flow check (the diagnostic's phases and
+result as the check's, a thin margin flagging the calibration), and the
+flow calibration aborted at its first rung (the heater duty as it was:
+unset stays unset, a seeded one comes back). It runs the
 floor burn with no laser fired: refused without Focus on the record; a
 thickness outside the lens window is not stored and is asked again, with no
 program line streamed, nothing armed, and the floor unwritten; the floor and

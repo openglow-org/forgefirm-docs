@@ -64,9 +64,11 @@ The setup runs in these steps:
    When the bands are too close to separate, the heater duty steps up from
    40 to 55 to 70 percent and the trial repeats. The threshold and the duty
    it was found at are written together: `cool_flow_rise` and
-   `cool_flow_heater_pct`. The step is required because the coolant's rise
-   differs from machine to machine: without it, a machine whose coolant
-   warms more with flow can have every cut stopped by the flow check.
+   `cool_flow_heater_pct`. A calibration that ends before its threshold is
+   found, by an abort or a failure, leaves `cool_flow_heater_pct` as it was.
+   The step is required because the coolant's rise differs from machine to
+   machine: without it, a machine whose coolant warms more with flow can
+   have every cut stopped by the flow check.
 9. **Continue or start.** The machine is yours to use from here. Choose
    **Continue the setup**, which we recommend, or **Start using the
    machine**.
