@@ -412,12 +412,12 @@ a program. This does not prevent the Z axis from moving when commanded by
 `z_step`.
 Bits: 0: X Axis, 1: Y1 Axis, 2: Y2 Axis, 3: Z Axis
 
-The factory's idle posture is 8 (the lens locked out of the pulse path), and
-both ForgeFIRM controllers take that posture at their start. A program that
-moves the lens needs the bit clear for its run: the cloud client clears it for
-every motion and puts it back after, and a setup card that steps the
-lens clears it for its session. A print streamed with the bit set burns every
-line at one height and counts the Z steps it never made.
+A program streamed with a bit set counts that axis's steps and never makes
+them (with bit 3 set, a print burns every line at one height). The
+controllers set the lock: [the grblHAL driver](grblhal-driver.md#the-lens-z)
+keeps every axis in the pulse path from its start, and the cloud client
+lifts bit 3 for each motion and sets it back at idle
+([Cloud mode](cloud-mode.md#what-is-different-about-the-motion-path)).
 
 ### position
 

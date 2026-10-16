@@ -110,8 +110,9 @@ hold current (1) the motor lifts the lens two steps into the service's ramp
 (630, 164 and 115 ms, then 77 ms per step) and stalls; lowering works at
 either current (measured on the bench head with single steps at the ramp's
 timing). Every path that moves the lens sets the drive current first and the
-hold current after: the homing sweeps, the setup's Lens travel check and
-laser burns, and the cloud client's motions.
+hold current after: the homing sweeps, the setup's Lens travel check, the
+controller's runs (the laser burns among them), and the cloud client's
+motions.
 
 The machine has **no limit or home switches** as it ships. What that means in
 practice, how each mode establishes an origin and how the machine behaves

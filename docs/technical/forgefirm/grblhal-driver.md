@@ -605,8 +605,9 @@ defaults are the bench reference's, placeholders until those steps have
 run. The homing
 session answers the service's lens hunt as done without moving the lens;
 the lens reference is the session's own, after the service goes quiet.
-The lens is in the pulse path like X and Y: a job's or a jog's Z moves it,
-in half-steps, at its drive current during a run and its hold current at
+The lens is in the pulse path like X and Y (the driver writes
+`cnc/motor_lock` 0 at its start): a job's or a jog's Z moves it, in
+half-steps, at its drive current during a run and its hold current at
 rest. The lens is never moved without a reference: the driver's Z soft limit
 is always on, whatever `$20` says, and until Z is referenced it holds Z
 where it is (a jog is refused with error 15, a program move raises the
