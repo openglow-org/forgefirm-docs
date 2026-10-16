@@ -58,7 +58,7 @@ its reference, and the controller starts; nothing else to do.
 | Error 20 | The controller refuses the value or the setting | Check the setting's range; the derived settings (`$100`, `$101`, `$102`, `$32`) are not yours to type ([Settings](settings.md)). |
 | Error 53 on `$H` | `homing_mode` is `switches`, which is planned | Set `homing_mode` to `gfcloud` ([Homing](homing.md)). |
 | Alarm after Stop, position declared lost | A soft reset aborts with a controlled deceleration; up to about 40 mm of in-flight difference | `$X`, jog the head clear, carry on in Current Position mode; re-home for a clean absolute frame ([LightBurn](lightburn.md)). |
-| Alarm with the latch relocked mid-job, "underrun" | The stream ran dry while armed: a hard fault; position is invalidated | `$X`, then re-home before you trust coordinates ([Homing](homing.md)). |
+| Alarm with the latch relocked mid-job, "underrun" | The stream ran dry mid-job: a fault; position is invalidated | `$X`, then re-home before you trust coordinates ([Homing](homing.md)). |
 | ALARM:18 after `$H` | The homing session failed or ran past `gfcloud_home_timeout_s` (default 300 s) | Check the lid is closed and the machine has a signed-in service session; `$X` and try again. |
 | Error 5 on `$H` | `homing_mode` is `none` | Set `homing_mode` to `gfcloud` or `manual` on the Machine tab ([Homing](homing.md)). |
 | ALARM:11, every move refused, and `$X` answers error 9 | The X and Y motors are released (`$MD`) | Send `$ME` to energize them, or put the head in the home corner and send `$H` with `homing_mode = manual` ([Manual homing](homing.md#manual-homing)). |

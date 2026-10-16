@@ -455,10 +455,15 @@ The operator's table of what each stop does is on
   latch relocked and the machine position retained; `$X` clears the alarm.
   A termination signal during motion is treated the same way: controlled
   stop, latch relocked, exit.
-- **Underrun** stops motion instantly. While armed it is a hard fault: alarm,
-  latch relocked, position invalidated, so the machine must be re-homed
-  before its coordinates are trusted ([Homing](homing.md)). A motion-only
-  job gets one sanctioned retry.
+- **Underrun** stops motion instantly. An underrun while the kernel plays a
+  stream is a fault, armed or not: alarm (`ALARM:17`), latch relocked,
+  position invalidated, so the machine must be re-homed before its
+  coordinates are trusted ([Homing](homing.md)). The one sanctioned retry
+  is for an underrun the driver meets at a run start outside an armed
+  window: the kernel ran out of the previous stream's tail just before the
+  new bytes landed. The driver acknowledges it, drops the anchor, asks for
+  the run again, and takes the answer to that request as the answer.
+  Armed, that case fails safe too.
 - **After any stream fault** (an underrun, a kernel fault, a refused run, a
   write error) the alarm stands until `$X`. The unlock acknowledges the fault:
   the kernel is stopped and re-armed, what the ring still held is cleared, and
