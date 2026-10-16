@@ -355,6 +355,8 @@ absolute path of letters, digits, `/`, `.`, `_`, and `-`; any other value
 runs nothing and is refused in the log. `GF_PULSE_DEV` must be an absolute
 path; the broker refuses any other form the way it refuses a device it
 cannot open, and no controller starts until it is fixed.
+`GF_SWITCH_WORD_FILE` must be an absolute path; any other form reads as the
+switches being unreadable, which the motion gate takes as open.
 
 #### Work on the control panel
 
