@@ -424,7 +424,7 @@ seconds, with a count of what was dropped.
 | Starts | one at a time, 5 s apart, at most 4 services running; of the services that are due, the one that has ended least lately goes first |
 | A service that ends | is started again after a backoff that doubles from 1 s to 30 s |
 | Healthy | after 60 s of running: the backoff starts over, and the package's previous version is removed |
-| Quarantine | at the fifth end inside 10 minutes without reaching healthy; remembered in `state.json` until the operator lifts it |
+| Quarantine | at the fifth end inside 10 minutes without reaching healthy; remembered in `state.json` until the operator lifts it; a quarantine the host could not write (a full `/data`) stays in force in the host and is written as soon as it can be |
 | A service that should not run | (disabled, removed, quarantined, the wrong controller mode, extensions off) is stopped: its group is killed and removed, and its chain and map element are taken out of the rule table |
 | A service whose install (a new version, or the same one removed and installed again), or whose operator's destinations, changed | is stopped and started again with them, outside an armed window; that is not an end that counts toward quarantine |
 | Extensions off, safe mode, the host stopping | `ext.shutdown` is put in the event feed, and the services are stopped one second later ([The events a package reads](#the-events-a-package-reads)) |
