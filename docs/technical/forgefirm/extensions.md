@@ -508,7 +508,11 @@ the hold decision through every state, and its `run_test.py` keeps the
 hold file fresh and never clears it on a crash loop; forgectrl's
 `cool_flow_test` has the engine withhold fire on the hold and drop it on
 safe mode and extensions off, and `holds_test` has the reader stand on a
-stale required hold and drop a stale advisory one.
+stale required hold and drop a stale advisory one. forgectrl's
+`holds_wire_test`, built from the host's own `holdkeep.c`, reads the files
+the host writes with the engine's reader: the file names, the fields and
+their types, the monotonic stamp, the write period inside the reader's
+window, and a silent host's files going stale.
 `exthost.armed-freeze` opens a real armed window over it with a dark cloud
 print and samples the engine's flag, the group's state, the service's
 heartbeat, and the latch five times a second: frozen from 2 s in to the
