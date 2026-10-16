@@ -352,7 +352,9 @@ any override. The list in `src/main.c` is held to the sources by
 `FORGECTRL_SSHD_INIT`, which the SSH switch runs in place of
 `/etc/init.d/sshd`, is run as a program with no shell and only as an
 absolute path of letters, digits, `/`, `.`, `_`, and `-`; any other value
-runs nothing and is refused in the log.
+runs nothing and is refused in the log. `GF_PULSE_DEV` must be an absolute
+path; the broker refuses any other form the way it refuses a device it
+cannot open, and no controller starts until it is fixed.
 
 #### Work on the control panel
 
