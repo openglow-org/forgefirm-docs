@@ -36,8 +36,8 @@ lid open, and so can an extension package that has the head camera
 permission, such as the [alignment tool](extensions/alignment.md), which lets
 you place material while you watch where the laser will hit. Everyone else
 gets the lid rule for the head camera too: cloud mode's image actions, the
-mjpg-streamer aliases, LightBurn's camera, and any program that reads with the
-camera key or the open reads.
+mjpg-streamer aliases, a Grbl sender's camera view, and any program that
+reads with the camera key or the open reads.
 
 A stream the lid rule covers ends within about a frame of the lid opening. A
 refused capture never raises the lamps.

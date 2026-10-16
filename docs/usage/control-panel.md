@@ -37,8 +37,8 @@ certificate, and its validity, and offers the certificate itself at
 certificate lives under the machine's data directory and survives
 updates.
 
-Plain HTTP on port 80 serves only the read-only routes, for LightBurn's
-camera and other readers ([Access](#access)).
+Plain HTTP on port 80 serves only the read-only routes, for a Grbl
+sender's camera view and other readers ([Access](#access)).
 
 ## Login
 
@@ -116,10 +116,10 @@ the front (Y+). The long steps are not offered to the lens, whose whole travel
 is a few millimeters. The page does not lock, and shows no busy banner, for
 a jog of its own.
 
-The jog goes through the controller beside your Grbl client, so LightBurn
-stays connected, and **the client goes first**: a line from it stops a jog in
-progress, and right after one a jog is refused. Its status polling does
-neither. A jog never fires the laser, whatever the client last commanded.
+The jog goes through the controller beside your Grbl sender, so the sender
+stays connected and **goes first**: a line from it stops a jog in progress,
+and right after one a jog is refused. Its status polling does neither. A jog
+never fires the laser, whatever the sender last commanded.
 The controller refuses a jog during a program, in an alarm, while the motors
 are released, and past the soft limits once the machine is homed; the panel
 shows the reason beside the pad for a few seconds. While the X and Y motors are released the Motion card says so in red
@@ -352,8 +352,8 @@ another tab from reaching your machine. The panel also answers only to its
 own addresses and to its own bare name (`forgefirm-<xxxx>`), never to a
 name with a domain on it: a hostile page that points its own domain at your
 machine gets nothing back. The read-only routes answer any
-client on your network by default, so LightBurn can read the camera without
-a login. The setting `panel_open_reads=0` closes them to logged-in sessions
+client on your network by default, so a Grbl sender or a stream viewer can
+read the camera without a login. The setting `panel_open_reads=0` closes them to logged-in sessions
 and to the machine itself ([Settings](settings.md)).
 
 A script that runs on the machine can use the panel token instead of a

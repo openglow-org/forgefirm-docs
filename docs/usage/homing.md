@@ -120,7 +120,7 @@ button, while they are released) or send `$ME`: the motors energize, and X and
 Y stay unreferenced until a home.
 
 The panel's buttons and the `$` commands are the same operations. The buttons
-go through the controller beside your Grbl client, so LightBurn stays
+go through the controller beside your Grbl sender, so the sender stays
 connected through the whole procedure, and its console shows each step. The
 Status tab shows **X and Y motors: RELEASED** for as long as the release
 stands.
