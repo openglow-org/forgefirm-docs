@@ -955,7 +955,11 @@ theirs to manage, and revoking it by accident would stop extensions), and
 it dies with the daemon. It is written to `/run/forgefirm/ext-host.token`
 at mode 0600, which an extension account cannot read - and could not use
 if it could, since a pool account cannot reach a loopback listener at all.
-forgectrl takes it **from a loopback peer only**.
+forgectrl takes it **from a loopback peer only**. `FORGEEXT_HOST_TOKEN_FILE`,
+set and not empty, names the file instead; it exists for the host tests, and
+nothing on a machine sets it. As it starts, the host logs one notice,
+`environment overrides in force:`, naming that variable and any `FFLOG_*`
+one ([Logging](logging.md)) that is set, names only.
 
 The panel token is deliberately not used for this: it reaches every route,
 so a flaw in the host or its broker would reach every route too.
