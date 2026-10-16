@@ -767,7 +767,13 @@ mode=idle|run|cooldown & armed=0|1 [& model=density|analog]
   through the normal cooldown path (smoke clear is the right physical
   behavior for a job that died mid-cut), ending at the idle profile (pump
   on, fans idle, heater off). `GET /cool/status` shows `armed` false from
-  that point (`report_age_s` tells the age of the last report).
+  that point (`report_age_s` tells the age of the last report). The
+  timeout holds the controllers' own rule inside it: a controller treats a
+  verdict older than 2 s as a hold and reports every second, so an engine
+  that stalls and returns with its last report still inside the 5 s keeps
+  the armed window acknowledged, and the job the controller held on its
+  stale verdict resumes with no press; a longer stall is the dead-man
+  below.
 - Silence with the armed window open, or with `cnc/state` still reading
   `running` (cloud mode preloads whole jobs, so the ring can play for
   minutes with no live feeder), is the **hung-controller dead-man**: the
