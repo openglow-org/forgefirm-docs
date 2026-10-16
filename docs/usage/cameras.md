@@ -103,7 +103,7 @@ hostile page in another tab from reaching into your machine. The setting
 itself ([Settings](settings.md)). Anything that *changes* machine state
 needs a login ([The control panel](control-panel.md#access)).
 
-**The camera key.** A program with no login, LightBurn or a stream viewer,
+**The camera key.** A program with no login, a Grbl sender or a stream viewer,
 reads the cameras with the machine's camera key. Press **Camera URL** on
 the Status tab's lid camera card: the panel shows the stream and snapshot
 URLs with the key in them, ready to paste. The key is a `key` query
