@@ -1227,6 +1227,10 @@ does not delete a package's data - that is the operator's, and there are
 two ways out: remove the package, which takes its data with it, or clear
 the data and enable the package again.
 
+A data directory the host cannot measure is not one that holds nothing. A
+directory it cannot read, a tree deeper than 16 directories, or a manifest
+it cannot read quarantines the service the same way, with the reason.
+
 ### A package's own settings
 
 A package's data directory is its own and it could keep a file there
