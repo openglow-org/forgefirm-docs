@@ -344,7 +344,7 @@ The extension root is `/data/forgefirm/ext`:
 | `required-holds/` | One empty file per package whose hold the operator marked required, so a hold fails closed across a reboot before the host has read anything |
 | `settings/<id>.json` | A package's own settings, root's alone at 0600 |
 | `lock` | The host's lock, taken around every change to the root |
-| `state.json` | What no package can say about itself: the tier and the key that signed it, its account of the pool (`ffx0` to `ffx31`, the lowest free one), the operator's grants, enabled, quarantined, and a stamp every install writes anew |
+| `state.json` | What no package can say about itself: the tier and the key that signed it, its account of the pool (`ffx0` to `ffx31`, the lowest free one), the operator's grants, enabled, quarantined, a count of the operator's enables, and a stamp every install writes anew |
 
 An update keeps the version it replaces; the one before that is removed. `state.json` is written whole and renamed into
 place, and a state file this program did not write (another schema, an
@@ -424,7 +424,7 @@ seconds, with a count of what was dropped.
 | Starts | one at a time, 5 s apart, at most 4 services running; of the services that are due, the one that has ended least lately goes first |
 | A service that ends | is started again after a backoff that doubles from 1 s to 30 s |
 | Healthy | after 60 s of running: the backoff starts over, and the package's previous version is removed |
-| Quarantine | at the fifth end inside 10 minutes without reaching healthy; remembered in `state.json` until the operator lifts it; a quarantine the host could not write (a full `/data`) stays in force in the host and is written as soon as it can be |
+| Quarantine | at the fifth end inside 10 minutes without reaching healthy; remembered in `state.json` until the operator lifts it; a quarantine the host could not write (a full `/data`), whatever set it, stays in force in the host and is written as soon as it can be, unless the operator lifts it first with an enable or a new install; a destination the operator names lifts nothing, and a host that stops before the write lands forgets it, so the service runs until its cause sets it aside again |
 | A service that should not run | (disabled, removed, quarantined, the wrong controller mode, extensions off) is stopped: its group is killed and removed, and its chain and map element are taken out of the rule table |
 | A service whose install (a new version, or the same one removed and installed again), or whose operator's destinations, changed | is stopped and started again with them, outside an armed window; that is not an end that counts toward quarantine |
 | Extensions off, safe mode, the host stopping | `ext.shutdown` is put in the event feed, and the services are stopped one second later ([The events a package reads](#the-events-a-package-reads)) |
@@ -1230,7 +1230,9 @@ bytes. A symbolic link is counted as a link and never followed, so a link
 out of the directory adds nothing.
 
 A service over its quota is **quarantined**: stopped, remembered as
-stopped across restarts, and shown with the reason in the panel. The host
+stopped across restarts once the quarantine is written
+([the rules of the supervisor](#the-extension-host)), and shown with the
+reason in the panel. The host
 does not delete a package's data - that is the operator's, and there are
 two ways out: remove the package, which takes its data with it, or clear
 the data and enable the package again.
