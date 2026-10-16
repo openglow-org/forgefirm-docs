@@ -206,16 +206,22 @@ The lint also lists:
 
 - each coverage entry and each host-tested row that selects nothing;
 - each row whose host test or workflow does not exist;
+- each row whose workflow runs on no push or pull request: its `on:` names
+  neither event. A workflow on `workflow_dispatch`, `workflow_call` or
+  `schedule` alone runs on no change;
 - each row whose workflow does not check out the test's repository, or has
-  no step that runs the test. Only what a step's `run` commands execute
-  counts, each path resolved against the step's `working-directory` and
-  compared with the test's path in the workspace (where the workflow checks
-  its repository out). A command runs the test when it is the test (a
-  script run directly, or a C test's built binary, `<dir>/<stem>`); when
-  an interpreter (`python`, `bash`, `sh`) runs it, or a `for` loop runs
-  over it, by its path or a glob that matches the whole path
-  (`tests/test_*.py`); when `python -m unittest` is given its file or a
-  dotted name whose module is that file (`tests.test_x`,
+  no step that runs the test on every run. A step under an `if:` other than
+  `true`, or with a `continue-on-error:` other than `false`, on the step or
+  on its job, runs the test on some runs only, or fails without failing the
+  run; the lint counts it as no step, and such a checkout as no checkout.
+  Only what a step's `run` commands execute counts, each path resolved
+  against the step's `working-directory` and compared with the test's path
+  in the workspace (where the workflow checks its repository out). A command
+  runs the test when it is the test (a script run directly, or a C test's
+  built binary, `<dir>/<stem>`); when an interpreter (`python`, `bash`,
+  `sh`) runs it, or a `for` loop runs over it, by its path or a glob that
+  matches the whole path (`tests/test_*.py`); when `python -m unittest` is
+  given its file or a dotted name whose module is that file (`tests.test_x`,
   `tests.test_x.Case.test_one`); or when `unittest discover` starts in its
   directory with a pattern its name matches, or `pytest` is given it or its
   directory. `sudo`, `env` and variable assignments in front of a command
