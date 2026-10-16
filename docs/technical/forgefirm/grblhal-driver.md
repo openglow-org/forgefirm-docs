@@ -23,7 +23,8 @@ the button, faults, and the cooling verdict.
 
 ## Architecture
 
-The unmodified grblHAL core (a git submodule at `src/grbl`) runs as a Linux
+The grblHAL core (the project's fork, a git submodule at `src/grbl`; its
+changes are listed in the fork's `FORK-CHANGES.md`) runs as a Linux
 userspace process. Steps are not fired from a GPIO ISR. The driver streams
 **pulse bytes** (one byte per machine tick) into the kernel module's
 SDMA + EPIT playback engine (`glowforge.ko`, `/dev/glowforge`), the same
