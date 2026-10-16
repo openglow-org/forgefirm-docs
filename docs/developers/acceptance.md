@@ -95,14 +95,20 @@ The **domain fingerprint** of a test is a hash of three things:
 - the hash of the implementation of the test. That is its own text, from
   its first decorator line through the end of its body, plus the shared
   text of its suite module, plus the shared text of every suite module that
-  module imports with `from .x import`, transitively. The text of the
-  shared judges joins it too: `runner.py` (the `Context` a test is handed,
-  and the takeover), `hw.py` (the sysfs, LED, switch, and HTTP readers
-  behind it), `baseline.py` (the idle state judged around every run), and
-  `puls.py` (the dark job the cloud tests print). Every test runs through
-  them, so they are in every fingerprint. The shared text of a module is
-  every line outside its `@test` functions, so the test text of an
-  imported module is not part of the hash. `implementation_sha` in
+  the shared text imports with `from .x import`, transitively. An import
+  inside a helper or a block counts. A suite module that the test's own
+  function imports joins the hash of that test alone, with what it
+  imports in turn. The text of the shared judges joins every hash:
+  `runner.py` (the `Context` a test is handed, and the takeover), `hw.py`
+  (the sysfs, LED, switch, and HTTP readers behind it), `baseline.py` (the
+  idle state judged around every run), and `puls.py` (the dark job the
+  cloud and extension tests print). Every test runs through the first
+  three. The walk follows no import from the `forgetest` package itself
+  (`from .. import`), so a package module that a suite module imports is a
+  judge too, as `puls.py` is. The registry, `catalog.py`, is the
+  exception: it judges nothing. The shared text of a module is every line
+  outside its `@test` functions, so the test text of an imported module is
+  not part of the hash. `implementation_sha` in
   `forgetest/forgetest/catalog.py` computes it, and `SHARED_JUDGES` there
   names the judges.
 
@@ -134,8 +140,9 @@ The consequences:
   everything; that is the safe direction.
 - A change to the own text of a test invalidates the earlier passes of that
   test and no other. A change to shared text invalidates every test in that
-  module and every test in a module that imports it. A change to a shared
-  judge invalidates every test.
+  module, every test in a module whose shared text imports it, and every
+  test whose own function imports it. A change to a shared judge
+  invalidates every test.
 - "Touched" is computed from the content hashes in the image. It is never
   declared by hand.
 
