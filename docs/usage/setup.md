@@ -99,10 +99,11 @@ again is a link in the setup's rail, from any other step, and
 ## The checks
 
 Each check runs on the machine with the laser latch locked. The page shows
-the progress, the log, and a question when the check needs you. A check
-that fails says why and offers to run again. A check that measures writes
-the settings it found, through the ordinary validated path, and the record
-keeps the values before and after.
+the progress, the log, and a question when the check needs you. A question
+waits ten minutes for your answer; with no answer the check ends and says
+so. A check that fails says why and offers to run again. A check that
+measures writes the settings it found, through the ordinary validated path,
+and the record keeps the values before and after.
 
 1. **Switches.** Open and close the lid, press the button, and on a Pro open
    and close the interlock loop. The machine watches each switch change and
