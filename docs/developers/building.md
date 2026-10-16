@@ -281,6 +281,14 @@ GFSINK=/dev/glowforge grblHAL_glowforge -p 23 -e /data/forgefirm/EEPROM-glowforg
 The driver reports a value that is out of range and uses the default. The
 `FFLOG_*` variables are the same as for forgectrl (below).
 
+As it starts, the controller logs one notice,
+`environment overrides in force:`, naming every variable it reads that is
+set, names only. The three variables that the supervisor sets on every
+spawn (`GFSINK`, `GF_PULSE_FD`, `GF_REPORT_SECRET`) are left out, so a log
+from a machine shows whether the controller ran under any override. When
+none is set, the controller logs no notice. The list in `src/main.c` is
+held to the sources by `serial_test`.
+
 **Test hooks.** These exist so the host harnesses can drive edges that need
 hardware on a machine. They are for the null-sink build, and nothing on a
 machine sets them.
