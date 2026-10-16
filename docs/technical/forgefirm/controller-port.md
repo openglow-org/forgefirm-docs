@@ -105,8 +105,8 @@ from the Grbl client, with one exception, `sender out`
 - The first byte of a line from the client that arrives while a port jog
   runs cancels the jog. A status poll (`?`) and the other realtime characters
   are not a line: they are served as always and cancel nothing.
-- **An empty line is not the client speaking either.** LightBurn polls `?`
-  with an end of line behind it, about twice a second. The `?` never reaches
+- **An empty line is not the client speaking either.** Some Grbl senders
+  poll `?` with an end of line behind it, on a timer. The `?` never reaches
   the input ring; the end of line does, as an empty line, which the core
   answers `ok` in every state. It does not refuse a port jog, it does not
   cancel one, and it passes the hold: it is answered during a port jog as at
