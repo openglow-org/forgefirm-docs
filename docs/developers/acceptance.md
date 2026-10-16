@@ -95,10 +95,16 @@ The **domain fingerprint** of a test is a hash of three things:
 - the hash of the implementation of the test. That is its own text, from
   its first decorator line through the end of its body, plus the shared
   text of its suite module, plus the shared text of every suite module that
-  module imports with `from .x import`, transitively. The shared text of a
-  module is every line outside its `@test` functions, so the test text of
-  an imported module is not part of the hash. `implementation_sha` in
-  `forgetest/forgetest/catalog.py` computes it.
+  module imports with `from .x import`, transitively. The text of the
+  shared judges joins it too: `runner.py` (the `Context` a test is handed,
+  and the takeover), `hw.py` (the sysfs, LED, switch, and HTTP readers
+  behind it), `baseline.py` (the idle state judged around every run), and
+  `puls.py` (the dark job the cloud tests print). Every test runs through
+  them, so they are in every fingerprint. The shared text of a module is
+  every line outside its `@test` functions, so the test text of an
+  imported module is not part of the hash. `implementation_sha` in
+  `forgetest/forgetest/catalog.py` computes it, and `SHARED_JUDGES` there
+  names the judges.
 
 A PASS recorded under fingerprint F applies to each build whose recomputed
 fingerprint is F. The same code computes it on the board and in the gate.
@@ -128,7 +134,8 @@ The consequences:
   everything; that is the safe direction.
 - A change to the own text of a test invalidates the earlier passes of that
   test and no other. A change to shared text invalidates every test in that
-  module and every test in a module that imports it.
+  module and every test in a module that imports it. A change to a shared
+  judge invalidates every test.
 - "Touched" is computed from the content hashes in the image. It is never
   declared by hand.
 

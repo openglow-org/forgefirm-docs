@@ -299,6 +299,7 @@ forgetest/forgetest/         the package (standard library only)
   artifact.py                the export and the gate verification
   runner.py                  one run at a time, prompts, abort, takeover, queues
   baseline.py                the fresh-boot idle state around each run
+  hw.py / puls.py            the hardware readers; the dark job of the cloud tests
   server.py / page.py / ui/  the HTTP API and the page (the access rules of forgectrl;
                              Bootstrap and the OpenGlow theme, shared with the panel)
   bench.py / coverage.py     the bench registry and the subprocess runner; the lint
@@ -309,3 +310,7 @@ scripts/acceptance-gate.py   the gate
 scripts/manifest-from-tree.py  the manifest from the recipe pins (CI, workstation)
 releases/v<version>/         the committed artifacts
 ```
+
+`runner.py`, `hw.py`, `baseline.py`, and `puls.py` are the shared judges; the
+[Acceptance](acceptance.md#domain-fingerprints-and-inheritance) page says what
+that means for the fingerprints.
