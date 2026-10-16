@@ -490,8 +490,9 @@ shown as written, the code-shaped one posted as written and never run. And
 once, from `tests/host_setup.sh`, against the page the daemon serves,
 through a relay of the walk's own (`--daemon`), the button pressed by the
 switch word and the flow calibration run on the scripted loop: `GET /wiz`
-must carry every field the page reads, the page's required steps must be
-the setup's, and the run ends on the panel with the setup complete.
+must carry the first-run fields the page reads, each with its type, the
+page's required steps must be the setup's, the run ends on the panel with
+the setup complete, and the login's session is read back from `GET /wiz`.
 
 ### The Extensions advisory
 
