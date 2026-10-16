@@ -94,8 +94,9 @@ copies each package's license texts onto the rootfs, then packs both into
 `/usr/share/forgefirm/licenses.tar.gz` and removes the loose tree, so the
 texts the licenses ask to travel with the software travel with it at the
 cost of one compressed file. The pack step refuses a manifest that does not
-name `forgectrl`, `grblhal-glowforge`, and `kernel-module-glowforge`, and the
-image does not build. The control panel shows the manifest at
+name `forgectrl`, `grblhal-glowforge`, and `kernel-module-glowforge`, and a
+license text it cannot read, and the image does not build. The control panel
+shows the manifest at
 `GET /licenses`, the "Licenses" link at the foot of every panel page,
 serves the bundle at `GET /system/licenses`, and the manifest alone at
 `GET /system/licenses/manifest`. The three need no login: they are read
