@@ -202,10 +202,12 @@ The lint also lists:
 - each coverage entry and each host-tested row that selects nothing;
 - each row whose host test or workflow does not exist;
 - each row whose workflow's own `on:` names neither `push` nor
-  `pull_request`. The lint reads `on:` as a block mapping, a list, or one
-  scalar. It does not read a flow mapping (`on: {push: ...}`), and it does
-  not follow a `workflow_call` to the workflow that calls it, so it lists
-  such a workflow too;
+  `pull_request`. The lint reads `on:` as a block mapping, a block list
+  (`- push`), one scalar, or a flow list (`[push, pull_request]`), and of a
+  flow list only the items on the `on:` line itself. It does not read a
+  flow mapping (`on: {push: ...}`), and it does not follow a
+  `workflow_call` to the workflow that calls it, so it lists such a
+  workflow too;
 - each row whose workflow does not check out the test's repository, or has
   no step that runs the test on every run. The lint does not evaluate a
   condition. A step with an `if:` other than the literal `true`, or a
