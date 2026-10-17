@@ -223,9 +223,29 @@ The lint also lists:
   lint reads no other condition: not a job's `needs:`, and not an event's
   `branches:` or `paths:` filter. A step that one of these keeps from a run
   still counts, so there the lint is a floor.
-  Only what a step's `run` commands execute counts, each path resolved
-  against the step's `working-directory` and compared with the test's path
-  in the workspace (where the workflow checks its repository out). A command
+  The lint reads a step's `run` text line by line, as `bash -e` or `sh -e`
+  runs it. A step whose own `shell:`, or a `defaults: run: shell:` of its
+  job or of its workflow, is other than `bash` or `sh` counts as no step. A
+  folded block (`run: >`), or a scalar continued on the lines under its
+  key, is one line. A command counts on a line that holds it alone, with
+  its redirections, or in a pipeline under `pipefail` (`shell: bash`, or
+  `set -o pipefail` on an earlier line), and only while `errexit` holds
+  (`set +e` clears it). The lint stops at a line with any other operator
+  (`||`, `&&`, `;`, `&`, a subshell, a here-document). It also stops at a
+  command that opens a compound command or negates a status (`if`, `case`,
+  `while`, `until`, a group, a function, `!`), at `exit`, `exec`, `trap`,
+  `eval`, `source` and the like, and at a `set` of an option it does not
+  follow. No command on that line or after it counts. A `for` loop counts
+  as `for <name> in <words>; do` on its own line, body lines that count,
+  and `done` on its own line. So `./build/x || true`, `./build/x | tee log`
+  with no `pipefail`, and a test after an `exit 0` or a `set +e` line do
+  not count, and neither does `./build/x; true`, a form the lint does not
+  read. The lint does not read what a loop's body does with the loop's
+  name, a `cd` before the test, a `defaults: run: working-directory:`, what
+  `PATH` or `BASH_ENV` change, or the runner's operating system, so there
+  it is a floor too. Each path is resolved against the step's
+  `working-directory` and compared with the test's path in the workspace
+  (where the workflow checks its repository out). A command
   runs the test when it is the test (a script run directly, or a C test's
   built binary, `<dir>/<stem>`); when an interpreter (`python`, `bash`,
   `sh`) runs it, or a `for` loop runs over it, by its path or a glob that
@@ -233,10 +253,12 @@ The lint also lists:
   given its file or a dotted name whose module is that file (`tests.test_x`,
   `tests.test_x.Case.test_one`); or when `unittest discover` starts in its
   directory with a pattern its name matches, or `pytest` is given it or its
-  directory. `sudo`, `env` and variable assignments in front of a command
-  are passed over. An argument to any other command (`echo`, a build) does
-  not run a test, and neither does a comment, a step's name, or a
-  trigger's `paths` filter;
+  directory. `sudo`, `env`, `time`, `command` and `nice` in front of a
+  command are passed over with the flags with which they run it
+  (`sudo -E`, `env -i`), and so are variable assignments: `command -v`
+  prints a path and runs nothing. An argument to any other command (`echo`,
+  a build) does not run a test, and neither does a comment, a step's name,
+  or a trigger's `paths` filter;
 - each row whose workflow should be readable and is not.
 
 The lint reads a component's workflow at its pinned revision, from the
