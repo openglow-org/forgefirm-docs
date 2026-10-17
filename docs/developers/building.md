@@ -284,8 +284,9 @@ The driver reports a value that is out of range and uses the default. The
 
 As it starts, the controller logs one notice,
 `environment overrides in force:`, naming every variable it reads that is
-set, names only; when none is set, it logs no notice. The three variables
-that the supervisor sets on every spawn (`GFSINK`,
+set, names only; when none is set, it logs no notice. With `GFSINK` set the
+controller reads no test hook, so the notice names none. The three
+variables that the supervisor sets on every spawn (`GFSINK`,
 [`GF_PULSE_FD`](../technical/forgefirm/forgectrl.md#pulse-device-ownership),
 [`GF_REPORT_SECRET`](../technical/forgefirm/cooling-engine.md#job-state-reports))
 are left out, so a log from a machine shows whether the controller ran
@@ -297,19 +298,22 @@ overrides keep the notice out of the machine's log: an `FFLOG_LEVEL` less
 verbose than `notice`, an `FFLOG_CONF` file whose two levels for the
 controller are both less verbose than `notice`, and an `FFLOG_SOCK` that
 names another socket. `serial_test` runs the controller's entry point to
-hold the notice to its names, one line or none, and holds the list in
-`src/main.c` to the sources.
+hold the notice to its names, one line or none, and holds the two lists in
+`src/main.c`, `ENV_OVERRIDES` and `TEST_HOOKS`, to the sources: the
+sources read a test hook only through one gate, `gfio_test_hook`.
 
 **Test hooks.** These exist so the host harnesses can drive edges that need
-hardware on a machine. They are for the null-sink build, and nothing on a
-machine sets them.
+hardware on a machine. The controller honors them only in a null-sink run,
+that is with `GFSINK` unset or empty. With `GFSINK` set, as on a machine,
+it ignores them, and each reader takes its default. Nothing on a machine
+sets them.
 
 | Variable or key | Purpose |
 |---|---|
-| `GF_SWITCH_FILE` | A file-backed `EV_SW` word, so a harness can drive the lid, interlock and button edges. |
+| `GF_SWITCH_FILE` | A file-backed `EV_SW` word, so a harness can drive the lid, interlock and button edges. Read only when no switch device opens. |
 | `GF_VERDICT_FILE` | A cooling verdict file the harness writes, in place of the engine's. |
-| `GF_STATE_DIR` | Where the controller publishes `grbl.state` and `grbl.settings`. |
-| `gfcloud_home_cmd` | The homing runner to spawn for `$H`. Honored only without `GFSINK`. |
+| `GF_STATE_DIR` | The state directory, default `/run/forgefirm`: where the controller publishes `grbl.state` and `grbl.settings`, opens its control socket `grbl.ctl`, reads the lens marker `lens.home` and keeps the release marker `motors.released`. |
+| `gfcloud_home_cmd` | The homing runner to spawn for `$H`. |
 | `laser_power_model`, `laser_floor_analog` | Select the retired analog rendering and its duty floor, which exist only as the harness's conservatism reference ([the grblHAL driver](../technical/forgefirm/grblhal-driver.md#laser-control)). |
 
 The other variables the controller reads are the stand-in engine's
