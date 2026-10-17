@@ -64,7 +64,8 @@ shadows the core's homing cycle. Under `gfcloud`:
    configuration and `step_freq`, then writes the homing anchor,
    `/run/grblhal.homed`, which forgectrl uses to serve position.
 
-`^X` aborts the session (SIGTERM, then SIGKILL). A failure or a timeout
+`^X` aborts the session (SIGTERM, then SIGKILL) with `ALARM:6`, and the
+position is lost ([Faults](grblhal-driver.md#faults)). A failure or a timeout
 queues `ALARM:18`, like a failed core homing cycle; the budget is
 `gfcloud_home_timeout_s` (default 300 s, held to 10 to 3600 s: a value
 outside is clamped with a log line, as `gfcloud_home_x` and
@@ -307,8 +308,9 @@ and a completed home anchors all three. Its last field names what set it:
 `gfcloud`, `manual`, or `startup` for the lens reference.
 
 Anything that invalidates position (an underrun, a stream fault, a soft reset
-whose position cannot be read back) drops the anchor deliberately, so a stale
-origin cannot be reused. A motor release drops
+whose position cannot be read back, a soft reset during the web-service
+homing session) drops the anchor deliberately, so a stale origin cannot be
+reused. A motor release drops
 X and Y from it and keeps Z
 ([The grblHAL driver](grblhal-driver.md)). Z is never driven blind, homed or
 not: the lens carriage is referenced against the hall sensor's edge, low in

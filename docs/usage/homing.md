@@ -56,7 +56,9 @@ home ends focused about 3 mm above the bed.
 - **It can fail or time out.** `gfcloud_home_timeout_s` (default 300 s) is
   the budget for the whole session (sign-in, camera uploads, hunt, and corner
   moves). Past it, or on a failure, the controller alarms (ALARM:18) like a
-  failed core homing cycle. A soft reset (`^X`) aborts the session.
+  failed core homing cycle. A soft reset (`^X`) aborts the session
+  (`ALARM:6`). X and Y are then not homed, and the lens is held where it
+  stands until the next home: home again before you trust the coordinates.
 - **A quiet service is not a homing.** The cycle counts as complete only when
   the accelerometer in the print head witnessed real motion during the
   session. A service that goes quiet without moving the head is a failure.
@@ -161,9 +163,9 @@ sensor the machine refuses to run at all and the panel says why: that is
 broken hardware, not a state to work around.
 
 Anything that invalidates position, an underrun, a stream fault, a soft reset
-whose position cannot be read back, or a motor release, drops the
-anchor deliberately, so a stale origin cannot be reused. Re-home before you
-trust coordinates again.
+whose position cannot be read back, a soft reset during a camera-referenced
+homing, or a motor release, drops the anchor deliberately, so a stale origin
+cannot be reused. Re-home before you trust coordinates again.
 
 ## Homing in cloud mode
 
