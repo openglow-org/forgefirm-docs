@@ -102,8 +102,9 @@ again is a link in the setup's rail, from any other step, and
 Each check runs on the machine with the laser latch locked. The page shows
 the progress, the log, and a question when the check needs you. A question,
 or a wait for you to work a switch (the lid, the button, the interlock
-loop), lasts ten minutes; past that the check ends and says so. A check
-that fails says why and offers to run again. A check that
+loop), lasts ten minutes. The wait for you to release the button after you
+press it lasts 30 seconds. When the time runs out, the check ends and says
+so. A check that fails says why and offers to run again. A check that
 measures writes the settings it found, through the ordinary validated path,
 and the record keeps the values before and after.
 
