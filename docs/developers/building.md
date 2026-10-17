@@ -300,7 +300,8 @@ controller are both less verbose than `notice`, and an `FFLOG_SOCK` that
 names another socket. `serial_test` runs the controller's entry point to
 hold the notice to its names, one line or none, and holds the two lists in
 `src/main.c`, `ENV_OVERRIDES` and `TEST_HOOKS`, to the sources: the
-sources read a test hook only through one gate, `gfio_test_hook`.
+sources read each test hook in the environment only through one gate,
+`gfio_test_hook`.
 
 **Test hooks.** These exist so the host harnesses can drive edges that need
 hardware on a machine. The controller honors them only in a null-sink run,
