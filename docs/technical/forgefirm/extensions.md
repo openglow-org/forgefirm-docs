@@ -1244,7 +1244,8 @@ it cannot read quarantines the service the same way, with the reason. A
 listing that fails part way is a directory it cannot read. For a manifest
 it cannot read, the way out is to remove the package and install it again:
 the manifest is not in the data. A package that the operator removes while
-the host measures it is not set aside.
+the host measures it is not set aside for a manifest or a measurement that
+its removal breaks.
 
 ### A package's own settings
 
