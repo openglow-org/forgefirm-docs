@@ -352,8 +352,8 @@ item:
 
 - **Fixed** resting values that the boot establishes. They are the defaults
   of the kernel module, the start-up writes of forgectrl, and the init
-  writes of the GRBL controller. The kernel values: `motor_lock=0` (every
-  axis in the pulse path; the driver's Z soft limit guards the lens),
+  writes of the GRBL controller. The kernel values: `motor_lock=0`
+  ([the driver's lens](../technical/forgefirm/grblhal-driver.md#the-lens-z)),
   `x/y_mode`, `step_freq` and `ramp_rate` at the `xy_microsteps` setting's
   values (32, 112640 and 500000 at the default; the x8 base is 28160 and
   125000, doubled at 16 and quadrupled at 32), `x/y_decay=1`, `streaming=0`,
