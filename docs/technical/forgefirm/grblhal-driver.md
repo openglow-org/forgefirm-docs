@@ -472,7 +472,11 @@ The operator's table of what each stop does is on
   soft reset. The reset acknowledges the fault: the kernel is stopped and
   re-armed, and what the ring still held is cleared. Then `$X` unlocks, and
   the controller moves again without a restart. The position stays invalid
-  until a re-home.
+  until a re-home. A kernel fault (a stepper driver's fault line) is the
+  exception. The kernel stays in its fault state through the reset and
+  refuses a run there, so after `$X` the next move alarms again. The
+  kernel leaves that state only on an `enable` write, once the fault line
+  has cleared ([The kernel module](kernel-module.md#enable)).
 - **The cooling verdict** has two tiers ([The cooling client](#the-cooling-client)):
   the pause tier is a feed hold under the open window, resumed with no
   press when the verdict clears; the fail tier ends the job with `ALARM:3`.

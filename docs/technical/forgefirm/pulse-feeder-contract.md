@@ -98,6 +98,8 @@ error (`context fetch failed`). The grblHAL step backend
 run request while `state` reads `running`, asks again once it reads `idle`,
 takes `idle` with `-ENODATA` as "already played", and takes any other
 refusal at `idle` as a stream fault ([Faults](grblhal-driver.md#faults)).
+A stream that has faulted drops its request and asks for no run, and what
+the ring still holds waits for the reset.
 
 ### stop
 
