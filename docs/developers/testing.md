@@ -216,8 +216,10 @@ The lint also lists:
   `continue-on-error:` other than the literal `false`, on the step or on its
   job, counts as no step, even when the condition runs it on every run
   (`always()`, `success()`). Such a checkout counts as no checkout. A key
-  with one stray quote (`if":`, `"run:`) at the top level, at a job, or at
-  a step makes every step of the workflow count as no step. The
+  with one stray quote (`if":`, `"run:`) at the top level, at a job, at a
+  step (its first key, on its dash line, too), or as the first key of a
+  list item outside a step (a matrix entry) makes every step of the
+  workflow count as no step. The
   lint reads no other condition: not a job's `needs:`, and not an event's
   `branches:` or `paths:` filter. A step that one of these keeps from a run
   still counts, so there the lint is a floor.
