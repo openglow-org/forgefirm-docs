@@ -326,7 +326,8 @@ latch, when any of these happens:
 - the cooling verdict's fail tier (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`):
   the latch locks, the job is reset the way `^X` resets it, and `ALARM:3`
   says why ([The cooling client](#the-cooling-client));
-- immediately on alarm, homing, reset, or a stream fault.
+- on alarm, homing, reset, or a stream fault: at once, except that a soft
+  reset's close waits for the core's alarm report ([Faults](#faults)).
 
 Nothing widens the window. A jog under an open window ships dark and does not
 restart the grace, and the pause tier of the verdict holds the job under the
@@ -453,18 +454,18 @@ The operator's table of what each stop does is on
   through the same re-arm, or resets it.
 - **Jog cancel** is a controlled stop with the jog abandoned and the
   position kept.
-- **Soft reset** (`^X`) during motion relocks the latch first. Then the
-  kernel ramps the motion down (`cnc/stop`), and the driver drops the
-  bytes that it had not shipped. When the ramp has ended, the driver
-  clears from the ring what the ramp did not reach, and reads the
-  position back from the kernel's step counters
-  ([`position`](kernel-module.md#position)). The steps that never played
-  come off the core's count, so the machine position counts only the
-  steps that the kernel played. The core keeps its reference. The machine
-  is in Alarm (`ALARM:3`), and `$X` clears the alarm. The ramp starts
-  only after the core has reported the alarm, which holds 100 ms. So the
-  kernel first plays up to 100 ms more of its queue at the commanded
-  rate. A position that cannot be read back is lost. The driver drops the
+- **Soft reset** (`^X`) during motion takes effect once the core has
+  reported the alarm (`ALARM:3`), which holds 100 ms. Until then the
+  kernel plays its queue at the commanded rate, lit where the job is
+  lit. Then the driver relocks the latch, the kernel ramps the motion
+  down (`cnc/stop`), and the driver drops the bytes that it had not
+  shipped. When the ramp has ended, the driver clears from the ring what
+  the ramp did not reach, and reads the position back from the kernel's
+  step counters ([`position`](kernel-module.md#position)). The steps
+  that never played come off the core's count, so the machine position
+  counts only the steps that the kernel played. The core keeps its
+  reference. `$X` clears the alarm.
+  A position that cannot be read back is lost. The driver drops the
   homing anchor and tells the sender, and the machine must be re-homed
   before its coordinates are trusted. A termination signal during motion
   is treated the same way: the latch relocked, the kernel's ramp, then
