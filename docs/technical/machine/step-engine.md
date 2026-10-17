@@ -164,8 +164,10 @@ controller modes are built on them:
 - **Controlled stop.** The tick rate ramps down at a set rate (`ramp_rate`,
   10000 to 500000 Hz/s, default 125000; constant, independent of the target
   speed) until motion halts. No steps are lost, so position stays accurate.
-  This is what a feed hold, a jog cancel, a lid-open cancel and a soft reset
-  all use.
+  GRBL mode uses it for a soft reset during motion (a feed hold, a jog
+  cancel and a lid-open cancel decelerate in the stream itself), cloud
+  mode for its pause and its cancel, and the safing stops of the
+  supervisor and the cooling engine use it too.
 - **Halt.** An immediate stop with no ramp. Steps can be lost; used only for
   emergencies.
 - **Resume with a waypoint.** From a controlled stop the program can be

@@ -306,8 +306,9 @@ anchor names the axes it references, so the lens reference anchors Z alone
 and a completed home anchors all three. Its last field names what set it:
 `gfcloud`, `manual`, or `startup` for the lens reference.
 
-Anything that invalidates position (an underrun, a stream fault) drops the
-anchor deliberately, so a stale origin cannot be reused. A motor release drops
+Anything that invalidates position (an underrun, a stream fault, a soft reset
+whose position cannot be read back) drops the anchor deliberately, so a stale
+origin cannot be reused. A motor release drops
 X and Y from it and keeps Z
 ([The grblHAL driver](grblhal-driver.md)). Z is never driven blind, homed or
 not: the lens carriage is referenced against the hall sensor's edge, low in

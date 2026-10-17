@@ -453,10 +453,22 @@ The operator's table of what each stop does is on
   through the same re-arm, or resets it.
 - **Jog cancel** is a controlled stop with the jog abandoned and the
   position kept.
-- **Soft reset** (`^X`) is a controlled deceleration into Alarm with the
-  latch relocked and the machine position retained; `$X` clears the alarm.
-  A termination signal during motion is treated the same way: controlled
-  stop, latch relocked, exit.
+- **Soft reset** (`^X`) during motion relocks the latch first. Then the
+  kernel ramps the motion down (`cnc/stop`), and the driver drops the
+  bytes that it had not shipped. When the ramp has ended, the driver
+  clears from the ring what the ramp did not reach, and reads the
+  position back from the kernel's step counters
+  ([`position`](kernel-module.md#position)). The steps that never played
+  come off the core's count, so the machine position counts only the
+  steps that the kernel played. The core keeps its reference. The machine
+  is in Alarm (`ALARM:3`), and `$X` clears the alarm. The ramp starts
+  only after the core has reported the alarm, which holds 100 ms. So the
+  kernel first plays up to 100 ms more of its queue at the commanded
+  rate. A position that cannot be read back is lost. The driver drops the
+  homing anchor and tells the sender, and the machine must be re-homed
+  before its coordinates are trusted. A termination signal during motion
+  is treated the same way: the latch relocked, the kernel's ramp, then
+  the exit.
 - **Underrun** stops motion instantly. An underrun while the kernel plays a
   stream is a fault, armed or not: alarm (`ALARM:17`), latch relocked,
   position invalidated, so the machine must be re-homed before its
@@ -511,8 +523,9 @@ The operator's table of what each stop does is on
 - **A controller crash or hang** is caught by forgectrl: it stops motion,
   relocks the latch, and restarts the controller ([forgectrl](forgectrl.md)).
 
-Anything that invalidates position (an underrun, a stream fault) drops the
-homing anchor deliberately, so a stale origin cannot be reused.
+Anything that invalidates position (an underrun, a stream fault, a soft
+reset whose position cannot be read back) drops the homing anchor
+deliberately, so a stale origin cannot be reused.
 
 ## The cooling client
 
@@ -637,8 +650,9 @@ successful home turns the driver's X and Y soft limits on with the bed as
 the envelope (from the home corner to the far edges, `$130` by `$131` unless
 the bed check measured them; [Homing](homing.md#the-far-edges)), whatever
 `$20` says,
-and whatever invalidates the position (an underrun, a stream fault, a new
-homing session) turns them off again
+and whatever invalidates the position (an underrun, a stream fault, a soft
+reset whose position cannot be read back, a new homing session) turns them
+off again
 ([Homing](homing.md#the-position-after-a-home)). In practice Z is referenced from the
 start: forgectrl sweeps the lens onto its hall edge before the controller
 exists, and the driver takes that reference as it loads its settings, which

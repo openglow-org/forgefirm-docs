@@ -129,7 +129,7 @@ disagree about whether the machine is armed.
 | Cycle start (`~`) | Resumes from the hold, lit from the first step: a pause is a sharp corner in time, and the corner rolloff governs its mark. If the grace closed the window during the pause, the button lights first and your press resumes the job. Under a standing pause-tier verdict the resume moves dark and is held again within a second, and the console says why. |
 | Your sender disconnects mid-job | A laser job is held where the cut stopped and the window closes. The next sender finds it in Hold: `~` lights the button and a press resumes it, or `^X` ends it. A motion-only job continues to its end. |
 | Jog cancel (`0x85`) | Controlled stop, jog abandoned, position kept. |
-| Soft reset (`^X`) | Controlled deceleration into Alarm, latch relocked, machine position retained; `$X` clears the alarm. |
+| Soft reset (`^X`) | The laser locks and the machine slows to a stop. The position stays true. The machine is in Alarm: `$X` clears it. If the console says that the position cannot be read back, home before you trust the coordinates ([Homing](homing.md)). |
 | Press the button mid-job | Pause; press again to resume (below). |
 | Open the lid or the interlock loop | The job is **canceled**, not paused (below). |
 | Ring runs dry (underrun) | Motion stops instantly. Under a playing stream it is a fault, armed or not: alarm, latch relocked, position invalidated; re-home before trusting coordinates. Outside the armed window, an underrun as motion starts raises no alarm and the job goes on, but the position is invalidated all the same: re-home before trusting coordinates ([Homing](homing.md)). |

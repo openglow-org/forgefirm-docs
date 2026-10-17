@@ -160,8 +160,8 @@ machine reads `Z only` rather than a plain no. If the lens cannot find its
 sensor the machine refuses to run at all and the panel says why: that is
 broken hardware, not a state to work around.
 
-Anything that invalidates position, an underrun, a stream fault, or a motor
-release, drops the
+Anything that invalidates position, an underrun, a stream fault, a soft reset
+whose position cannot be read back, or a motor release, drops the
 anchor deliberately, so a stale origin cannot be reused. Re-home before you
 trust coordinates again.
 

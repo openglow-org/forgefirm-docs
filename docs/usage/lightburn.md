@@ -66,9 +66,9 @@ head currently sits. Absolute machine zero never matters, which is the
 forgiving mode when you have not homed.
 
 `Absolute Coords` also works after a successful `$H`, or if the head was parked
-at the home corner when the controller started. After any Stop or alarm the
-absolute frame is stale until you re-home with `$H` or restart the controller
-with the head re-parked.
+at the home corner when the controller started. After anything that drops the
+position ([Homing](homing.md#running-unhomed)), the absolute frame is stale
+until you re-home with `$H` or restart the controller with the head re-parked.
 
 ## Operating basics
 
@@ -101,14 +101,14 @@ with the head re-parked.
   freely. The controller does nothing there (the hardware blocks the beam
   anyway), so a lid cycle while loading material never leaves LightBurn
   waiting.
-- **Stop** = soft reset: motion aborts with a controlled deceleration and
-  grblHAL raises an alarm with **position declared lost** (the stream queue
-  means up to about 40 mm of in-flight difference). It leaves the head where
-  it stopped. The return to the job start belongs to the lid and interlock
-  policy alone, so Stop never moves the machine on its own. Recovery: unlock
-  (`$X` in Console or LightBurn's prompt), jog the head clear, and carry on in
-  Current Position mode. Restart the controller with the head re-parked if you
-  want a clean absolute frame.
+- **Stop** = soft reset: the laser locks, the machine slows to a stop, and
+  grblHAL raises an alarm. The controller reads the position back from the
+  machine when it has stopped, so the coordinates stay true. It leaves the
+  head where it stopped. The return to the job start belongs to the lid and
+  interlock policy alone, so Stop never moves the machine on its own.
+  Recovery: unlock (`$X` in Console or LightBurn's prompt) and carry on. If
+  the console says that the position cannot be read back, home before you
+  trust the coordinates.
 - **Flow control.** The controller answers every line with `ok`, and its
   status report carries `Bf:` with the room left in its buffer. A line sent
   past that room is dropped whole and the job is aborted, so leave

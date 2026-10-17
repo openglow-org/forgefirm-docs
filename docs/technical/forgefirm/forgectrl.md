@@ -816,9 +816,10 @@ last one, whoever started it:
 `state` is `idle`, `running`, `done`, or `failed`, with the reason in words
 (the controller's error with the line that drew it, a timeout, `aborted`).
 `program` says whether the run is a posted program's. `POST /job/abort`
-stops a posted program with a soft reset, a controlled stop with the latch
-relocked, and waits for the run to end; the ladder and a laser burn are
-stopped where they were started, and the route says so. `POST
+stops a posted program with a soft reset
+([the grblHAL driver](grblhal-driver.md#faults)), and waits for the run to
+end; the ladder and a laser burn are stopped where they were started, and
+the route says so. `POST
 /controller/stop` remains the operator's stop under any holder. An aborted
 job leaves the controller in its alarm state, as a Stop from any sender
 does, and a program may not carry the `$X` that clears it: the caller asks
@@ -912,7 +913,7 @@ supervisor and remain only as manual emergency stops.
   motion decelerates and FIRE is severed at the kernel the moment the stop
   is requested, whatever the controller then does with its SIGTERM (the
   GRBL controller treats a termination signal during motion as a `^X`:
-  controlled stop, latch relocked, exit). Under the broker a child exit is
+  the latch relocked, the kernel's ramp, exit). Under the broker a child exit is
   not a final close of the pulse device, so these writes are the safing
   mechanism; both are harmless no-ops when the machine is already idle and
   latched. The safing writes are tried three times, 10 ms apart, before a
