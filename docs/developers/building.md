@@ -289,8 +289,10 @@ that the supervisor sets on every spawn (`GFSINK`,
 [`GF_PULSE_FD`](../technical/forgefirm/forgectrl.md#pulse-device-ownership),
 [`GF_REPORT_SECRET`](../technical/forgefirm/cooling-engine.md#job-state-reports))
 are left out, so a log from a machine shows whether the controller ran
-under any override, as long as the controller emits at `notice` or a more
-verbose level ([Levels](../technical/forgefirm/logging.md#levels)). Three
+under any override, as long as its disk level, `log_grblhal_disk`, is
+`notice` or more verbose: rsyslog keeps in the machine's log only the lines
+that the disk level lets through
+([Levels](../technical/forgefirm/logging.md#levels)). Three
 overrides keep the notice out of the machine's log: an `FFLOG_LEVEL` less
 verbose than `notice`, an `FFLOG_CONF` file whose two levels for the
 controller are both less verbose than `notice`, and an `FFLOG_SOCK` that
@@ -374,10 +376,10 @@ port, `/proc/stat`). The bench overrides are the `GFCOOL_*` tunables of the
 Nothing on a machine sets one. As it starts, the daemon logs one notice,
 `environment overrides in force:`, naming every variable of the whole set
 that is set, names only, so a log from a machine shows whether it ran under
-any override, as long as the daemon emits at `notice` or a more verbose
-level: the `FFLOG_*` variables act on this notice as on the controller's
-(above). When none is set, the daemon logs no notice. The list in
-`src/main.c` is held to the sources by `tests/test_routes.py`.
+any override, as long as its disk level, `log_forgectrl_disk`, is `notice`
+or more verbose: the `FFLOG_*` variables act on this notice as on the
+controller's (above). When none is set, the daemon logs no notice. The
+list in `src/main.c` is held to the sources by `tests/test_routes.py`.
 
 `FORGECTRL_SSHD_INIT`, which the SSH switch runs in place of
 `/etc/init.d/sshd`, is run as a program with no shell and only as an
