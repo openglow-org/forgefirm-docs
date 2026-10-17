@@ -489,7 +489,13 @@ anything printable) is posted back as written and runs as nothing.
 headless Chrome against the dev server's mock, from the documents to
 **Start using the machine** landing on the panel; on its way it answers a
 prompt whose options include one shaped like code and one with quotes, each
-shown as written, the code-shaped one posted as written and never run. And
+shown as written, the code-shaped one posted as written and never run. On
+the panel it then starts a diagnostic twice. The mock refuses a start as
+the daemon refuses one before the cooling engine's tick takes the thermal
+hardware back (409, `machine is not idle`). Refused once, the start goes
+again a second later, and the page shows the diagnostic started and never
+the refusal. Refused twice, the page shows the refusal after the second
+start and sends no third. And
 once, from `tests/host_setup.sh`, against the page the daemon serves,
 through a relay of the walk's own (`--daemon`), the button pressed by the
 switch word and the flow calibration run on the scripted loop, which finds
