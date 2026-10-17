@@ -154,6 +154,10 @@ Write, ASCII, -268435455 to 268435455
 The step count is a 28-bit waypoint counter; magnitudes at or above 2^28^
 are rejected with EINVAL rather than silently truncated.
 
+A write whose head sync fails is refused with EIO, as a [`run`](#run) is.
+A backward run whose history bound cannot be read counts as one with no
+history, and is refused with EPERM.
+
 ### max_backtrack
 
 Read, ASCII, steps
