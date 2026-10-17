@@ -141,8 +141,9 @@ The consequences:
 - A change to the own text of a test invalidates the earlier passes of that
   test and no other. A change to shared text invalidates every test in that
   module, every test in a module whose shared text imports it, and every
-  test whose own function imports it. A change to a shared judge
-  invalidates every test.
+  test whose own function imports it, counting an import that passes
+  through the shared text of other suite modules. A change to a shared
+  judge invalidates every test.
 - "Touched" is computed from the content hashes in the image. It is never
   declared by hand.
 

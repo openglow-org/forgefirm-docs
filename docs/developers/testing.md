@@ -300,8 +300,7 @@ forgetest/forgetest/         the package (standard library only)
   artifact.py                the export and the gate verification
   runner.py                  one run at a time, prompts, abort, takeover, queues
   baseline.py                the fresh-boot idle state around each run
-  hw.py / puls.py            the hardware readers; the dark job of the cloud and
-                             extension tests
+  hw.py / puls.py            the hardware readers; the dark job
   server.py / page.py / ui/  the HTTP API and the page (the access rules of forgectrl;
                              Bootstrap and the OpenGlow theme, shared with the panel)
   bench.py / coverage.py     the bench registry and the subprocess runner; the lint
