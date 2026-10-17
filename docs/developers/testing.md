@@ -77,7 +77,10 @@ are the laser-stream rules and the armed-window walk:
       re-arms a held job (the sender's `~` and the button);
     - a sender change that cancels a re-arm;
     - a lid opened on a job the button holds: canceled, returned to its
-      start, and not resumed by a later press.
+      start, and not resumed by a later press;
+    - a `^X` during a move: the kernel's stop (`cnc/stop` in
+      `GFSINK_ATTR_LOG`), Alarm with MPos at the X that the shipped
+      stream moved, and an unreferenced lens still held after `$X`.
 
 ## The frame-isolation harness
 
