@@ -277,17 +277,25 @@ GFSINK=/dev/glowforge grblHAL_glowforge -p 23 -e /data/forgefirm/EEPROM-glowforg
 | `GFSINK_ATTR_LOG` | Null-sink mode only. A null-sink controller writes no sysfs attribute; with this set it appends each write it would have made, as `<attribute> <value>`, to the file. The manual-home harness reads it. |
 | `GF_PULSE_FD` | The inherited pulse-device descriptor, under the supervision of forgectrl. |
 | `FORGECTRL_PORT` | The port the cooling client reports to. |
+| `GFHOME_CONF` | The shared settings file that the controller reads its keys from, in place of `/data/forgefirm/forgefirm.conf`. The host harnesses point it at a file of their own. |
 
 The driver reports a value that is out of range and uses the default. The
 `FFLOG_*` variables are the same as for forgectrl (below).
 
 As it starts, the controller logs one notice,
 `environment overrides in force:`, naming every variable it reads that is
-set, names only. The three variables that the supervisor sets on every
-spawn (`GFSINK`, `GF_PULSE_FD`, `GF_REPORT_SECRET`) are left out, so a log
-from a machine shows whether the controller ran under any override. When
-none is set, the controller logs no notice. The list in `src/main.c` is
-held to the sources by `serial_test`.
+set, names only; when none is set, it logs no notice. The three variables
+that the supervisor sets on every spawn (`GFSINK`,
+[`GF_PULSE_FD`](../technical/forgefirm/forgectrl.md#pulse-device-ownership),
+[`GF_REPORT_SECRET`](../technical/forgefirm/cooling-engine.md#job-state-reports))
+are left out, so a log from a machine shows whether the controller ran
+under any override, as long as the controller emits at `notice` or a more
+verbose level ([Levels](../technical/forgefirm/logging.md#levels)). Three
+overrides keep the notice out of the machine's log: an `FFLOG_LEVEL` less
+verbose than `notice`, an `FFLOG_CONF` file whose two levels for the
+controller are both less verbose than `notice`, and an `FFLOG_SOCK` that
+names another socket. The list in `src/main.c` is held to the sources by
+`serial_test`.
 
 **Test hooks.** These exist so the host harnesses can drive edges that need
 hardware on a machine. They are for the null-sink build, and nothing on a
@@ -300,6 +308,12 @@ machine sets them.
 | `GF_STATE_DIR` | Where the controller publishes `grbl.state` and `grbl.settings`. |
 | `gfcloud_home_cmd` | The homing runner to spawn for `$H`. Honored only without `GFSINK`. |
 | `laser_power_model`, `laser_floor_analog` | Select the retired analog rendering and its duty floor, which exist only as the harness's conservatism reference ([the grblHAL driver](../technical/forgefirm/grblhal-driver.md#laser-control)). |
+
+The other variables the controller reads are the stand-in engine's
+`GFSINK_STALL_MS`, `GFSINK_WRITE_STALL_MS` and `GFSINK_LATCH_LOG`
+([Test](testing.md#the-null-sink-controller)), and `GF_SWITCH_DEV`, the
+path of the switch device
+([the grblHAL driver](../technical/forgefirm/grblhal-driver.md#lid-interlock-and-button)).
 
 ### forgectrl
 
@@ -359,7 +373,9 @@ port, `/proc/stat`). The bench overrides are the `GFCOOL_*` tunables of the
 Nothing on a machine sets one. As it starts, the daemon logs one notice,
 `environment overrides in force:`, naming every variable of the whole set
 that is set, names only, so a log from a machine shows whether it ran under
-any override. When none is set, the daemon logs no notice. The list in
+any override, as long as the daemon emits at `notice` or a more verbose
+level: the `FFLOG_*` variables act on this notice as on the controller's
+(above). When none is set, the daemon logs no notice. The list in
 `src/main.c` is held to the sources by `tests/test_routes.py`.
 
 `FORGECTRL_SSHD_INIT`, which the SSH switch runs in place of
