@@ -469,10 +469,13 @@ monotonic clock with its reason (a preloaded clock stand-in), the cameras
 check (each shot served as captured; a lid nobody closes ends it with its
 reason), the bed check (refused unhomed; homed, a lid nobody closes ends it
 with its reason before the envelope opens; the keys the ends less 1 mm; a
-Grbl client's line ends it with nothing written), the Flow check (the
+Grbl client's line ends it with nothing written; a jog the port hangs up
+on, and one that holds past its 60 s wait, each end it with its reason and
+nothing written), the Flow check (the
 diagnostic's phases and result as the check's, a thin margin flagging the
 calibration), and the flow calibration at its first rung (the rung's duty
-goes to its diagnostic alone: the settings file is untouched while it runs,
+goes to its diagnostic alone, whose first trial heats at it: the settings
+file is untouched while it runs,
 after an abort, and after the daemon is killed mid-rung and started again).
 It runs the floor burn with no laser fired: refused without Focus on the
 record; a thickness outside the lens window is not stored and is asked again, with no
@@ -489,7 +492,9 @@ prompt whose options include one shaped like code and one with quotes, each
 shown as written, the code-shaped one posted as written and never run. And
 once, from `tests/host_setup.sh`, against the page the daemon serves,
 through a relay of the walk's own (`--daemon`), the button pressed by the
-switch word and the flow calibration run on the scripted loop: `GET /wiz`
+switch word and the flow calibration run on the scripted loop, which finds
+its bands at the second rung and writes that rung's duty beside the
+threshold: `GET /wiz`
 must carry the first-run fields the page reads, each with its type, the
 page's required steps must be the setup's, the run ends on the panel with
 the setup complete, and the login's session is read back from `GET /wiz`.
