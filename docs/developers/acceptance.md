@@ -106,7 +106,10 @@ The **domain fingerprint** of a test is a hash of three things:
   three. The walk follows no import from the `forgetest` package itself
   (`from .. import`), so a package module that a suite module imports is a
   judge too, as `puls.py` is. The registry, `catalog.py`, is the
-  exception: it judges nothing. The shared text of a module is every line
+  exception: it judges nothing. A suite module imports the package and its
+  siblings by the relative spelling alone (`from .. import`,
+  `from .x import`): the walk reads no absolute `forgetest` import, and a
+  host test refuses one. The shared text of a module is every line
   outside its `@test` functions, so the test text of an imported module is
   not part of the hash. `implementation_sha` in
   `forgetest/forgetest/catalog.py` computes it, and `SHARED_JUDGES` there
