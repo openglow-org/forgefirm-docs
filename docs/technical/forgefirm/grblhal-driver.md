@@ -466,9 +466,18 @@ The operator's table of what each stop does is on
   window: the kernel ran out of the previous stream's tail just before the
   new bytes landed. The driver acknowledges it, drops the anchor, asks for
   the run again, and takes the answer to that request as the answer.
-  Armed, that case fails safe too.
-- **After any stream fault** (an underrun, a kernel fault, a refused run, a
-  write error) the alarm is critical: `$X` is refused (error 79) until a
+  Armed, that case fails safe too. An empty ring at the retry's answer, or
+  at the stream's first run request, means that the new bytes are gone
+  (they played and ran out, or the ring was cleared): a fault.
+- **A stop by another writer** under a live stream (the cooling engine's
+  safing stop, a halt) is a fault too. While the driver feeds a stream, a
+  run that runs out of bytes ends in an underrun, never in idle, so a
+  kernel that stops running then was stopped by someone else. The driver
+  raises `ALARM:17`, relocks the latch, invalidates the position, and asks
+  for no run over what the ring still holds.
+- **After any stream fault** (an underrun, a stop by another writer, a
+  kernel fault, a refused run, a write error) the alarm is critical: `$X`
+  is refused (error 79) until a
   soft reset. The reset acknowledges the fault: the kernel is stopped and
   re-armed, and what the ring still held is cleared. Then `$X` unlocks, and
   the controller moves again without a restart. The position stays invalid

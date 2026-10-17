@@ -294,8 +294,9 @@ verbose level ([Levels](../technical/forgefirm/logging.md#levels)). Three
 overrides keep the notice out of the machine's log: an `FFLOG_LEVEL` less
 verbose than `notice`, an `FFLOG_CONF` file whose two levels for the
 controller are both less verbose than `notice`, and an `FFLOG_SOCK` that
-names another socket. The list in `src/main.c` is held to the sources by
-`serial_test`.
+names another socket. `serial_test` runs the controller's entry point to
+hold the notice to this, and holds the list in `src/main.c` to the
+sources.
 
 **Test hooks.** These exist so the host harnesses can drive edges that need
 hardware on a machine. They are for the null-sink build, and nothing on a

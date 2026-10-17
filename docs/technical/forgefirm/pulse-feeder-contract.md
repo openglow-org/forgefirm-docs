@@ -95,9 +95,14 @@ engine's place in the ring) is refused with `-EIO`, never with `-ENODATA`:
 an unreadable ring is not an empty one, and the module logs the fetch's
 error (`context fetch failed`). The grblHAL step backend
 ([grblHAL driver](grblhal-driver.md#from-g-code-to-pulse-bytes)) keeps its
-run request while `state` reads `running`, asks again once it reads `idle`,
-takes `idle` with `-ENODATA` as "already played", and takes any other
-refusal at `idle` as a stream fault ([Faults](grblhal-driver.md#faults)).
+run request while `state` reads `running`. While the backend owns bytes of
+the stream it feeds, any other state is a stream fault: with `streaming`
+set, a run out of data ends in `underrun`, never in `idle`. A request left
+over from a stream that has ended is made again once `state` reads `idle`:
+the backend takes `-ENODATA` there as "already played", and any other
+refusal at `idle` as a stream fault. `-ENODATA` at the backend's own run
+start, right after its first write, is a stream fault too
+([Faults](grblhal-driver.md#faults)).
 A stream that has faulted drops its request and asks for no run, and what
 the ring still holds waits for the reset.
 
