@@ -128,10 +128,9 @@ meet:
   ([The image and the BSP](image-and-bsp.md)).
 - The shipper's queue is bounded (default 200 ms) so a feed hold or a power
   override takes effect within that time.
-- The shipper logs only a fault and the start of a deferred run, through a
-  raw write. The shared `fflog` emitter uses a non-blocking socket, so a
-  stalled log daemon can never park a controller thread
-  ([Logging](logging.md)).
+- The shipper logs only faults and warnings, through a raw write. The
+  shared `fflog` emitter uses a non-blocking socket, so a stalled log
+  daemon can never park a controller thread ([Logging](logging.md)).
 - A feed that does fall behind is detected as an underrun and treated as a
   fault, never as silent damage (see "Faults" below).
 
@@ -469,12 +468,16 @@ The operator's table of what each stop does is on
   Armed, that case fails safe too. An empty ring at the retry's answer, or
   at the stream's first run request, means that the new bytes are gone
   (they played and ran out, or the ring was cleared): a fault.
-- **A stop by another writer** under a live stream (the cooling engine's
-  safing stop, a halt) is a fault too. While the driver feeds a stream, a
-  run that runs out of bytes ends in an underrun, never in idle, so a
-  kernel that stops running then was stopped by someone else. The driver
-  raises `ALARM:17`, relocks the latch, invalidates the position, and asks
-  for no run over what the ring still holds.
+- **A stop by another writer** (the cooling engine's safing stop, a halt)
+  that leaves bytes of a stream unplayed is a fault too. While the driver
+  feeds a stream, a run that runs out of bytes ends in an underrun, never
+  in idle, so a kernel that stops running then was stopped by someone
+  else. A stop that ends the run after the stream's end, short of its last
+  byte, leaves the rest of the stream in the ring, and the next run start
+  finds it: the driver asks for a run only over exactly the bytes that it
+  wrote for that run ([run](pulse-feeder-contract.md#run)). Either way the
+  driver raises `ALARM:17`, relocks the latch, invalidates the position,
+  and asks for no run over what the ring still holds.
 - **After any stream fault** (an underrun, a stop by another writer, a
   kernel fault, a refused run, a write error) the alarm is critical: `$X`
   is refused (error 79) until a

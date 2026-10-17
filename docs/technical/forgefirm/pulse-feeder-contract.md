@@ -86,23 +86,28 @@ duty to about 100 % (see [Power bytes](#power-bytes)).
 
 A run requested while the device is running is refused with `-EPERM`, as
 it is in the fault state. A run requested on an empty ring is refused with
-`-ENODATA`, logged at debug level. A live feeder meets `-ENODATA` most
-often at a job's end: the device refuses its run with `-EPERM` while it
-still plays a tail, the feeder asks again once the device reads idle, and
-by then the device has usually played the new bytes as a continuation of
-that tail. A run whose head sync fails (the module cannot read the
+`-ENODATA`, logged at debug level. Bytes appended while the device runs
+play as a continuation of that run, unless the run has already reached its
+end of data. A run whose head sync fails (the module cannot read the
 engine's place in the ring) is refused with `-EIO`, never with `-ENODATA`:
 an unreadable ring is not an empty one, and the module logs the fetch's
 error (`context fetch failed`). The grblHAL step backend
-([grblHAL driver](grblhal-driver.md#from-g-code-to-pulse-bytes)) keeps its
-run request while `state` reads `running`. While the backend owns bytes of
-the stream it feeds, any other state is a stream fault: with `streaming`
-set, a run out of data ends in `underrun`, never in `idle`. A request left
-over from a stream that has ended is made again once `state` reads `idle`:
-the backend takes `-ENODATA` there as "already played", and any other
-refusal at `idle` as a stream fault. `-ENODATA` at the backend's own run
-start, right after its first write, is a stream fault too
-([Faults](grblhal-driver.md#faults)).
+([grblHAL driver](grblhal-driver.md#from-g-code-to-pulse-bytes)) reads
+`state` before it asks for a run. While `state` reads `running`, it asks
+for none: its bytes go in behind what the device plays, and its request
+waits and ends with its stream. At `underrun` and at `fault` it asks, and
+[Faults](grblhal-driver.md#faults) says what it does with the answer. At
+any other state, it asks for a run only when the ring holds exactly the
+bytes that it wrote for that run. The processed count of
+[`position`](kernel-module.md#position) must equal the backend's own count
+of bytes written before the run's first byte, and the program size must
+equal its count of bytes written, until the size saturates. Anything else
+is a stream fault: the residue of a stop that another writer made, or
+bytes that another writer added. So is a `state` or a count that cannot be
+read. Past its run start, while the backend owns bytes of the stream it
+feeds, any state but `running` is a stream fault. With `streaming` set, a
+run out of data ends in `underrun`, never in `idle`. `-ENODATA` at the
+backend's own run start is a stream fault too.
 A stream that has faulted drops its request and asks for no run, and what
 the ring still holds waits for the reset.
 
