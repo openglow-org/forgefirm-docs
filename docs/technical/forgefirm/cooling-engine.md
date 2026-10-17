@@ -771,10 +771,14 @@ mode=idle|run|cooldown & armed=0|1 [& model=density|analog]
   timeout holds the controllers' own rule inside it: a controller treats a
   verdict older than 2 s as a hold and reports every second. The report
   route records each report on the HTTP server's own threads, so a stall
-  of the engine's thread never ages the reports: the engine comes back to
-  an armed window it still acknowledges, and the job the controller held
-  on its stale verdict resumes with no press. Reports silent past the 5 s
-  are the dead-man below.
+  of the engine's thread never ages the reports, and the stall alone never
+  trips the dead-man below. What the job that the controller held on its
+  stale verdict needs to resume is the controller's rule: the GRBL
+  controller's armed window counts its grace down through a hold
+  ([The armed window](grblhal-driver.md#the-armed-window)), and the cloud
+  client locks the latch under any armed `fire_ok=false`
+  ([An extension's hold](#an-extensions-hold)). Reports silent past the
+  5 s are the dead-man below.
 - Silence with the armed window open, or with `cnc/state` still reading
   `running` (cloud mode preloads whole jobs, so the ring can play for
   minutes with no live feeder), is the **hung-controller dead-man**: the
