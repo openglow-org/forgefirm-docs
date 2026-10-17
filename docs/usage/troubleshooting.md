@@ -84,9 +84,9 @@ when; this is what you do.
 
 | Verdict | What you see | What to do |
 |---|---|---|
-| `SUSPECT` | A warning and a hold; the machine re-checks flow at once | Wait. A clean re-check resumes the job by itself. Expect one on the first checks after you stop and start the pump by hand: that is an airlock, and it clears. |
+| `SUSPECT` | A warning and a hold; the machine re-checks flow at once | Wait. A clean re-check ends the hold and the job resumes; if the button lights, press it. Expect one on the first checks after you stop and start the pump by hand: that is an airlock, and it clears. |
 | `FAULT` | Fire gated, the hold stands | Check the pump, the lines, and the coolant level. Run **flow verify** on the Diagnostics tab; if the threshold no longer suits the loop, run **flow calibrate** ([Diagnostics](diagnostics.md)). |
-| `OVERTEMP` | A hold with the cooling airflow forced on | Wait. The job resumes by itself once the upstream coolant is under the resume gate (31 °C by default). A jog is canceled instead of held. |
+| `OVERTEMP` | A hold with the cooling airflow forced on | Wait. The hold ends once the upstream coolant is under the resume gate (31 °C by default), and the job resumes; if the button lights, press it. A jog is canceled instead of held. |
 | `CRITICAL` | Fire blocked, hold, no resume for the rest of the job; a resume under it is held again | Reset the job and let the loop cool. The next job judges the line afresh. A loop that ran through the pause tier and kept climbing needs looking at. |
 | `COLD` | Fire blocked; the coolant is under the floor | Let the room and the machine warm up. The gate clears a degree above the floor. |
 | `WARMUP` | The job holds with the loop heater on and the fans idle | Wait for the coolant to reach the warm-up gate; the job then runs and verifies flow. |

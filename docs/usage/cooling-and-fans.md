@@ -132,7 +132,7 @@ or an overheating loop. The banner says so.
 | Second consecutive over limit | `FAULT`: fire gated, hold stands until you resolve it. |
 | Suspicion unresolved past the budget | Escalates to `FAULT`. |
 | Three cleared suspicions in one job | Aggregated "check your coolant" warning. |
-| Upstream coolant above 33 °C | `OVERTEMP`: hold + forced cooling; auto-resume under 31 °C. |
+| Upstream coolant above 33 °C | `OVERTEMP`: hold + forced cooling; released under 31 °C. |
 | Upstream coolant at or over 38 °C during a job | `CRITICAL`: fire blocked, hold, no resume this job (a resume under it is held again within a second; reset the job); the ceiling's hold stands until the loop is under 31 °C. |
 | Coolant under `cool_temp_min` | `COLD`: fire blocked, hold; released a degree above the floor. |
 | A session opened under `cool_temp_start` | `WARMUP`: hold with the loop heater on and the fans idle until the gate is reached, then the run starts with a flow check. |
@@ -154,9 +154,12 @@ or an overheating loop. The banner says so.
 
 In GRBL mode the verdicts fall into two tiers as you see them. A pause-tier
 hold (`OVERTEMP`, `COLD`, `WARMUP`, `SENSOR`, `FLAME`, `BUMP`, or a verdict
-gone stale) holds the job where it is and resumes it by itself when the
-verdict clears, with no press. A fail-tier verdict (`FIRE`, `CRASH`,
-`AIRFLOW`, `CRITICAL`) ends the job with alarm 3 and the laser locked
+gone stale) holds the job where it is. When the verdict clears, the job
+resumes by itself, unless the pause lasted long enough to disarm the laser:
+then the button lights, and your press resumes the job
+([GRBL mode](grbl-mode.md#arming-the-button-press-is-part-of-every-job)).
+A fail-tier verdict (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`) ends the job
+with alarm 3 and the laser locked
 ([GRBL mode](grbl-mode.md#pausing-stopping-and-faults)). In cloud mode the
 same tiers pause the print or cancel it.
 

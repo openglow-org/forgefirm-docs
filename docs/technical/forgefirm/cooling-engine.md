@@ -385,9 +385,9 @@ and it clears on its own.
 | Verdict | Effect |
 |---|---|
 | `OK` | Fire permitted. |
-| `SUSPECT` | Hold requested, cut airflow held; auto-resumes on a clean re-check. |
+| `SUSPECT` | Hold requested, cut airflow held; released on a clean re-check. |
 | `FAULT` | Fire gated and the hold stands, for the operator to resolve. |
-| `OVERTEMP` | Hold with forced cooling airflow; auto-resumes below the resume gate. |
+| `OVERTEMP` | Hold with forced cooling airflow; released below the resume gate. |
 | `COLD` | The coolant under `cool_temp_min`: fire blocked, hold; back a degree above it. |
 | `WARMUP` | A session opened under `cool_temp_start`: held with the loop heater on and the fans idle until the gate is reached, then run with the flow check requested. |
 | `CRITICAL` | The coolant at or over the critical line in a run session: fire blocked, hold, no resume this job. |
@@ -440,12 +440,14 @@ holds only while `ext_enabled` is 1 and the safe-mode file
 entering safe mode, ends every hold at the next tick, whatever has become
 of the host that wrote it.
 
-The two controllers treat the pause as they treat every pause: the GRBL
-controller holds the job, keeps the armed window, and resumes lit when the
-hold clears; the cloud client locks the latch under any armed
-`fire_ok=false`, so after a hold clears in cloud mode the operator presses
-the button to resume, and a hold that outlasts `cloud_hold_max_s` cancels
-the print.
+The two controllers treat the pause as they treat every pause. The GRBL
+controller holds the job and resumes it lit when the hold clears: with no
+press while its armed window is open, and after a press once the window's
+grace has closed it
+([The cooling client](grblhal-driver.md#the-cooling-client)). The cloud
+client locks the latch under any armed `fire_ok=false`, so after a hold
+clears in cloud mode the operator presses the button to resume, and a hold
+that outlasts `cloud_hold_max_s` cancels the print.
 
 ## Over-temperature
 
@@ -454,9 +456,9 @@ The engine uses the factory's coolant windows:
 - **Run ceiling 33 °C** (`cool_temp_max`): above this, the verdict goes
   `OVERTEMP` with a hold request and cooling airflow forced on.
 - **Resume gate 31 °C** (`cool_temp_resume`): below this, recovery is
-  signaled and the controller resumes automatically. It is always kept
-  below the ceiling, and when a header tightens the ceiling the resume gate
-  follows it down by the configured gap.
+  signaled (`resume_ok`). It is always kept below the ceiling, and when a
+  header tightens the ceiling the resume gate follows it down by the
+  configured gap.
 - **Critical line 38 °C** (`cool_temp_critical_c`): a second tier above the
   ceiling, and a different kind. At or over it during a run session the
   verdict goes `CRITICAL`, fire is blocked, the job holds, and there is no
@@ -473,9 +475,11 @@ The **upstream** sensor gates, because it reads the coolant actually
 entering the tube.
 
 What the operator sees depends on what the machine is doing. A running
-cycle takes a feed hold and resumes by itself once the loop recovers; the
-sender shows the hold state and a warning message. A jog is canceled instead
-(a jog cannot be held). Fire stays gated for the whole excursion.
+cycle takes a feed hold and resumes once the loop recovers, after a press if
+the hold outlasted the armed window's grace
+([The cooling client](grblhal-driver.md#the-cooling-client)); the sender
+shows the hold state and a warning message. A jog is canceled instead (a
+jog cannot be held). Fire stays gated for the whole excursion.
 
 ## Low temperature: the floor and the warm-up hold
 

@@ -490,8 +490,9 @@ The operator's table of what each stop does is on
   kernel leaves that state only on an `enable` write, once the fault line
   has cleared ([The kernel module](kernel-module.md#enable)).
 - **The cooling verdict** has two tiers ([The cooling client](#the-cooling-client)):
-  the pause tier is a feed hold under the open window, resumed with no
-  press when the verdict clears; the fail tier ends the job with `ALARM:3`.
+  the pause tier is a feed hold, resumed when the verdict clears, with no
+  press while the window is still open; the fail tier ends the job with
+  `ALARM:3`.
 - **Late step events.** A producer that falls behind real time (starved of
   CPU) has its late events clamped forward onto later bytes, and the clamp
   is counted. Unarmed that is a warning in the log and the move completes.
@@ -542,9 +543,12 @@ two channels ([The cooling engine](cooling-engine.md) owns both formats):
       standing verdict (the button, `~`, a sender) moves dark and is held
       again within the next poll with the sender told why, and the clean
       verdict's `resume_ok` resumes the hold the driver took, with no new
-      press. The pause tier never writes the latch: a lock sets the hardware
-      button latch, which only a press clears, so a lock belongs to the fail
-      tier alone.
+      press while the window is open. The grace counts down through the
+      hold, so once it has closed the window the resume re-arms first: the
+      button lights, and the press resumes the job
+      ([The armed window](#the-armed-window)). The pause tier never writes
+      the latch: a lock sets the hardware button latch, which only a press
+      clears, so a lock belongs to the fail tier alone.
 - **The fire gate.** The stream engine masks the FIRE bit on every tick with
   a gate the laser module publishes: the window, and the verdict's
   `fire_ok`, held open through the pause tier's first deceleration. A gate
