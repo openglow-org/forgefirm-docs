@@ -40,17 +40,44 @@ When a source repository changes:
    components are pinned in `meta-forgefirm`.
 3. Run `bitbake -c fetch <recipe>` to make sure that the pin resolves.
 
-Three couplings cross the repositories:
+These couplings cross the repositories:
 
 - The CI of `grblHAL-glowforge` gets the laser harnesses from `forgefirm` at
   the head of `master`, unpinned. Push a harness change to `forgefirm` before
   the driver change that needs it.
-- `holds_wire_test` is built from both sides, unpinned: the CI of
-  `forgectrl` builds it against `forgeext` at the head of `main`, and the
-  `holds-wire` job of the CI of `forgeext` builds it against `forgectrl` at
-  the head of `main`. A change to the hold-file wire that needs both sides
-  fails the CI of whichever of the two repositories is pushed first, until
-  the other is pushed. Push the two together.
+- The CI of `forgectrl` gets the image's `rsyslog.conf` and the ulfius
+  recipe, with its revision and its patches, from `forgefirm` at the head of
+  `master`, unpinned. Push a change to either one to `forgefirm` before the
+  `forgectrl` change that needs it.
+- The CI of `forgeext` gets the image's rule file, `ffx.nft`, from
+  `forgefirm` at the head of `master`, unpinned. Push a rule-file change to
+  `forgefirm` before the `forgeext` change that matches it.
+- The CIs of `forgectrl` and `forgeext` build `holds_wire_test` from each
+  other ([Continuous integration](testing.md#continuous-integration)): a
+  change to the hold-file wire that needs both sides fails the CI of
+  whichever is pushed first. Push the two together.
+- The CI of `kernel-module-glowforge` cross-builds the module against the
+  BSP from `meta-openglow` at the head of `scarthgap`, unpinned. Push
+  `meta-openglow` before a module change that needs a BSP change.
+- The CI of `python3-gfhardware` runs its tests against
+  `Glowforge-Utilities`
+  ([Continuous integration](testing.md#continuous-integration)). Push a
+  `Glowforge-Utilities` change before the `python3-gfhardware` change that
+  needs it.
+- The `forgetest-ci` workflow of `forgefirm` reads the BSP recipes and their
+  pins from `meta-openglow` at the head of `scarthgap`, unpinned, for the
+  tree manifest that the coverage lint reads. Push a BSP pin bump to
+  `meta-openglow` before the `forgefirm` coverage change that needs it.
+- The `forgetest-ci` workflow of `forgefirm` and the check of
+  `forgefirm-extensions-catalog` each compare the extension key and the
+  catalog's address with the other repository at the head of its default
+  branch ([Continuous integration](testing.md#continuous-integration)). A
+  change to either fails the CI of whichever is pushed first. Push the two
+  together.
+- The CI of each OpenGlow extension package runs the shared workflow and
+  the kit of `forgeext` at the head of `main`
+  ([A repository for your package](extensions.md#a-repository-for-your-package)).
+  Push a kit change to `forgeext` before the package change that needs it.
 - The page of the acceptance tool shares its theme and its vendored
   Bootstrap with the panel of forgectrl, byte for byte. Land a UI change in
   forgectrl first. Push it and pin it. Only then does the `forgefirm` CI
