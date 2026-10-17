@@ -326,8 +326,10 @@ latch, when any of these happens:
 - the cooling verdict's fail tier (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`):
   the latch locks, the job is reset the way `^X` resets it, and `ALARM:3`
   says why ([The cooling client](#the-cooling-client));
-- on alarm, homing, reset, or a stream fault: at once, except that a soft
-  reset's close waits for the core's alarm report ([Faults](#faults)).
+- on homing, a stream fault, or a reset at rest: at once. A soft reset
+  during motion, and an alarm the core reports before the driver's poll
+  sees it, close the window after the core's alarm report
+  ([Faults](#faults)).
 
 Nothing widens the window. A jog under an open window ships dark and does not
 restart the grace, and the pause tier of the verdict holds the job under the
