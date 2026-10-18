@@ -346,7 +346,12 @@ The extension root is `/data/forgefirm/ext`:
 | `lock` | The host's lock, taken around every change to the root |
 | `state.json` | What no package can say about itself: the tier and the key that signed it, its account of the pool (`ffx0` to `ffx31`, the lowest free one), the operator's grants, enabled, quarantined, a count of the operator's enables, and a stamp every install writes anew |
 
-An update keeps the version it replaces; the one before that is removed. `state.json` is written whole and renamed into
+An update keeps the version it replaces; the one before that is removed.
+`current` turns to the new version before the state is written; an
+install that fails or ends between the two is turned back, by the
+install itself or, after a crash, by the next command that prepares the
+root, so that `current` always names the version `state.json` names.
+`state.json` is written whole and renamed into
 place, and a state file this program did not write (another schema, an
 account outside the pool or held twice, a grant for a capability that needs
 none) is refused whole rather than guessed at.
