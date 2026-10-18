@@ -1143,12 +1143,17 @@ inherited fd; the real-time feed path is never proxied.
   the machine is on; there is no idle-rail-off policy.** The stepper drivers
   can come out of any power-up unserviceable, so each cycle is a fresh
   gamble and the cheapest policy is not to cycle. With a brokered fd in play
-  no client writes the rail: no client drops it on a handback or a takeover,
+  no client cycles the rail: no client drops it on a handback or a takeover,
   takeover settles are skipped because the rail never went down (an
   emergency halt may still disable it deliberately), and the GRBL controller
   writes `cnc/enable` at init and at homing resume only when it runs
   standalone, on a device it opened itself (listed in the ownership table
-  below).
+  below). The cloud clients, `gfcloud.py` and the `gfhome.py` homing
+  runner, write `cnc/enable` once at their start, on the brokered fd and
+  standalone alike. That write is not a rail cycle: it is never paired with
+  a `cnc/disable`, and on a device already enabled it changes nothing
+  ([Kernel module](kernel-module.md#enable)). A cloud client writes
+  `cnc/disable` at its shutdown only when it runs standalone.
 
 ### Watchdog scope
 
@@ -1201,7 +1206,7 @@ mode. Readers are unrestricted. This table is normative.
 |---|---|---|---|
 | `thermal/*` fans, pump, TEC, heater; `head/air_assist_pwm`; `head/purge_air` | forgectrl engine (plus the controller's stale-verdict fallback) | forgectrl engine (plus fallback) | forgectrl runner, through the engine's guarded diag writes (take/release; fire blocked) |
 | `cnc/*` motion, `/dev/glowforge` ring | GRBL controller, through the brokered fd | cloud client, through the brokered fd | none (controller suspended) |
-| `cnc/enable`, `cnc/disable` (40 V rail) | forgectrl (a standalone controller, no broker, enables at init; rail policy above) | forgectrl | forgectrl |
+| `cnc/enable`, `cnc/disable` (40 V rail) | forgectrl (a standalone controller, no broker, enables at init; rail policy above) | forgectrl (the cloud client enables once at its start; rail policy above) | forgectrl |
 | `cnc/laser_latch` | GRBL controller (locked by forgectrl across handovers and on writer death) | cloud client (same) | none |
 | Button LEDs (`/sys/class/leds/button_led_*`) | GRBL controller (arm flow) | cloud client | none |
 | Head and lid illumination (camera lamps) | forgectrl (`lamp` on snapshot); the lid lamp's idle level is the `lid_lamp_idle` setting (0 to 255, default 236), asserted at daemon start, on a settings change, and at every controller spawn | the cloud client drives the lid lamp while it runs (its `LLvl`); forgectrl re-asserts the idle level at the next spawn | forgectrl |

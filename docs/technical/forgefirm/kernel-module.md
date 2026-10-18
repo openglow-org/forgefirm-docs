@@ -279,11 +279,11 @@ Writing "1" switches the device to the "disabled" state.
 
 Write, ASCII, 1
 
-Writing "1" switches the device to the "enabled" (idle) state. From
-"disabled" this powers the steppers on. From "fault" this is the explicit
-recovery lever: it clears the latched faults and returns to idle, but only
-once every non-ignored fault line has physically cleared. A still-asserted
-line refuses with EPERM.
+Writing "1" switches the device to the "enabled" (idle) state. From "idle"
+it changes nothing. From "disabled" this powers the steppers on. From
+"fault" this is the explicit recovery lever: it clears the latched faults
+and returns to idle, but only once every non-ignored fault line has
+physically cleared. A still-asserted line refuses with EPERM.
 
 The rail policy (who writes `enable` and `disable`, and why the 40 V rail
 stays up while the machine is on) is on
