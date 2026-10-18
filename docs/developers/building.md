@@ -377,13 +377,20 @@ port, `/proc/stat`). The bench overrides are the `GFCOOL_*` tunables of the
 [cooling engine](../technical/forgefirm/cooling-engine.md), and
 `FORGECTRL_FLAG_EVERY`, a drill of the
 [video pipeline's frame health](../technical/forgefirm/video-pipeline.md#frame-health).
-Nothing on a machine sets one. As it starts, the daemon logs one notice,
-`environment overrides in force:`, naming every variable of the whole set
-that is set, names only, so a log from a machine shows whether it ran under
-any override, as long as its disk level, `log_forgectrl_disk`, is `notice`
-or more verbose: the `FFLOG_*` variables act on this notice as on the
-controller's (above). When none is set, the daemon logs no notice. The
-list in `src/main.c` is held to the sources by `tests/test_routes.py`.
+Nothing on a machine sets one. Three of the seams are test hooks, honored
+only in a host-test run (`FORGECTRL_HOST_TEST=1`): `GF_SYSFS_ROOT` (the
+module's sysfs tree), `GF_SWITCH_DEV` (the switch device) and `GF_RUN_DIR`
+(the run directory). The sources read them only through one gate
+(`src/testhook.h`); in any other run each reader takes its machine path,
+and the daemon logs a warning, `test hooks set and ignored, not a
+host-test run:`, naming them. As it starts, the daemon logs one notice,
+`environment overrides in force:`, naming every override that is set and
+every test hook in force, names only, so a log from a machine shows whether
+it ran under any override, as long as its disk level, `log_forgectrl_disk`,
+is `notice` or more verbose: the `FFLOG_*` variables act on this notice as
+on the controller's (above). When none is set, the daemon logs no notice.
+The two lists in `src/main.c` (`ENV_OVERRIDES`, `TEST_HOOKS`) are held to
+the sources by `tests/test_routes.py`.
 
 `FORGECTRL_SSHD_INIT`, which the SSH switch runs in place of
 `/etc/init.d/sshd`, is run as a program with no shell and only as an
