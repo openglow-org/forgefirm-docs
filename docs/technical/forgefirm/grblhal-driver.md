@@ -357,9 +357,12 @@ The safety inputs are `src/glowforge_switches.c`. The lid switches and the
 remote-interlock loop drive the core's safety-door signal. The `doors` bit
 (both lid switches closed, the series combination the hardware chain sees)
 and the `interlock` bit (loop open) are read from the gpio-keys switch
-device; the switch map is under [forgectrl](forgectrl.md). On hardware the
-device must be the one the device tree names `switches` (`GF_SWITCH_DEV`
-points a bench at another path). A device that cannot be opened refuses the
+device; the switch map is under [forgectrl](forgectrl.md). The
+device must be the one the device tree names `switches`; on a host,
+`GF_SWITCH_DEV` points a null-sink run at another path, a test hook the
+controller ignores with `GFSINK` set
+([Building](../../developers/building.md#grblhal-glowforge)). A device
+that cannot be opened refuses the
 arm, and a read that fails is never "still closed": a failing read ends an
 arm wait, and a lid cancel in flight goes on to its reset and its park
 without waiting on the device.

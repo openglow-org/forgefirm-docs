@@ -311,6 +311,7 @@ sets them.
 
 | Variable or key | Purpose |
 |---|---|
+| `GF_SWITCH_DEV` | The switch device's path, in place of the one the device tree names `switches`, so a host test can hand the controller another input device ([the grblHAL driver](../technical/forgefirm/grblhal-driver.md#lid-interlock-and-button)). |
 | `GF_SWITCH_FILE` | A file-backed `EV_SW` word, so a harness can drive the lid, interlock and button edges. Read only when no switch device opens. |
 | `GF_VERDICT_FILE` | A cooling verdict file the harness writes, in place of the engine's. |
 | `GF_STATE_DIR` | The state directory, default `/run/forgefirm`: where the controller publishes `grbl.state` and `grbl.settings`, opens its control socket `grbl.ctl`, reads the lens marker `lens.home` and keeps the release marker `motors.released`. |
@@ -319,9 +320,7 @@ sets them.
 
 The other variables the controller reads are the stand-in engine's
 `GFSINK_STALL_MS`, `GFSINK_WRITE_STALL_MS` and `GFSINK_LATCH_LOG`
-([Test](testing.md#the-null-sink-controller)), and `GF_SWITCH_DEV`, the
-path of the switch device
-([the grblHAL driver](../technical/forgefirm/grblhal-driver.md#lid-interlock-and-button)).
+([Test](testing.md#the-null-sink-controller)).
 
 ### forgectrl
 
