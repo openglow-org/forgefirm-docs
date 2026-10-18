@@ -144,12 +144,12 @@ has who may ask, and how the claim ends).
 M-code wait, no armed or arming laser, no open envelope, and the kernel's
 motion idle; and `busy:sender` while the sender is in the middle of a line,
 has one waiting or not yet answered, or sent one within the last 2 s. A
-connected client that is only polling `?` is quiet, and is disconnected.
+connected sender that is only polling `?` is quiet, and is disconnected.
 
 Otherwise the sender reads
 `[MSG:The machine is in use: senders are kept out for now]` and is
-disconnected, and every client that connects from the network is sent the
-same line and closed, with no banner and no change of session. A client
+disconnected, and every sender that connects from the network is sent the
+same line and closed, with no banner and no change of session. A sender
 from this machine's own addresses (the loopback) connects as always: the
 machine daemon's own job runner is one, and a package's job runs through it.
 The keep-out holds until `sender in` or a controller restart, whatever
@@ -162,7 +162,7 @@ Host tests on the null-sink controller build, in the driver's CI:
 
 - `ctlport_test.py`: every reply routed to its source with the Grbl sender's
   response count exact (CR LF clients and empty lines included); the
-  sender-goes-first hold; **a client polling `?` with a CR LF behind it:
+  sender-goes-first hold; **a sender polling `?` with a CR LF behind it:
   every port jog accepted, a 60 mm port jog run whole,
   one `ok` per poll, and a real line still canceling a port jog**; the
   refusals; one client, and a reconnect right after a close; the dead-man;
@@ -184,10 +184,10 @@ Host tests on the null-sink controller build, in the driver's CI:
   count exact and the sender told the mode, and its refusals during a
   program and at a package's M-code.
 - `ctlport_test.py`'s keep-out: `sender out` refused during a dwell, within
-  2 s of a line, and while a program moves; the quiet client disconnected
+  2 s of a line, and while a program moves; the quiet sender disconnected
   after the message; the keep-out outliving the port's client; and
   `sender in` letting the network back in. The driver's `serial_test` holds
-  the peer classification, the drop, and a client from the network turned
+  the peer classification, the drop, and a sender from the network turned
   away with the session unchanged while one from the loopback is admitted.
 
 forgectrl's side is `grblport_test` in forgectrl's CI: the sets, a
