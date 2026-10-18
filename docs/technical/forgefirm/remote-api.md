@@ -62,7 +62,7 @@ token from the URL.
 | `machine.read` | `GET /status`, `GET /cool/status`, `GET /mode`, `GET /grbl/settings`, `GET /motion/state`, `GET /job` |
 | `events` | `GET /events` ([the event stream](forgectrl.md#the-event-stream)): three streams in all, one per address |
 | `camera.lid`, `camera.head` | `GET /cam/snapshot`, `GET /cam/stream`, `GET /cam/h264` for the camera named by `cam` (the lid camera when absent); `GET /cam/status` with either |
-| `motion.jog` | `POST /motion/jog`, `POST /motion/cancel`: a bounded jog with the laser off, beside a connected Grbl client, and its cancel ([the controller port](controller-port.md)) |
+| `motion.jog` | `POST /motion/jog`, `POST /motion/cancel`: a bounded jog with the laser off, beside a connected Grbl sender, and its cancel ([the controller port](controller-port.md)) |
 | `motion.job` | `POST /job`, `POST /job/abort`: a G-code program run with the machine as its own sender ([the job runner](forgectrl.md#the-job-runner)) |
 
 The list is closed. A token cannot be granted anything outside it, so no
@@ -73,7 +73,7 @@ firmware slots, SSH, the camera key, the fuse identity, or another token.
 `motion.job` moves the head and can fire the laser, under the rules every
 sender is under: every arm gate stands, and the first laser-on line of every
 job waits for a press of the button on the machine. A job is refused while a
-Grbl client is connected or anything else holds the machine. `unlock=1`
+Grbl sender is connected or anything else holds the machine. `unlock=1`
 rides on `motion.job`: the program that may run a job may clear the alarm
 its own abort left.
 

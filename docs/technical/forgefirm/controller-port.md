@@ -40,17 +40,17 @@ the requests.
 
 | Request | Reply | What it does |
 |---|---|---|
-| `state` | One JSON object | `state` (the Grbl state name), `sender` (a Grbl client is connected), `port_jog` (the jog in progress is the port's), `released` (the X and Y motors are released), `mpos` (machine position, mm), `homed` (the homed-axes mask), `envelope_open` (the bed check's envelope is open), `mcode` (the M-code a job waits at, `{"seq", "code", "words"}`, or `null`), `sender_out` (senders from the network are kept out), `tray` (the crumb tray's mode, `in` or `out`) |
+| `state` | One JSON object | `state` (the Grbl state name), `sender` (a Grbl sender is connected), `port_jog` (the jog in progress is the port's), `released` (the X and Y motors are released), `mpos` (machine position, mm), `homed` (the homed-axes mask), `envelope_open` (the bed check's envelope is open), `mcode` (the M-code a job waits at, `{"seq", "code", "words"}`, or `null`), `sender_out` (senders from the network are kept out), `tray` (the crumb tray's mode, `in` or `out`) |
 | `jog <words>` | `ok`, `error:<n>`, or `busy:<why>` | Runs `$J=<words>`. `<words>` is held to the characters a jog needs (capital letters, digits, `.`, `-`, `+`, and spaces); anything else answers `error:invalid` |
 | `cancel` | `ok` | Cancels a port jog in progress. It does nothing to a sender's own jog |
 | `release` | `ok`, `error:<n>`, or `busy:<why>` | `$MD`: releases the X and Y motors |
 | `energize` | `ok`, `error:<n>`, or `busy:<why>` | `$ME`: energizes them |
-| `home` | `ok`, `error:<n>`, `error:mode`, or `busy:<why>` | `$H`, only while `homing_mode = manual`, where it moves nothing, or only the jog to the origin a manual home offset asks for, and answers once the head has stopped. Under every other method it answers `error:mode`: a homing session is a Grbl client's to start |
+| `home` | `ok`, `error:<n>`, `error:mode`, or `busy:<why>` | `$H`, only while `homing_mode = manual`, where it moves nothing, or only the jog to the origin a manual home offset asks for, and answers once the head has stopped. Under every other method it answers `error:mode`: a homing session is a Grbl sender's to start |
 | `envelope open\|apply` | `ok`, `error:homed`, or `busy:state` | The Setup page's bed check: `open` sets X's and Y's far edges to the axis travel plus 30 mm, and `apply` sets them from `envelope_x_mm` and `envelope_y_mm` again, without a home ([Homing](homing.md#the-far-edges)). Both need X and Y homed (`error:homed`), and the machine Idle with no armed window (`busy:state`) |
 | `tray in\|out` | `ok`, `error:saved`, `error:invalid`, or `busy:<why>` | Runs `M103 P0` or `M103 P1`, the crumb tray's mode ([The grblHAL driver](grblhal-driver.md#the-crumb-tray)), which moves nothing, and answers once the Z frame has changed. Needs Idle (`busy:state`), and is refused while a job waits at a package's M-code (`busy:mcode`). `error:saved` means the mode could not be saved, and did not change |
 | `mcodes <list>` | `ok` or `error:invalid` | The M-codes packages answer now: `-` for none, or numbers from 160 to 179, each once, comma separated. A list with any other form leaves the table as it was ([A package's M-code](extensions.md#a-packages-m-code)) |
-| `mcode_result <seq> ok\|fail [<words>]` | `ok`, `error:stale`, or `error:invalid` | The answer to the M-code `state` names under `seq`. The words are printable, with no brackets, at most 96 bytes; they go to the Grbl client in a `[MSG:]`. An answer under another `seq`, or a second one, is stale |
-| `sender out` | `ok`, `busy:state`, or `busy:sender` | Disconnects the Grbl client and keeps every client from the network out, only on an idle machine ([below](#keeping-the-sender-out)) |
+| `mcode_result <seq> ok\|fail [<words>]` | `ok`, `error:stale`, or `error:invalid` | The answer to the M-code `state` names under `seq`. The words are printable, with no brackets, at most 96 bytes; they go to the Grbl sender in a `[MSG:]`. An answer under another `seq`, or a second one, is stale |
+| `sender out` | `ok`, `busy:state`, or `busy:sender` | Disconnects the Grbl sender and keeps every sender from the network out, only on an idle machine ([below](#keeping-the-sender-out)) |
 | `sender in` | `ok` | Lets clients from the network connect again |
 
 `error:<n>` is the core's own status for the injected line (`error:15` for a
@@ -61,10 +61,10 @@ controller was reset before the line's status came back. The `busy` reasons:
 |---|---|
 | `busy:released` | The X and Y motors are released. The core would refuse the jog as well (the release holds the alarm state); this reply says why |
 | `busy:state` | A jog needs Idle, or a port jog already in progress. `release`, `energize`, and `home` need Idle or Alarm; `tray` needs Idle |
-| `busy:sender` | The Grbl client sent a line with something in it within the last 0.3 s, has such a line waiting, or is in the middle of one. For `sender out`: the client is in the middle of a line, has one waiting or not yet answered, or sent one within the last 2 s |
+| `busy:sender` | The Grbl sender sent a line with something in it within the last 0.3 s, has such a line waiting, or is in the middle of one. For `sender out`: the sender is in the middle of a line, has one waiting or not yet answered, or sent one within the last 2 s |
 | `busy:mcode` | A job waits at an M-code a package answers: it is Idle there, and it is still the job. For a jog and for `tray` |
 
-Every port jog puts `[MSG:Panel jog]` on the Grbl client's console, and
+Every port jog puts `[MSG:Panel jog]` on the Grbl sender's console, and
 `$MD`, `$ME`, and `$H` report there as they do when the client sends them.
 
 ## Three operation sets
@@ -98,34 +98,34 @@ carries no laser word.
 ## The sender goes first
 
 A port operation is never a sender change, and it never takes the machine
-from the Grbl client, with one exception, `sender out`
+from the Grbl sender, with one exception, `sender out`
 ([Keeping the sender out](#keeping-the-sender-out)):
 
-- A port jog is refused while the client is active (`busy:sender`).
-- The first byte of a line from the client that arrives while a port jog
+- A port jog is refused while the sender is active (`busy:sender`).
+- The first byte of a line from the sender that arrives while a port jog
   runs cancels the jog. A status poll (`?`) and the other realtime characters
   are not a line: they are served as always and cancel nothing.
-- **An empty line is not the client speaking either.** Some Grbl senders
+- **An empty line is not the sender speaking either.** Some Grbl senders
   poll `?` with an end of line behind it, on a timer. The `?` never reaches
   the input ring; the end of line does, as an empty line, which the core
   answers `ok` in every state. It does not refuse a port jog, it does not
   cancel one, and it passes the hold: it is answered during a port jog as at
-  any other time, so the client's `ok` count never lags. A port line that
+  any other time, so the sender's `ok` count never lags. A port line that
   finds only such empty lines in the ring waits (at most 0.1 s) for the core
   to read them instead of answering `busy:sender`.
-- A client's line with something in it waits, unread, until the core is idle
-  again, and then runs: the client sees a short delay and its own `ok`, never
+- A sender's line with something in it waits, unread, until the core is idle
+  again, and then runs: the sender sees a short delay and its own `ok`, never
   the `error:9` a line draws during a jog.
 - The cancel is the core's motion-cancel flag, not the jog-cancel command.
   The core answers that command by flushing its input ring, which would
-  discard the client's waiting line without a status.
+  discard the sender's waiting line without a status.
 - A sender's own jog is untouched: the port neither cancels it nor chains
   onto it.
 - **An open envelope is the port's jogs' alone.** While the bed check's
-  envelope is open, the client's lines wait as they do during a port jog,
+  envelope is open, the sender's lines wait as they do during a port jog,
   and the first one closes it (the far edges it had before it was opened)
   before the core reads the line, with `[MSG:Bed check envelope closed: a
-  sender line]` on the client's console; a port jog it meets is canceled
+  sender line]` on the sender's console; a port jog it meets is canceled
   first. A status poll and an empty line leave it open. A soft reset, a
   home, and the port's client going away close it as well. No program ever
   runs in the widened envelope.
@@ -134,7 +134,7 @@ from the Grbl client, with one exception, `sender out`
 
 The one exception to the sender going first. An extension package that
 moves the head for its own reasons, as the alignment tool does, leaves it
-where no job should start, so while it uses the machine the Grbl client is
+where no job should start, so while it uses the machine the Grbl sender is
 disconnected and kept out
 ([A package keeps the Grbl sender out](extensions.md#a-package-keeps-the-grbl-sender-out)
 has who may ask, and how the claim ends).
@@ -142,11 +142,11 @@ has who may ask, and how the claim ends).
 `sender out` takes the machine only when nothing is under way. It answers
 `busy:state` unless the core is Idle with nothing planned, no port jog, no
 M-code wait, no armed or arming laser, no open envelope, and the kernel's
-motion idle; and `busy:sender` while the client is in the middle of a line,
+motion idle; and `busy:sender` while the sender is in the middle of a line,
 has one waiting or not yet answered, or sent one within the last 2 s. A
 connected client that is only polling `?` is quiet, and is disconnected.
 
-Otherwise the client reads
+Otherwise the sender reads
 `[MSG:The machine is in use: senders are kept out for now]` and is
 disconnected, and every client that connects from the network is sent the
 same line and closed, with no banner and no change of session. A client
@@ -160,7 +160,7 @@ controller again. `state` reports it as `sender_out`.
 
 Host tests on the null-sink controller build, in the driver's CI:
 
-- `ctlport_test.py`: every reply routed to its source with the Grbl client's
+- `ctlport_test.py`: every reply routed to its source with the Grbl sender's
   response count exact (CR LF clients and empty lines included); the
   sender-goes-first hold; **a client polling `?` with a CR LF behind it:
   every port jog accepted, a 60 mm port jog run whole,
@@ -177,11 +177,11 @@ Host tests on the null-sink controller build, in the driver's CI:
 - `envelope_test.py`: the far edges from `envelope_x_mm` and
   `envelope_y_mm` (their bounds are the driver's `lens_home_test`), the
   panel set's `envelope open` and
-  `apply` and their refusals, and **the client's first line (never a status
+  `apply` and their refusals, and **the sender's first line (never a status
   poll or an empty line) closing an open envelope before the core reads
   it**, as a soft reset and the port client going away do.
-- `tray_test.py`: the panel set's `tray`, with the Grbl client's response
-  count exact and the client told the mode, and its refusals during a
+- `tray_test.py`: the panel set's `tray`, with the Grbl sender's response
+  count exact and the sender told the mode, and its refusals during a
   program and at a package's M-code.
 - `ctlport_test.py`'s keep-out: `sender out` refused during a dwell, within
   2 s of a line, and while a program moves; the quiet client disconnected

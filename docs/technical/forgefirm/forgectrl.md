@@ -160,10 +160,10 @@ costs one bounded error, never a pinned thread.
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever ([Mode supervision](#mode-supervision)) |
 | `GET /events` | The machine's events as server-sent events ([The event stream](#the-event-stream)). 503 with the reason when every stream is taken |
 | `GET /motion/state` | The GRBL controller's own state through [the controller port](controller-port.md): the Grbl state name, `sender`, `port_jog`, `released`, `mpos`, `homed`. 409 while no GRBL controller runs |
-| `POST /motion/jog?x=&y=&z=&feed=` | One relative jog in millimeters, with `feed` in mm/min (3000 when absent). Bounded per request, because the bound is what a client that vanishes leaves behind: X and Y 100 mm, Z 5 mm, feed 10 to 12000. It works with a Grbl client connected and never displaces it; the client goes first. 400 for a value that is not a number or is past a bound; 409 with the reason in words when the controller refuses (the client is sending, a program runs, an alarm, the motors are released, the soft limits); 503 when the port does not answer |
+| `POST /motion/jog?x=&y=&z=&feed=` | One relative jog in millimeters, with `feed` in mm/min (3000 when absent). Bounded per request, because the bound is what a client that vanishes leaves behind: X and Y 100 mm, Z 5 mm, feed 10 to 12000. It works with a Grbl sender connected and never displaces it; the sender goes first. 400 for a value that is not a number or is past a bound; 409 with the reason in words when the controller refuses (the sender is sending, a program runs, an alarm, the motors are released, the soft limits); 503 when the port does not answer |
 | `POST /motion/cancel` | Cancels the jog in progress, if it is the port's |
 | `POST /motion/release`, `POST /motion/energize` | The X and Y motor release and its end (`$MD`, `$ME`, [Homing](homing.md#the-motor-release)). The panel's own: these and the next route are outside the operation set a jog client can reach ([The controller port](controller-port.md#three-operation-sets)) |
-| `POST /motion/home` | A manual home (`$H`), accepted only while `homing_mode = manual`, where it moves nothing, or only the jog to the origin a manual home offset asks for. 409 under every other method: a homing session is a Grbl client's to start |
+| `POST /motion/home` | A manual home (`$H`), accepted only while `homing_mode = manual`, where it moves nothing, or only the jog to the origin a manual home offset asks for. 409 under every other method: a homing session is a Grbl sender's to start |
 | `POST /motion/tray?tray=in\|out` | The crumb tray's mode (the port's `tray` op, [The grblHAL driver](grblhal-driver.md#the-crumb-tray)): moves nothing, 409 unless the controller is Idle. The panel's own, like the two above. `/status` reads the mode from the controller's marker as `lens.tray`, with `lens.tray_offset_mm`, and moves `lens.reach_min` and `reach_max` up by the offset on the lens step grid while the tray is out. A change of `tray_offset_mm` is refused (409) while the tray is out, and so is every setup card (`POST /wiz/<card>/start`) |
 | `GET /motion/sender`, `POST /motion/sender` | Keeping the Grbl sender out ([A package keeps the Grbl sender out](extensions.md#a-package-keeps-the-grbl-sender-out)). `GET` answers `{"holder": {"id", "for_s"} or null, "notice": {"id", "why": "stopped"} or null}`. The operator's `POST`: `out=0` lets the sender back in, `notice=clear` clears the notice. Only the extension host names a package (`id`), 403 for anybody else: `out=1` keeps the sender out for it and `out=0` ends that, both answering `{"out", "released"}` as `GET` with `id` does; 409 in words when the controller refuses (the machine is not idle, the sender is sending), another package holds it, the lease is taken, or the operator let the sender back in on this package's claim. No scoped token reaches the route (403) |
 | `POST /cool/state` | Controller job-state report, level-triggered at ~1 Hz; a loopback peer that presents the secret the supervisor handed the running controller, and nobody else ([Cooling engine](cooling-engine.md#job-state-reports)) |
@@ -469,7 +469,7 @@ monotonic clock with its reason (a preloaded clock stand-in), the cameras
 check (each shot served as captured; a lid nobody closes ends it with its
 reason), the bed check (refused unhomed; homed, a lid nobody closes ends it
 with its reason before the envelope opens; the keys the ends less 1 mm; a
-Grbl client's line ends it with nothing written; a jog the port hangs up
+Grbl sender's line ends it with nothing written; a jog the port hangs up
 on, and one that holds past its 60 s wait, each end it with its reason and
 nothing written), the Flow check (the
 diagnostic's phases and result as the check's, a thin margin flagging the
@@ -768,7 +768,7 @@ time with the daemon as the machine's Grbl sender. It is the daemon's one use
 of the Grbl socket: local, ok-per-line flow control, the controller's RX ring
 half full at most. A job is a sender like any other. Every arm gate stands,
 the first laser-on line waits for the press on the machine, and there is no
-emission path here that a Grbl client does not have. While a job plays, the
+emission path here that a Grbl sender does not have. While a job plays, the
 sender samples the emission witnesses (`pic/hv_current`,
 `head/beam_detect_analog`, `cnc/laser_on_sampled`, the lid IR quartet), and
 the job's record carries what they saw. A job that lit the tube logs them
@@ -778,7 +778,7 @@ the dose-curve recorder, so the log is where a head that reads differently
 shows.
 
 Every run takes the [machine lease](#the-machine-lease) as a `sender`: it is
-refused while a Grbl client is connected and while anything else holds the
+refused while a Grbl sender is connected and while anything else holds the
 machine, in the holder's words, and it gives the lease back on every way out.
 Three things run through it:
 
@@ -868,7 +868,7 @@ beside the burn's own witnesses.
 The dose-curve recorder (`curverec.c`) measures the tube's own dose curve
 from one panel press, with no new emission path. `POST /curve/record` starts
 the ladder as a job of the [job runner](#the-job-runner)'s, so it is refused
-while a Grbl client is connected and while anything else holds the machine.
+while a Grbl sender is connected and while anything else holds the machine.
 Once the machine is the recorder's, it saves
 and clears `laser_floor_density` and `laser_dose_curve` (so the ladder
 measures the raw response; both are restored on every end path), streams the
@@ -1050,12 +1050,12 @@ wizard it runs under, the lease lets it in under that holder and no other,
 and it releases before the wizard does. The cloud wizard switches the controller mode inside its own
 hold, which the mode switch allows for the holder and nobody else.
 
-**What the lease does not hold, it still reports.** A Grbl client holds TCP
+**What the lease does not hold, it still reports.** A Grbl sender holds TCP
 23 outside any grant and cannot be revoked, and the X and Y motors may be
 released; an operator asking why something will not start is asking about
-these too. A `sender` hold is refused while a client is connected; an
-`extension` hold disconnects the client instead, and is refused unless the
-machine is idle and the client quiet. `/status` carries:
+these too. A `sender` hold is refused while a sender is connected; an
+`extension` hold disconnects the sender instead, and is refused unless the
+machine is idle and the sender quiet. `/status` carries:
 
 ```json
 "lease": {

@@ -621,7 +621,7 @@ on [Homing](homing.md).
 
 Beside the Grbl socket the driver serves a second, local channel,
 `/run/forgefirm/grbl.ctl`: forgectrl jogs and reads state through it without
-displacing the Grbl client, and the panel's motor release and manual home go
+displacing the Grbl sender, and the panel's motor release and manual home go
 through it. Its only motion is `$J=`, the one motion the stream ships dark
 whatever the modal laser state is. The wire format, the two operation sets,
 and the sender-goes-first rule are on
@@ -696,7 +696,7 @@ on the line is an error (28, 39, 31) and changes nothing. The M-code is
 synchronized: the planner drains, and the switch waits for the kernel to
 finish playing the move before it, the wait a package's M-code makes
 ([A package's M-code](extensions.md#a-packages-m-code)), before the frame
-changes. The Grbl client is told `[MSG:Tray out]` or `[MSG:Tray in]`, also
+changes. The Grbl sender is told `[MSG:Tray out]` or `[MSG:Tray in]`, also
 when the mode it asked for already stands.
 
 Nothing moves: the driver moves the numbers. The Z position, the home

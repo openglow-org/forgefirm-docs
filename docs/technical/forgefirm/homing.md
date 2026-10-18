@@ -210,7 +210,7 @@ port (`envelope open`): X's and Y's far edges go to the travel plus 30 mm,
 for the port's jogs alone
 ([The controller port](controller-port.md#the-sender-goes-first)). `envelope
 apply` sets them from the keys again without a home. A home, a soft reset, a
-Grbl client's line, and the port's client going away each close an open
+Grbl sender's line, and the port's client going away each close an open
 envelope.
 
 ### The motor release
