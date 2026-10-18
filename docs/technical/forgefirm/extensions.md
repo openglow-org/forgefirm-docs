@@ -1240,10 +1240,13 @@ package that makes ten thousand small ones has taken more than their
 bytes. A symbolic link is counted as a link and never followed, so a link
 out of the directory adds nothing. A file the service unlinked while it
 still holds it open or mapped is counted too, by the descriptors and the
-mappings of its processes: a name is not what takes the space. The one
-hold the host cannot see is a descriptor in flight in a socket's queue,
-sent and never received; the partition's root reserve is the floor under
-that.
+mappings of its processes: a name is not what takes the space. The
+mappings of such files are bounded as the descriptors are, 8192 across
+the service's processes; past that the measurement does not complete
+and the service is set aside the same way, in words that say it holds
+more than the bound. The one hold the host cannot see is a descriptor in
+flight in a socket's queue, sent and never received; the partition's
+root reserve is the floor under that.
 
 The host also counts the entries: a service may hold one file or
 directory per 4 KiB of its quota (4096 for the default 16 MiB, 65536 for
