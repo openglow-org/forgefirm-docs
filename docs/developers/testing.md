@@ -222,11 +222,13 @@ The lint also lists:
   then names none;
 - each row whose workflow's every `push` and `pull_request` carries a
   filter: a `branches:`, `branches-ignore:`, `tags:`, `tags-ignore:`,
-  `paths:` or `paths-ignore:` under the event, a value on the event's own
-  line (`push: {branches: [main]}`), or a key with one stray quote under
-  it. The lint does not read a filter: the manifest carries no branch, so
-  a `branches:` naming the default branch counts as a filter, and a
-  `paths:` is not matched against the row's paths. One `push` or
+  `paths:` or `paths-ignore:` under the event, a `types:` under the
+  `pull_request`, a value on the event's own line
+  (`push: {branches: [main]}`), or a key with one stray quote under it.
+  The lint does not read a filter: the manifest carries no branch, so a
+  `branches:` naming the default branch counts as a filter, a `paths:` is
+  not matched against the row's paths, and a `types:` counts whatever
+  types it names. One `push` or
   `pull_request` with no filter under it is enough; the workflow then runs
   on every change through that event. A key deeper than the event's own
   level (a dispatch's `inputs:`) is no filter;
@@ -242,11 +244,14 @@ The lint also lists:
   workflow count as no step. A step counts only in a job whose `needs:`
   are met on every run: every job it names runs on every run (no `if:`
   other than the literal `true`, its own needs met, transitively). A job
-  the workflow does not have, a cycle, or a `needs:` the lint does not
-  read fails closed; a needed job's `continue-on-error:` does not bear.
-  The lint evaluates no condition, so a dependent job under `always()`
-  counts as no job. The lint reads no other condition: not a
-  `pull_request` `types:`.
+  the workflow does not have, a cycle, an empty `needs:`, or a `needs:`
+  the lint does not read (a flow list a key or a shallower line
+  interrupts before its `]`, list items at two indentations) fails
+  closed; a needed job's `continue-on-error:` does not bear. The lint
+  reads a `needs:` as one scalar, a flow list on the key's line or
+  continued up to its `]`, or a block list, its items deeper than the
+  key or at the key's own indentation. The lint evaluates no condition,
+  so a dependent job under `always()` counts as no job.
   The lint reads a step's `run` text line by line, as `bash -e` or `sh -e`
   runs it. A step whose own `shell:`, or a `defaults: run: shell:` of its
   job or of its workflow, is other than `bash` or `sh` counts as no step. A
