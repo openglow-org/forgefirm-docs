@@ -305,7 +305,7 @@ consent do not change shape as each one lands.
 | `net.outbound:<host>:<port>` | One named destination: a lowercase DNS name, an IPv4 address, or an IPv6 address in brackets. Never the machine itself | yes, as a rule the host installs | |
 | `net.outbound.operator` | The destinations the operator names for it, and no others ([The operator's destinations](#the-operators-destinations)) | yes, as a rule the host installs | |
 | `net.listen:<port>` | One listening port, 1024 to 65535, never one of the firmware's, and one package per port. It answers callers and is no way out ([the deny rules](image-and-bsp.md#the-extension-sandbox)) | yes, as a rule the host installs | |
-| `storage:<MiB>` | How much its data directory may hold, 1 to 256 MiB. Every service has a data directory; this says how large it may grow ([The storage quota](#the-storage-quota)) | yes, as a limit the host enforces | |
+| `storage:<MiB>` | How much its data directory may hold, 1 to 256 MiB, and at most one file or directory per 4 KiB of it. Every service has a data directory; this says how large it may grow ([The storage quota](#the-storage-quota)) | yes, as a limit the host enforces | |
 | `wizard` | A check of its own on the Setup page, run on the setup's own runner, its result the package's ([A package's check on the Setup page](#a-packages-check-on-the-setup-page)) | yes | |
 | `mcode:<n>` | Answering `M<n>` in a job, one of M160 to M179: the job waits at it until the service answers ([A package's M-code](#a-packages-m-code)). One package per number, and a package that asks for one asks for `job_time.run` too | yes | (`job_time.run`'s) |
 
@@ -1223,12 +1223,21 @@ that nobody is left guessing whether the range was honored.
 Every service has a data directory, and `storage:<MiB>` says how large it
 may grow. A service that declares no `storage` gets 16 MiB.
 
-The host measures each running service's data directory every 30 s, by the
+The host measures each running service's data directory every 10 s, by the
 blocks the filesystem gave the files rather than by their apparent sizes:
 a package that makes one enormous sparse file has taken nothing, and a
 package that makes ten thousand small ones has taken more than their
 bytes. A symbolic link is counted as a link and never followed, so a link
-out of the directory adds nothing.
+out of the directory adds nothing. A file the service unlinked while it
+still holds it open is counted too, by the descriptors of its processes:
+a name is not what takes the space.
+
+The host also counts the entries: a service may hold one file or
+directory per 4 KiB of its quota (4096 for the default 16 MiB, 65536 for
+`storage:256`), because the machine's storage has a fixed number of
+inodes and an empty file costs the quota nothing by its blocks. Over that
+bound, the measurement does not complete and the service is set aside
+the same way, in words that say it holds more than the bound.
 
 A service over its quota is **quarantined**: stopped, remembered as
 stopped across restarts once the quarantine is written
