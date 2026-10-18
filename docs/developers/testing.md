@@ -201,7 +201,11 @@ glob, the host test, and the CI workflow that runs it. The last two are each
 `<repository>:<path>`: a file of a component, or `forgefirm:` with a path in
 the `forgefirm` repository. The null-sink harnesses are `forgefirm:` files
 that the workflow of `grblhal-glowforge` runs. A host-tested path is in no
-fingerprint, so a change there makes no acceptance run necessary.
+fingerprint, so a change there makes no acceptance run necessary. The
+workflow runs the test, as the lint reads it, on a push or a pull request
+with no filter under it, in a step on every run of the workflow, in a job
+whose needs are met on every run, on a line of run text whose failure ends
+the step.
 
 The lint also lists:
 
@@ -216,6 +220,16 @@ The lint also lists:
   workflow too. A quoted key counts only in a matched pair of quotes: an
   event key with one stray quote (`push":`) is no event, and the workflow
   then names none;
+- each row whose workflow's every `push` and `pull_request` carries a
+  filter: a `branches:`, `branches-ignore:`, `tags:`, `tags-ignore:`,
+  `paths:` or `paths-ignore:` under the event, a value on the event's own
+  line (`push: {branches: [main]}`), or a key with one stray quote under
+  it. The lint does not read a filter: the manifest carries no branch, so
+  a `branches:` naming the default branch counts as a filter, and a
+  `paths:` is not matched against the row's paths. One `push` or
+  `pull_request` with no filter under it is enough; the workflow then runs
+  on every change through that event. A key deeper than the event's own
+  level (a dispatch's `inputs:`) is no filter;
 - each row whose workflow does not check out the test's repository, or has
   no step that runs the test on every run. The lint does not evaluate a
   condition. A step with an `if:` other than the literal `true`, or a
@@ -225,10 +239,14 @@ The lint also lists:
   with one stray quote (`if":`, `"run:`) at the top level, at a job, at a
   step (its first key, on its dash line, too), or as the first key of a
   list item outside a step (a matrix entry) makes every step of the
-  workflow count as no step. The
-  lint reads no other condition: not a job's `needs:`, and not an event's
-  `branches:` or `paths:` filter. A step that one of these keeps from a run
-  still counts, so there the lint is a floor.
+  workflow count as no step. A step counts only in a job whose `needs:`
+  are met on every run: every job it names runs on every run (no `if:`
+  other than the literal `true`, its own needs met, transitively). A job
+  the workflow does not have, a cycle, or a `needs:` the lint does not
+  read fails closed; a needed job's `continue-on-error:` does not bear.
+  The lint evaluates no condition, so a dependent job under `always()`
+  counts as no job. The lint reads no other condition: not a
+  `pull_request` `types:`.
   The lint reads a step's `run` text line by line, as `bash -e` or `sh -e`
   runs it. A step whose own `shell:`, or a `defaults: run: shell:` of its
   job or of its workflow, is other than `bash` or `sh` counts as no step. A
