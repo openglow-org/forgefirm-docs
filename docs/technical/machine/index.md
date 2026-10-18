@@ -53,7 +53,8 @@ footprints ([Buses and the serial console](buses.md)).
 Every measured value on this site was taken on it, unless the page says
 otherwise. Values that come from somewhere else say so: a figure decoded from
 the factory firmware, a number read off a captured pulse file, a manufacturer's
-datasheet, or a drawing.
+datasheet, a drawing, or a reading another machine reported, named by its
+model.
 
 Read every measurement as *what this one machine does*, not as a
 specification. Three things make another machine read differently:

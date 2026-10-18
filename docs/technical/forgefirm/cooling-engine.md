@@ -276,11 +276,11 @@ tube's share off (below).
 
 The bands differ from loop to loop, and the 14.4 °C default is the bench
 reference's midpoint. On the bench reference the stagnant rise starts at
-about 16 °C. On an early Pro, at the same 40 percent heater duty, the
-coolant rose 15.8 to 16.2 °C with flow and 20.5 to 20.9 °C without: the
-default sits under that loop's flowing rise, so until the loop is
-calibrated the flow check reads good flow as no flow on every job. The
-flow calibration
+about 16 °C. On an early Pro, whose flow calibration ran at the same 40
+percent heater duty, the coolant rose 15.8 to 16.2 °C with flow and 20.5 to
+20.9 °C without: the default sits under that loop's flowing rise, so until
+the loop is calibrated the flow check reads good flow as no flow on every
+job. The flow calibration
 ([Diagnostics: verifying and calibrating flow](#diagnostics-verifying-and-calibrating-flow))
 is therefore a required step of the setup: no controller runs for a sender
 until the setup's Coolant flow step has run, writing the loop's own

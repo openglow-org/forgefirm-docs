@@ -148,9 +148,10 @@ degrees.
 
 `tec_temp` (0 to 1023): the thermoelectric cooler temperature input. The
 conversion is unknown (it does not use the coolant beta conversion). No sensor
-is connected to it on any machine examined, TEC-fitted Pros included, and the
-reading sits at the 1023 rail, so it says nothing about whether a TEC is
-fitted. Report raw values as raw, never as trusted degrees.
+is connected to it on the bench reference or on any machine whose reading was
+reported, TEC-fitted Pros included, and the reading sits at the 1023 rail, so
+it says nothing about whether a TEC is fitted. Report raw values as raw, never
+as trusted degrees.
 
 ## High-voltage supply (`pic/hv_current`, `pic/hv_voltage`)
 
