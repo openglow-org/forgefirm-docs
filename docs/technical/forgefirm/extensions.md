@@ -1235,8 +1235,11 @@ a package that makes one enormous sparse file has taken nothing, and a
 package that makes ten thousand small ones has taken more than their
 bytes. A symbolic link is counted as a link and never followed, so a link
 out of the directory adds nothing. A file the service unlinked while it
-still holds it open is counted too, by the descriptors of its processes:
-a name is not what takes the space.
+still holds it open or mapped is counted too, by the descriptors and the
+mappings of its processes: a name is not what takes the space. The one
+hold the host cannot see is a descriptor in flight in a socket's queue,
+sent and never received; the partition's root reserve is the floor under
+that.
 
 The host also counts the entries: a service may hold one file or
 directory per 4 KiB of its quota (4096 for the default 16 MiB, 65536 for
@@ -1252,7 +1255,8 @@ reason in the panel. The host
 does not delete a package's data - that is the operator's, and there are
 two ways out: remove the package, which takes its data with it, or clear
 the data and enable the package again. The partition's root reserve
-keeps the daemons writing when a package fills `/data`
+keeps the daemons writing when a package fills `/data`, and is the floor
+under what the host cannot see
 ([The read-only root filesystem](image-and-bsp.md#the-read-only-root-filesystem)).
 
 A data directory the host cannot measure is not one that holds nothing. A
