@@ -351,7 +351,11 @@ An update keeps the version it replaces; the one before that is removed.
 install that fails or ends between the two is turned back, by the
 install itself or, after a crash, by the next command that prepares the
 root, so that, outside an install's own commit, `current` names the
-version `state.json` names.
+version `state.json` names. Only a tree named by a version goes with
+that turn. A `current` the repair cannot turn, because the package's
+directory is gone from under its record or a directory stands where
+the link should, is said in the host's log and left: that package
+alone is refused, and the host starts and runs the others.
 `state.json` is written whole and renamed into
 place, and a state file this program did not write (another schema, an
 account outside the pool or held twice, a grant for a capability that needs
