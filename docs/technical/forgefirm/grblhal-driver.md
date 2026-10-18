@@ -471,8 +471,10 @@ The operator's table of what each stop does is on
   that never played come off the core's count, so the machine position
   counts only the steps that the kernel played. The core keeps its
   reference. `$X` clears the alarm. A position that cannot be read back
-  is lost. The driver tells the sender, drops the X and Y reference and
-  the homing anchor, and holds the lens where it reads: after `$X` a Z
+  is lost, as is one a reset dropped during the web-service homing
+  session, where nothing is read back. On either, the driver tells the
+  sender (one warning), drops the X and Y reference and the homing
+  anchor, and holds the lens where it reads: after `$X` a Z
   jog is refused with error 15 and a program Z move raises `ALARM:2`
   ([The lens (Z)](#the-lens-z)). The machine must be re-homed before its
   coordinates are trusted. A reset that lands right after a move, a jog
