@@ -230,8 +230,9 @@ The lint also lists:
   not matched against the row's paths, and a `types:` counts whatever
   types it names. One `push` or
   `pull_request` with no filter under it is enough; the workflow then runs
-  on every change through that event. A key deeper than the event's own
-  level (a dispatch's `inputs:`) is no filter;
+  on every change through that event. The lint reads only the keys
+  directly under the event: a key under one of them (a dispatch input
+  under `inputs:`) is no filter;
 - each row whose workflow does not check out the test's repository, or has
   no step that runs the test on every run. The lint does not evaluate a
   condition. A step with an `if:` other than the literal `true`, or a
@@ -246,7 +247,8 @@ The lint also lists:
   other than the literal `true`, its own needs met, transitively). A job
   the workflow does not have, a cycle, an empty `needs:`, or a `needs:`
   the lint does not read (a flow list a key or a shallower line
-  interrupts before its `]`, list items at two indentations) fails
+  interrupts before its `]`, list items at two indentations, a line
+  under the key that is no list item) fails
   closed; a needed job's `continue-on-error:` does not bear. The lint
   reads a `needs:` as one scalar, a flow list on the key's line or
   continued up to its `]`, or a block list, its items deeper than the
