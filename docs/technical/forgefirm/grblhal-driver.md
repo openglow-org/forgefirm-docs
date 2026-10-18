@@ -74,9 +74,13 @@ every settings dispatch, in RAM only, the way `$35` is: a `$100` typed by a
 sender is overwritten on the spot. `$110`/`$111` are held under the feed the
 tick carries (one step per tick per axis), which only bites when the bench
 lowers the tick with `GFSINK_RATE`. `$102` (the lens screw's half-steps per
-millimeter) and `$32` (laser mode) are pinned the same way: a typed `$102`
-would move the Z envelope off the head, and laser mode is the machine's,
-not a sender's choice. The driver writes the mode to the
+millimeter), `$32` (laser mode) and `$44`-`$46` (the homing cycle masks) are
+pinned the same way: a typed `$102` would move the Z envelope off the head,
+laser mode is the machine's, not a sender's choice, and the core keeps an
+axis homed only while a homing cycle names it, so a typed `$44` would drop
+the Z homed bit that the lens hold rests on. The cycles stay the core's
+defaults (`$44=4`, `$45=3`, `$46=0`); the driver's `$H` never runs them
+([Homing handover](#homing-handover)). The driver writes the mode to the
 drivers' MODE pins at its start, at idle. A change of the setting takes a
 controller restart, which forgectrl does for an idle machine when the
 setting is saved. Cloud mode runs at the service's own 8.
@@ -653,7 +657,10 @@ half-steps, at its drive current during a run and its hold current at
 rest. The lens is never moved without a reference: the driver's Z soft limit
 is always on, whatever `$20` says, and until Z is referenced it holds Z
 where it is (a jog is refused with error 15, a program move raises the
-soft-limit alarm before it starts). X and Y join it after a home: a
+soft-limit alarm before it starts). The hold rests on the Z homed bit,
+which the core keeps only while a homing cycle names Z, so `$44`-`$46` are
+pinned ([The XY scale](#the-xy-scale)): a `$44=1` from a sender answers
+ok and changes nothing. X and Y join it after a home: a
 successful home turns the driver's X and Y soft limits on with the bed as
 the envelope (from the home corner to the far edges, `$130` by `$131` unless
 the bed check measured them; [Homing](homing.md#the-far-edges)), whatever
