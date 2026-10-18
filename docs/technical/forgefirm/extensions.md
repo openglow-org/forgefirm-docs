@@ -350,7 +350,8 @@ An update keeps the version it replaces; the one before that is removed.
 `current` turns to the new version before the state is written; an
 install that fails or ends between the two is turned back, by the
 install itself or, after a crash, by the next command that prepares the
-root, so that `current` always names the version `state.json` names.
+root, so that, outside an install's own commit, `current` names the
+version `state.json` names.
 `state.json` is written whole and renamed into
 place, and a state file this program did not write (another schema, an
 account outside the pool or held twice, a grant for a capability that needs
