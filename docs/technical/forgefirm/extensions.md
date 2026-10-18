@@ -1250,7 +1250,9 @@ stopped across restarts once the quarantine is written
 reason in the panel. The host
 does not delete a package's data - that is the operator's, and there are
 two ways out: remove the package, which takes its data with it, or clear
-the data and enable the package again.
+the data and enable the package again. The partition's root reserve
+keeps the daemons writing when a package fills `/data`
+([The read-only root filesystem](image-and-bsp.md#the-read-only-root-filesystem)).
 
 A data directory the host cannot measure is not one that holds nothing. A
 directory it cannot read, a tree deeper than 16 directories, or a manifest

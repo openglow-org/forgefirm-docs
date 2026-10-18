@@ -181,6 +181,7 @@ What must last a reboot, or change at run time, is handled file by file:
 | The random seed | `/data/forgefirm/random-seed` | Carried from shutdown to the next boot (`forgefirm-persist`). |
 | The logrotate state | `/var/run/forgefirm-logrotate.status` | Fresh at every boot. The rules are size-capped, so nothing depends on it ([Logging](logging.md)). |
 | The rendered rsyslog rules, the settings, the records, the TLS key, the panel token, the GRBL settings store | `/data/forgefirm/` | Unchanged ([Install and update](install-and-update.md#the-update-manager)). |
+| The root reserve of `/data` | `/data` (p3), the ext4 filesystem the factory formatted ([The eMMC](../machine/boot-and-storage.md#the-emmc)) | Not a value ForgeFIRM sets: the reserve is the one the factory's format of p3 left. Read on the bench reference with `tune2fs -l`: 840704 blocks of 4096 bytes, 42034 of them reserved for root (5 percent, uid 0), 203424 inodes, and no quota feature. A user other than root is refused with `ENOSPC` when `df` shows the filesystem full, while root still writes into the reserve. The extension host's package services run as their own accounts and the daemons as root, so a package that fills `/data` stops at the reserve and the firmware's own writes still land ([The storage quota](extensions.md#the-storage-quota)). |
 
 Everything else the daemons and the controllers write is under `/data`,
 `/run`, `/tmp`, or sysfs. The acceptance test `image.health` checks the
