@@ -42,7 +42,8 @@ Both tools run at your *configured* duty, window, and threshold
 (`cool_flow_heater_pct`, `cool_flow_check_s`, `cool_flow_rise`), so the
 verdict applies to the check the machine actually performs, and both use
 cut-profile chassis fans, the condition the numbers were characterized under.
-Any pump-off window aborts immediately if the downstream sensor passes 48 °C.
+Both read the rise from averages, as the check does. Any heater window, pump
+on or off, stops immediately if the downstream sensor reaches 48 °C.
 
 **Flow verify** (about 3 minutes): one check with the pump running and one
 with it commanded off.

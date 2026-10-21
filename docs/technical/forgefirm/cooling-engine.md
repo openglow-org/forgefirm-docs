@@ -547,16 +547,31 @@ and the release reasserts the idle posture in one place.
 Both tools run at the *configured* duty, window, and threshold, so the
 verdict applies to the check the machine actually performs, and both use
 cut-profile chassis fans, the condition under which the numbers are
-characterized. Any pump-off window aborts immediately if the downstream sensor
-passes 48 °C.
+characterized. They read the rise as the check does: the baseline is the mean
+of the settled window, taken under those fans, and the end is the mean of the
+window's last 5 s. Any heater window, pump on or off, stops the moment the
+downstream sensor reaches 48 °C.
 
 **Flow verify** runs one check with the pump running and one with it
 commanded off, and passes when the threshold separates the two readings.
 **Flow calibrate** runs three trials of each case, alternating, with settle
-gates between them, and recommends a threshold midway between the highest
-flowing reading and the lowest stagnant one; it refuses to recommend anything
-when the gap between the bands is under 3 °C, because a threshold in a narrow
-gap is a threshold that will misclassify.
+gates between them, logs each trial's starting temperature beside its rise,
+and recommends a threshold midway between the highest flowing reading and the
+lowest stagnant one; it refuses to recommend anything when the gap between the
+bands is under 3 °C, because a threshold in a narrow gap is a threshold that
+will misclassify.
+
+The setup's Coolant flow step runs Flow calibrate at 40 percent heater duty
+and, while the bands are too close, at 45 and then 50 percent. It steps up
+only when every trial of the rung it ran, its rise scaled by the higher duty
+and added to its starting temperature, stays 3 °C under the 48 °C stop: on
+the bench reference the rise grew faster than the duty, by up to a quarter
+between 30 and 40 percent, and the loop warms over a calibration. Between 40
+and 50 percent it grew about as the duty did there, and the peaks projected
+from the 40 and 45 percent rungs, 39.6 and 41.6 °C, were the peaks measured
+at 45 and 50 percent within 0.1 °C. A rung with no room ends the step with its
+reason instead of at the stop. The duty the step finds is the one every check
+during a job runs at.
 
 The operator's procedure, what each result means and when to run either is on
 [Diagnostics](../../usage/diagnostics.md).

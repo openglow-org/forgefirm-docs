@@ -62,7 +62,9 @@ The setup runs in these steps:
    turns. Nothing moves, and the laser stays locked.
 8. **Coolant flow.** The flow calibration, fifteen to twenty-five minutes.
    When the bands are too close to separate, the heater duty steps up from
-   40 to 55 to 70 percent and the trial repeats. The threshold and the duty
+   40 to 45 to 50 percent and the trial repeats. If a stronger test would
+   run the loop too hot, the step stops and asks you to check the coolant
+   level and look for air in the lines. The threshold and the duty
    it was found at are written together: `cool_flow_rise` and
    `cool_flow_heater_pct`. A calibration that ends before its threshold is
    found, for any reason, a power loss included, leaves
