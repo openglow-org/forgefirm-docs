@@ -78,7 +78,7 @@ that is the file that says which it is.
 
 The bundle is **sanitized by default**, for attaching to a public issue report.
 Known identifiers (serial, hostname, cloud credentials, panel token, camera
-key, WiFi network) and pattern classes (network addresses, e-mail addresses, bearer and
+key, WiFi network, your account name) and pattern classes (network addresses, e-mail addresses, bearer and
 basic credentials, JWTs, key=value secrets, long hex and base64 blobs) become
 placeholders. A placeholder keeps the same number for the same value within the
 bundle, so hosts can still be told apart. The sanitizer removes what it knows

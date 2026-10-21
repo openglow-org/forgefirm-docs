@@ -114,12 +114,18 @@ All three require a login session or the panel token
 
 The export is sanitized by default for public issue reports. The sanitizer
 (`src/sanitize.c`) is two-layer: exact known values first (serial, hostname,
-cloud credentials, panel token, camera key, WiFi SSID, PSK, and identity),
-then pattern
+cloud credentials, panel token, camera key, WiFi SSID, PSK, and identity, the
+account name), then pattern
 classes (bearer and basic credentials, JWTs, key=value secrets, e-mail
 addresses, MAC addresses, IPv4 and IPv6 addresses with loopback kept, hex of
 32 or more characters, base64-like strings of 40 or more). Placeholders are
-stable per value within a bundle, and the output is idempotent.
+stable per value within a bundle, and the output is idempotent. forgectrl
+does not log the account name; as a known value it still comes out of lines
+an older release wrote, and an account name that is a common word takes that
+word out of the bundle with it, the over-redaction the sanitizer accepts. The
+setup record's `account.name` is also replaced by its key in
+`system/setup.json`, which covers a name too short for the known-value pass
+(it takes no value under 3 characters).
 `tests/sanitize_test.c` runs in CI and is the regression gate for both leaks
 and over-redaction. Beside it, `tests/host_guard.sh` drives the three routes
 against a daemon on a host, and a file planted in the installer's directory
@@ -132,8 +138,8 @@ against a private rsyslogd (emitter, relay, format, per-logger filtering)
 - No `fprintf(stderr)` or `printf` for logging in the C daemons. Use
   `fflog(LOG_x, ...)`, with the message free of a program prefix (rsyslog
   tags it) and of a trailing newline.
-- Never log a credential, token, or password value. The sanitizer is the
-  second line, not the first.
+- Never log a credential, token, or password value, or the account name. The
+  sanitizer is the second line, not the first.
 - Never log from the RT feeder path except a fault.
 - New loggers are added to `logs_names[]` (forgectrl) plus a setting pair.
   New secrets go in `load_known()`.
