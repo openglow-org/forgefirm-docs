@@ -39,9 +39,10 @@ updater and the cloud restore) require a valid signature: ForgeFIRM's or
 Glowforge's, respectively.
 
 Development archives (`forgefirm-dev.fw`) are signed with a separate dev
-key, never left unsigned. A machine with the release key rejects a
-dev-signed archive. A manual upload may be unsigned, behind an explicit
-"unsigned dev image" warning and with the physical button held.
+key, never left unsigned. A machine trusts the release key only, so it takes
+a dev-signed archive as unsigned: the automatic paths refuse it, and a manual
+upload asks "The archive is not signed with the release key. Install it
+anyway?" and installs it only with the physical button held.
 
 The release pipeline, its gates, and the version contract are in
 [Release flow](../developers/release-flow.md).
@@ -144,9 +145,9 @@ and nothing after the failed step runs.
 
 An upload streams to `/data`. The manager accepts a `.fw` archive
 (verified, with a warning if it is unsigned) and nothing else. The
-development image does not come this way: it is larger than a slot and runs
-from an SD card instead
-([Install and update](../technical/forgefirm/install-and-update.md)).
+development image's archive, `forgefirm-dev.fw`, fits a slot and comes this
+way as an unsigned archive; the bench runs the development image from an SD
+card ([Install and update](../technical/forgefirm/install-and-update.md)).
 
 ### Boot selector
 
