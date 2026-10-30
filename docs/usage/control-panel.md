@@ -63,6 +63,12 @@ while anything is unsaved, posts every change in one request, and leaving a tab
 or the page with unsaved changes asks first. Each card and field has a "?" that
 opens its help, with a link into this documentation site.
 
+On a development image, a red **DEVELOPMENT IMAGE** bar sits at the top of
+every page, the login and the setup included, and stays in view while the
+page scrolls. It says that root can log in over SSH with no password; a
+script on the network can also make changes with the panel token alone
+([Access](#access)). A release image shows no bar.
+
 All settings controls disable, with a banner, while the machine is not idle or
 while a diagnostic, a setup wizard, the dose-curve recorder, an update job, or
 an extension package has the machine; the banner names it. While an extension

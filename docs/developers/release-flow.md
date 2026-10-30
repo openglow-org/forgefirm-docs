@@ -212,7 +212,10 @@ The last two are the dev image of the release, the archive for a slot and
 the image for an SD card. `forgefirm-dev.fw` is signed with the dev key,
 which no machine trusts, so the control panel installs it only with the
 machine button held. The dev image lets root log in over SSH with no
-password, and the release notes say so.
+password and takes changes with the panel token alone, and its pages carry
+a red DEVELOPMENT IMAGE bar
+([The control panel](../usage/control-panel.md#the-page)); the release notes
+say so.
 
 `sha256sums.txt` covers every other asset, the source bundle included. With
 the acceptance gate skipped, `NO-ACCEPTANCE.txt` takes the place of the two
