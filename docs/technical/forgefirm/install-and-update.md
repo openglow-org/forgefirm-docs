@@ -160,17 +160,20 @@ operator procedure is on
 `scripts/release.sh` runs on the build host: gates, kas build, pack `.fw`,
 sign, `sha256sums.txt`, staged assets, and the `gh release create` command
 (`--publish` runs it where gh is authenticated). The gates are: a clean
-tree, the version single-source, rootfs-vs-slot size (warn at 170 MiB or
-more, fail at 195 MiB or more, under bitbake's own hard cap), the
+tree, the version single-source, rootfs-vs-slot size for both images (warn
+at 170 MiB or more, fail at 195 MiB or more, under bitbake's own hard cap),
+a dev key that is not the release key, the
 **installer-embedded public key must match the signing key**, factory-era
 fwup (0.14.2) verification of the packed archive, and the **release
 acceptance gate**: `releases/v<version>/acceptance.json` (exported by
 forgetest on the bench) must authorize the built rootfs. The gate recomputes
 every catalog test's domain fingerprint from `/etc/forgefirm-manifest.json`
-inside the release ext4. The artifact is attached to the GitHub release. The
-release build also writes the source of every recipe of the image, and the
-pipeline attaches it as `forgefirm-source-v<version>.tar.gz`; a recipe whose
-license makes source necessary and that has no source stops the release. The
+inside the release ext4. The artifact is attached to the GitHub release, and
+so is the dev image (`forgefirm-dev.fw`, signed with the dev key, and its SD
+card image). The release build also writes the source of every recipe of
+both images, and the pipeline attaches it as
+`forgefirm-source-v<version>.tar.gz`; a recipe whose license makes source
+necessary and that has no source stops the release. The
 procedure and the variables are on
 [Release flow](../../developers/release-flow.md); the gate's contract is on
 [Acceptance](../../developers/acceptance.md).
@@ -191,7 +194,9 @@ held. Of the gates, only the slot size gate runs on it.
 release rootfs ([Image and BSP](image-and-bsp.md)), so it fits a slot as
 well. The bench runs it from an SD card, which the boot selector carries as a
 first-class location: write `forgefirm-image-dev-glowforge.rootfs.wic.gz` to
-the card, or point `fwup` at the card rather than a slot.
+the card, or point `fwup` at the card rather than a slot. Each release
+publishes the dev image beside the release image
+([Release flow](../../developers/release-flow.md)).
 
 **Cloud-mode compatibility baseline.** The cloud client's connect-time probe
 records `{latest_gf_version, tested_against_gf}` to

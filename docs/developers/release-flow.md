@@ -153,7 +153,7 @@ release.sh --dev                   build and pack a dev-signed .fw for the
 | `FWUP` | The host `fwup` for the pack step. Default: `fwup` on `PATH`. |
 | `FWUP_COMPAT` | A factory-era fwup 0.14.2 binary. When set, the script verifies the packed archive with it (raw-format key). This replicates the factory-compatibility guarantee. |
 | `FORGEFIRM_SIGNING_KEY` | The private key for release mode. Required, with no default, so that the key choice is always deliberate. |
-| `FORGEFIRM_DEV_KEY` | The private key for `--dev` mode. Required for `--dev`. |
+| `FORGEFIRM_DEV_KEY` | The private key that signs the dev archive: the `forgefirm-dev.fw` of a release, and the archive of `--dev` mode. Required for both. It must not be the release key. |
 | `RELEASE_STAGING_DIR` | The directory for the staged release assets. Default: `<repo>/release-staging`. |
 | `FORGEFIRM_ACCEPTANCE_SKIP` | `1` bypasses the acceptance gate. The script prints a loud warning, attaches `NO-ACCEPTANCE.txt` in place of the acceptance artifact, and publishes the release as a prerelease. This is never the default. |
 | `FORGEFIRM_SOURCE_SKIP` | `1` builds the release without the source bundle. The licenses of the software in the image make source necessary, so this is never the default. |
@@ -170,8 +170,10 @@ The gates:
 - **The version contract.** `<version>` must equal `FORGEFIRM_RELEASE` in
   `forgefirm-image.bb`, `/etc/forgefirm-version` in the built rootfs
   (`v<version>`), the `.fw` meta-version, and the release tag `v<version>`.
-- **The rootfs size**, against the 200 MiB slot: a warning at 170 MiB, a
-  failure at 195 MiB.
+- **The rootfs size**, against the 200 MiB slot, for the release rootfs and
+  the dev rootfs: a warning at 170 MiB, a failure at 195 MiB.
+- **The dev key.** The key that signs `forgefirm-dev.fw` must not be the
+  release key.
 - **The installer key.** The public key in the installer must agree with the
   signing key.
 - **The factory-era verification.** The packed archive must verify with
@@ -197,8 +199,20 @@ acceptance.json
 acceptance.md
 ```
 
-The release carries one asset more, `forgefirm-source-v<version>.tar.gz`.
-It is for a person, and no machine downloads it.
+The release carries three assets more. They are for a person, and no
+machine downloads them:
+
+```
+forgefirm-source-v<version>.tar.gz
+forgefirm-dev.fw
+forgefirm-image-dev-glowforge.rootfs.wic.gz
+```
+
+The last two are the dev image of the release, the archive for a slot and
+the image for an SD card. `forgefirm-dev.fw` is signed with the dev key,
+which no machine trusts, so the control panel installs it only with the
+machine button held. The dev image lets root log in over SSH with no
+password, and the release notes say so.
 
 `sha256sums.txt` covers every other asset, the source bundle included. With
 the acceptance gate skipped, `NO-ACCEPTANCE.txt` takes the place of the two
@@ -206,7 +220,8 @@ acceptance files and the release is a prerelease.
 
 ## The source bundle
 
-A release publishes the source of the software that it installs. The
+A release publishes the source of the software in the images that it
+publishes, the release image and the dev image. The
 release build merges the overlay `kas/source-bundle.yml`, which turns on
 the Yocto archiver. The build then writes the source of each recipe beside
 the image, at `build/tmp/deploy/sources/`. The overlay adds tasks only. It
@@ -228,16 +243,17 @@ travel with the release too.
 ```
 forgefirm-source-v<version>.tar.gz
   README.md                       what the archive holds, and how to build again
-  SOURCES.txt, MANIFEST.json      each recipe of the image with its archive
+  SOURCES.txt, MANIFEST.json      each recipe of the images with its archive
   sources/                        the source of each recipe
-  licenses/                       both license manifests, and the license texts
+  licenses/                       the license manifests of both images, and
+                                  the license texts
   metadata/                       the kas configuration, the layer revisions,
-                                  the ForgeFIRM layers, the image manifest
+                                  the ForgeFIRM layers, the image manifests
   sha256sums.txt                  the checksum of every file above
 ```
 
-What the bundle must hold comes from the image, not from a list in the
-script: the two license manifests that the build writes,
+What the bundle must hold comes from the images, not from a list in the
+script: the two license manifests that the build writes for each image,
 `license.manifest` (each package of the root filesystem) and
 `image_license.manifest` (the kernel, the device tree and the boot
 loader). Each recipe in them whose license is in the include list must have
