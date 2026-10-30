@@ -185,14 +185,13 @@ and the bench tools included), signed with the dev key so it is never an
 unsigned file in transit. The machine holds the release key and the Glowforge
 keyring only, so a dev archive classifies as unsigned there and takes the
 operator-present path: the unsigned confirmation with the machine button
-held. No gate runs on it.
+held. Of the gates, only the slot size gate runs on it.
 
-**The dev image is SD-only.** forgetest and the bench tools put the dev
-rootfs at about 368 MiB, well past the 200 MiB slot, so it is never installed
-into one: it goes on an SD card, which the boot selector carries as a
-first-class location. Write `forgefirm-image-dev-glowforge.rootfs.wic.gz` to
-the card, or point `fwup` at the card rather than a slot. The slot size gate
-in `release.sh` therefore applies to the release rootfs alone.
+**The dev image on the bench.** The dev rootfs is sized and capped like the
+release rootfs ([Image and BSP](image-and-bsp.md)), so it fits a slot as
+well. The bench runs it from an SD card, which the boot selector carries as a
+first-class location: write `forgefirm-image-dev-glowforge.rootfs.wic.gz` to
+the card, or point `fwup` at the card rather than a slot.
 
 **Cloud-mode compatibility baseline.** The cloud client's connect-time probe
 records `{latest_gf_version, tested_against_gf}` to

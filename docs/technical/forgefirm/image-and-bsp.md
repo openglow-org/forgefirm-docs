@@ -92,12 +92,19 @@ is installed on top of those: no ForgeFIRM program imports it, and it is there
 for extensions, which run on the image's interpreter. `nano` is trimmed
 from the release image (8.7 MB, mostly libmagic) and kept on the dev image.
 
-The release rootfs must fit a 200 MiB factory eMMC slot (409600 blocks).
+Both rootfs images must fit a 200 MiB factory eMMC slot (409600 blocks).
 The image recipe deploys a raw ext4 beside the wic, sizes it as content plus
-40 MiB working space (`IMAGE_ROOTFS_EXTRA_SPACE = "40960"`,
+16 MiB (`IMAGE_ROOTFS_EXTRA_SPACE = "16384"`,
 `IMAGE_OVERHEAD_FACTOR = "1.0"`), and hard-caps it at the slot size
 (`IMAGE_ROOTFS_MAXSIZE = "204800"`): the build fails rather than emit an
-unflashable image. `scripts/mkfw.sh` packs the ext4 into the signed `.fw`
+unflashable image. The rootfs is read-only
+([The read-only root filesystem](#the-read-only-root-filesystem)), so the
+16 MiB holds the filesystem's own metadata and a little slack for a bench
+hot copy, nothing more. The filesystem reserves no blocks for root and has
+one inode per 8 KiB (`EXTRA_IMAGECMD:ext4 = "-i 8192 -m 0"`), and it keeps
+its journal for the hot copy's writable window. The SD card image
+(`glowforge.wks` in meta-openglow) makes its root filesystem with the same
+options. `scripts/mkfw.sh` packs the ext4 into the signed `.fw`
 ([Install and update](install-and-update.md)). Each image carries
 `/etc/forgefirm-manifest.json`, the build-input identity the acceptance
 tool and the release gate compare
