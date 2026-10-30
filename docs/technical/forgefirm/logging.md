@@ -29,6 +29,9 @@ deliberate way: the socket is non-blocking, and a message that cannot be
 queued is dropped and counted, never waited for. A unix datagram socket
 exerts backpressure on its sender, so a stalled log daemon could otherwise
 park a controller thread. The RT feeder thread never logs except a fault.
+A process can also emit under a second program name (`fflog_channel`),
+with a level of its own: forgectrl's sensors logger does, so its records
+land in a logger of their own.
 
 The Python apps (gfcloud, gfhome) use `logging.handlers.SysLogHandler` on a
 non-blocking socket with the same drop semantics. Python has no `notice`;
@@ -48,6 +51,7 @@ output flows through a fifo relay in its init script.
 | Logger | Selector | Emitter |
 |---|---|---|
 | `forgectrl` | `programname == forgectrl` | fflog (plus the fifo relay) |
+| `sensors` | `programname == sensors` | forgectrl's sensors logger, an fflog channel ([The sensors logger](#the-sensors-logger)) |
 | `grblhal` | `programname == grblhal` | fflog (plus relay) |
 | `gfcloud` | `programname == gfcloud` | SysLogHandler (plus relay) |
 | `gfhome` | `programname == gfhome` | SysLogHandler; stray output rides the grblhal relay (it is the controller's child) |
@@ -99,7 +103,11 @@ levels and offers the reboot.
 Rotation is logrotate, size-capped per file, with a `HUP` to rsyslog (never
 `copytruncate`), driven by the same init script at boot and hourly. A full
 `/data` breaks settings, updates, and controller writes, which is what the
-cap protects.
+cap protects. Every logger keeps its file at 2 MB and three compressed ones,
+except the sensors logger, which keeps months: a 4 MB file and 25
+compressed ones, under 15 MB on `/data`, all of which the export carries.
+Each logger's directory is named in the rotation rules (a file two rules
+select is an error to logrotate), so a new logger gets a line there.
 
 ## Panel and API
 
@@ -133,6 +141,112 @@ comes back in the export without its MAC or IP address. `tests/fflog_e2e.sh` pro
 against a private rsyslogd (emitter, relay, format, per-logger filtering)
 ([Test](../../developers/testing.md)).
 
+## The sensors logger
+
+forgectrl's sensors logger (`src/senslog.c`, its records in
+`src/senslogfmt.c`) writes the machine's sensors and what was commanded to
+the `sensors` logger, so a bundle shows how one machine differs from
+another, before a fault and not only at it. Its own thread samples every
+sensor once a second, apart from the cooling engine, so nothing it does can
+delay a verdict. It writes six records:
+
+| Record | When | What |
+|---|---|---|
+| `beat` | every 10 s while a run session is open, cooling down, armed, running, or in diagnostics; every 60 s at idle; and at every change of the engine's phase | every sensor, every commanded output, the engine's verdict |
+| `job` | once a job is over: from the run session's opening to the machine's return to idle, the cooldown included | the job's summary |
+| `flow` | at every flow verdict, the engine's checks (`src=check`) and the diagnostics' trials (`src=verify`, `src=cal`) alike | the check and the readings around it |
+| `inv`, `cfg` | at start, after the clock is set, when either changes, and daily | the machine's inventory; the settings in force |
+| `clock` | when the wall clock steps | the step |
+| `fr`, `frc` | 30 s after an event | the flight recorder: the 1 Hz samples from 120 s before the event to 30 s after it, one `frc` line a channel |
+
+**The line.** A record is one line: its type, then `key=value` pairs
+separated by single spaces. Every record carries `v` (the schema version),
+`boot` (the first 8 hex digits of the kernel's boot id) and `mono` (seconds
+since boot), so a line written before the clock was set can still be ordered
+and dated. A value that could not be read is `-`. Hex values are written
+`0x..`. A `msg` key, where there is one, is the last and runs to the end of
+the line. Keys are only ever added; renaming or removing one raises `v`.
+Wherever a conversion is unverified, the raw count is written beside the
+converted value, so a corrected conversion can be applied to old records.
+
+**`beat`.** `ph`, `vd`, `hold`, `fire`, `arm` (the engine's phase, verdict,
+hold, fire permission and armed window); `kst`, `flt`, `sw` (the kernel's
+state, its fault mask, the switch bits); `down`, `up` (the coolant in °C, as
+the engine converts it) with `down_raw`, `up_raw`; `chassis`, `soc` (°C);
+`psu_raw`, `tec_raw` (`pic/pwr_temp`, `pic/tec_temp`); `thr` (the CPU's
+cooling state); per fan the commanded duty, the tach reading and the speed
+(`exhaust_pwm`, `exhaust_ns`, `exhaust_rpm`; `intake_pwm`, `intake1_ns`,
+`intake1_rpm`, `intake2_ns`, `intake2_rpm`; `aa_pwm`, `aa_us`, `aa_rpm`);
+`purge`, `purge_cur`, `pump`, `heater_pwm`, `tec_on`; `hv`, `hv_v`
+(`pic/hv_current`, `pic/hv_voltage`); `lon`, `pgood` (the kernel's sampled
+LASER_ON and power-good counts); `beam`, `beam_dig`, `beam_base`, `beam_n`,
+`head_flags` (the head's beam reading, its comparator, the head's own
+baseline, its samples in the last window, its flag byte); `ir` (the four lid
+IR channels); `hall`; `cpu`, `mem` (percent, over the interval since the
+last beat); `tick_ms` (the slowest cooling-engine tick since the last beat);
+`data_free_mb`; `drops` (log messages the daemon dropped).
+
+**`job`.** `seq`, `start` (mono), `end` (`idle`, `new-session`, or the phase
+that took it), `run_s`, `cool_s`, `armed_s`, `lit_s` (seconds with LASER_ON
+sampled), `hv_dose` (the sum of `hv` over the lit seconds), `hv_lit_mean`,
+`hv_sat_s` (lit seconds with `hv` at its converter's top, 1023); the coolant
+at the session's opening (`down_start`, `up_start`), at its end (`down_end`,
+`up_end`) and at the return to idle (`down_last`, `up_last`); `down`, `up`,
+`chassis`, `soc`, `psu_raw` as `min/mean/max` over the whole job; `thr_s`;
+the fans' speeds and the purge current as `min/mean/max` over the run phase
+past the first 15 s (the spin-up); `ir_base`, `ir_peak`; `beam_dark`
+(`min/mean/max` while dark), `beam_peak` (lit), `beam_rise`; `flow_checks`,
+`flow_worst`; `verdicts` (every verdict other than OK the job saw).
+
+**`flow`.** `src`, `verdict` (`verified`, `suspect`, `fault`, `cleared`,
+`recovered`; a trial's `pump-on` or `pump-off`), `trial` (i/n, a
+calibration's), `rise` (as judged), `rise_raw`, `laser` (the tube's share
+taken off), `limit`, `duty` (the heater's percent), `window_s`, `base_down`,
+`base_up` (the settled means the check started from), `rest_dt`
+(`base_down - base_up`: the two sensors' disagreement at rest), `end_down`,
+`end_up` (the means at the window's end), `dt`, `hv_dose`.
+
+**`inv` and `cfg`.** `why` (`start`, `clock`, `change`, `daily`). The
+inventory: `image`, `kernel`, `module`, `soc`, `soc_rev`, `soc_trips` (the
+SoC thermal zone's trip points), `mem_kb`, `data_kb`, `pic_id`, `head_id`,
+`head_fw`, `beam_coeffs` (the head's beam-detector coefficients as it holds
+them), `model`, `tec`, `camera` (the setup record's). The settings record:
+every `cool_*` tunable as the engine resolved it, then a fixed list of
+machine settings as stored (`-`: unset, the default stands). It is a list,
+never the settings file, which holds credentials.
+
+**`clock`.** `from`, `to` (UTC). The step dates the boot: every record of
+the same `boot` was written at `to` plus its own `mono` less the clock
+record's. The plain log lines of that boot written before the step carry
+whatever the clock read then (1970, or a date saved at an earlier
+shutdown), and `from` names it.
+
+**`fr` and `frc`.** The engine's arrival at any hold for a fault or a gate
+(every verdict but OK, WARMUP and EXT) arms the recorder, and so do the
+warnings that change no verdict: emission sensed with no armed window, a
+controller silent while armed or running, the supply's power-good dropping in
+the armed window, a stepper driver fault, a throttled SoC, a thermal cooldown
+that timed out. `fr` carries `ev` (the dump's number), `at` (the event's
+mono), `pre`, `post` and the event's words in `msg`; each `frc` carries `ev`,
+`ch` (the channel: `ph`, `vd`, `down`, `up`, `down_raw`, `up_raw`,
+`heater_pwm`, `hv`, `lon`, `beam`, `ir1` to `ir4`, the four fan speeds,
+`purge_cur`, `soc`, `cpu`), `n`, `t0`, `t1` and `vals`, the samples one a
+second. At most six dumps are written in any hour.
+
+**What it never holds.** No serial number (the head's serial line is
+skipped and the SoC's unique id is never read), no network name or address,
+no account. `tests/sanitize_test.c` proves the sanitizer leaves the records
+as they are, and `tests/host_start.sh` that a planted head serial reaches no
+record.
+
+**Reading a bundle.** `tools/senslog_read.py` (in forgectrl, standard
+library only) reads the records out of an export (`.tar.gz`), its directory,
+or the files, oldest first, dates them per boot, and prints a summary or
+writes one CSV table per record type and one per flight-recorder dump
+(`--csv DIR`). The formats are a contract between the two:
+`tests/senslog_test.c` proves the daemon writes exactly
+`tests/senslog_records.txt`, and the reader's own test parses that file.
+
 ## Rules for new code
 
 - No `fprintf(stderr)` or `printf` for logging in the C daemons. Use
@@ -141,5 +255,8 @@ against a private rsyslogd (emitter, relay, format, per-logger filtering)
 - Never log a credential, token, or password value, or the account name. The
   sanitizer is the second line, not the first.
 - Never log from the RT feeder path except a fault.
-- New loggers are added to `logs_names[]` (forgectrl) plus a setting pair.
-  New secrets go in `load_known()`.
+- New loggers are added to `logs_names[]` (forgectrl), plus a setting pair
+  and a line in the rotation rules. New secrets go in `load_known()`.
+- A new sensor reading goes in the sensors logger's `beat`, never in a line
+  of prose: a key appended to the record, the golden file rewritten
+  (`SENSLOG_GOLDEN=write`), the reader following it.

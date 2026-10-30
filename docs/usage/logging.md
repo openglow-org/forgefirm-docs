@@ -20,11 +20,13 @@ format are in [Logging internals](../technical/forgefirm/logging.md).
 
 Every ForgeFIRM process emits through the system syslog socket, and rsyslog is
 the only file writer. It files each program under its own directory,
-`/data/log/forgefirm/<logger>/`, size-capped and rotated.
+`/data/log/forgefirm/<logger>/`, size-capped and rotated. The `sensors` logger
+keeps months of history in under 15 MB, the others a few megabytes each.
 
 | Logger | What it holds |
 |---|---|
 | `forgectrl` | The machine-services daemon: supervision, cooling, cameras, settings, updates. |
+| `sensors` | Every sensor and every fan, pump and heater setting: once a minute at idle, every 10 seconds in a job. A summary of each job, each coolant flow check, and the two and a half minutes around every fault. Numbers only. |
 | `grblhal` | The GRBL controller. |
 | `gfcloud` | The cloud-mode client. |
 | `gfhome` | The camera-referenced homing runner. |
@@ -80,7 +82,8 @@ The bundle is **sanitized by default**, for attaching to a public issue report.
 Known identifiers (serial, hostname, cloud credentials, panel token, camera
 key, WiFi network, your account name) and pattern classes (network addresses, e-mail addresses, bearer and
 basic credentials, JWTs, key=value secrets, long hex and base64 blobs) become
-placeholders. A placeholder keeps the same number for the same value within the
+placeholders. The `sensors` history makes up most of a bundle, about
+10 MB once it is full; it holds only readings and settings. A placeholder keeps the same number for the same value within the
 bundle, so hosts can still be told apart. The sanitizer removes what it knows
 and what it can recognize: skim the bundle before posting it. It knows this
 machine's own secrets and not an extension package's - what a package logs,

@@ -223,7 +223,9 @@ off, about 628 with it on.
   of the mirror that turns the beam down to the work, so it sees the beam and
   not the material. ForgeFIRM reads the analog output during the jobs
   forgectrl runs itself, records and logs it, and requires it only to record
-  a dose curve (see [The laser](laser.md)). Measured on the bench
+  a dose curve (see [The laser](laser.md)); the sensors logger records it
+  once a second and each job's dark level and peak
+  ([Logging](../forgefirm/logging.md#the-sensors-logger)). Measured on the bench
   reference: near **1834 dark**, and **2600 to 2890** during fire at `S300` to
   `S400`. Its response at low fire energies is unmeasured. How the detector
   works inside the head is below.
@@ -292,10 +294,11 @@ The head carries a Kinetis KL17 at i2c-3 address 0x47. It is
 Once per main-loop pass it samples four head-local GPIO input levels into the
 read-only flag register **0x05**: bit 0 `hall_sensor` (the lens Z home), bit 1
 the head accelerometer's INT pin (a bare level, not a bus read), bit 2 the raw
-beam-detect comparator output, and a fourth, unidentified input the driver
-does not expose (a candidate second hall sensor, or a head-present line). A
+beam-detect comparator output, and bit 3 a fourth input (pin PTA19, with its
+pull-up on) whose function is not known; it reads 1 on the bench reference. A
 fifth flag, bit 7, is the processed beam-detect verdict (below). No GPIO pin
 interrupts are configured anywhere in its firmware; every input is polled.
+The driver publishes the register whole as `head/flags`.
 
 The **head-attention line** the SoC sees (gpio-keys code 7, factory pad name
 HEAD_IRQ, GPIO3_22) is the MCU's own output driven back. It is level-driven
@@ -305,8 +308,8 @@ registers **0x03** (rising) and **0x04** (falling), and it is read-to-clear.
 So the SoC chooses which head events raise the line, answers by reading 0x02
 to identify and clear, and reads 0x05 for live levels.
 
-ForgeFIRM writes neither 0x03 nor 0x04 and reads neither 0x02 nor the two
-undecoded flags, so **the head IRQ is dormant by construction**: the line sits
+ForgeFIRM writes neither 0x03 nor 0x04 and never reads 0x02, so **the head
+IRQ is dormant by construction**: the line sits
 idle low with a healthy head, pulses while the head MCU reboots (hence the
 60 ms debounce in the device tree), and floats to the SoC's pull-up with no
 head. That is why the raw level is not a presence signal. Presence is the head
@@ -314,25 +317,49 @@ answering at address 0x47 ([Buses](buses.md)).
 
 ### Beam detect inside the head MCU
 
-The head's beam detector is more than the two attributes the driver exposes:
+Two head firmware versions are in the factory's releases: **0be0123e**,
+which releases 1.2.0 to 1.11.2 carry, and **0bb13047**, which every release
+from 1.12.1 on carries; the factory's head update reflashes a head that
+reports any other version. The bench reference's head reports 0bb13047. Its
+hardware id, 044c, is a constant in the image, not a strap on the board, and
+the 034c and 044c builds differ only in two pins' setup, not in the beam path.
 
-- The sensor reaches the MCU's ADC on pin PTE16, and its **raw analog level**
-  is register 0x16, published as `head/beam_detect_analog`.
-- A float EWMA and CUSUM over five coefficients (registers 0x22 to 0x2a:
-  `LAMBDA_K` 0x07ae, `LAMBDA_T` 0x1999, `THETA_R` 0x20, `THETA_T` 0x28,
-  `E_T` 0x60) feeds an N-of-M sliding-window verdict into flag **0x05 bit 7**.
-  ForgeFIRM's head probe writes those five coefficients, but they are the
-  firmware's own power-on defaults.
-- A DAC (register 0x1e, default 0x3ff) sets an analog comparator threshold
-  whose raw output is flag **0x05 bit 2**, published as
-  `head/beam_detect_digital`.
+- **The reading.** The detector's signal reaches the MCU's converter as a
+  differential pair, PTE16 against PTE17. Under 0bb13047 every sample is
+  offset by 2048 and held to 0..4095, and register 0x16
+  (`head/beam_detect_analog`) is the mean of the samples taken in each 1 ms
+  window; register 0x2c (`head/beam_samples`) is their count, 5 to 6 on the
+  bench reference. So 2048 is no voltage across the pair. Under 0be0123e,
+  0x16 is the last sample, signed, with no offset. A converter that is not
+  sampling reads 0, not 2048.
+- **No setting gates it.** The sampler runs on every main-loop pass in both
+  versions; no register enables the path, sets its gain, or holds a per-head
+  calibration. A reading that sits at 2048 and does not move when the tube
+  fires means nothing drives PTE16 away from PTE17 on that head: the sensor,
+  its amplifier or their connection. The bench reference reads near 1834
+  dark.
+- **The head's own verdict.** A float EWMA and CUSUM over five coefficients
+  (registers 0x22 to 0x2a, `head/beam_coeffs`) and an N-of-M sliding window
+  set flag **0x05 bit 7**; register 0x2e (`head/beam_baseline`) is the
+  detector's baseline. The defaults differ between the versions: 0x07ae,
+  0x1999, 0x20, 0x28, 0x60 under 0be0123e, and 0x4000, 0xf333, 0x78, 0xc0,
+  0x190 under 0bb13047. ForgeFIRM leaves them as the head's firmware sets
+  them; they shape only the verdict and the baseline, never register 0x16.
+- **The comparator.** Flag **0x05 bit 2** (`head/beam_detect_digital`) is a
+  plain input pin (PTE18) fed by a comparator outside the MCU; the MCU's own
+  comparator is unused.
+- **Register 0x1e** is the MCU's DAC (`head/dac`), not a beam threshold:
+  register 6 bit 1, which ForgeFIRM drives as `z_current` and the factory
+  calls `z_stepper_current`, sets it to 0x3ff (set) or 0xfff (clear). It
+  reads 0x3ff on the bench reference with `z_current` at 1. It is most
+  likely the Z driver's current reference.
 
-The driver exposes the raw comparator and the raw analog level, **not** the
-processed verdict at bit 7. Whether the factory enables beam detect in
-production is unknown: its 2.6.0 application carries a complete but
-config-gated subsystem, with separate printing and idle enables, three
-severities, a level-or-edge trigger option and a fault-report upload, and an
-invalid severity defaults to disabled.
+The driver exposes the raw comparator and the analog level, **not** the
+processed verdict at bit 7. The factory's 2.6.0 application carries a
+complete but config-gated subsystem, with separate printing and idle
+enables, three severities, a level-or-edge trigger option and a fault-report
+upload, and an invalid severity defaults to disabled. Every job header
+captured from the factory service sets the printing severity to disabled.
 
 ## Safety-chain readbacks
 

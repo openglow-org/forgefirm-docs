@@ -169,8 +169,8 @@ The software-visible evidence that the tube fires, or may fire:
   requested, not what the chain did.
 - **The head beam detector** (`beam_detect_analog`, `beam_detect_digital`) is
   a scatter detector inside the head, ahead of the mirror that turns the
-  beam down to the work, so it sees the beam and not the material. A Grbl or
-  cloud job does not read it. The jobs forgectrl runs itself (the setup's
+  beam down to the work, so it sees the beam and not the material. No gate
+  reads it; the sensors logger records it through every job. The jobs forgectrl runs itself (the setup's
   burns, the dose-curve recorder, the job runner's jobs) read it, record
   it, and log it at their end, and only the dose-curve recorder requires
   it, because it measures with it. A head may give no output from it: none

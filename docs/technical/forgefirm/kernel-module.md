@@ -171,8 +171,13 @@ services daemon, cloud mode) are on
     |---accel_irq:           (RO) Head accelerometer IRQ tripped flag
     |---air_assist_pwm:      (RW) Air Assist fan PWM output setting
     |---air_assist_tach:     (RO) Air Assist fan tachometer reading
+    |---beam_baseline:       (RO) The head's own beam-detector baseline
+    |---beam_coeffs:         (RO) The beam detector's five coefficients
     |---beam_detect_analog:  (RO) Current state of beam detector - analog
     |---beam_detect_digital: (RO) Current state of beam detector - digital
+    |---beam_samples:        (RO) Beam detector samples in the last window
+    |---dac:                 (RO) The head MCU's DAC level
+    |---flags:               (RO) The head's flag register, whole
     |---hall_sensor:         (RO) Status of lens hall sensor
     |---info:                (RO) Head identity: hardware id, serial, firmware version
     |---measure_laser:       (RW) Output PWM of material height measuring laser
@@ -540,19 +545,67 @@ Period between tach pulses, in nanoseconds (0 when no pulse has arrived).
 The RPM conversion is on
 [Sensors](../machine/sensors.md).
 
+### beam_baseline
+
+Read, ASCII, 0-65535
+
+The beam detector's own baseline, as the head computes it (register 0x2e).
+It follows `beam_detect_analog` at rest: 1825 against 1834 on the bench
+reference. The sensors logger records it every beat
+([Logging](logging.md#the-sensors-logger)).
+
+### beam_coeffs
+
+Read, ASCII, five 4-digit hex values
+
+The beam detector's five coefficients as the head holds them (registers
+0x22, 0x24, 0x26, 0x28, 0x2a), in that order: the head firmware's own
+defaults, which the module leaves alone
+([Sensors](../machine/sensors.md#beam-detect-inside-the-head-mcu)).
+
 ### beam_detect_analog
 
 Read, ASCII, 0-65535
 
-Analog output from the beam detector. How it operates is not characterized.
-forgectrl uses it as the live emission witness and the dose-curve recorder
-samples it ([forgectrl](forgectrl.md#the-dose-curve-recorder)).
+Analog output from the beam detector (register 0x16). What the value means
+depends on the head's firmware; the head firmware every factory release from
+1.12.1 on installs reports a mean with 2048 for no signal
+([Sensors](../machine/sensors.md#beam-detect-inside-the-head-mcu)).
+forgectrl uses it as the live emission witness, the dose-curve recorder
+samples it ([forgectrl](forgectrl.md#the-dose-curve-recorder)), and the
+sensors logger records it every beat.
 
 ### beam_detect_digital
 
 Read, ASCII, 0-1
 
-Digital output from the beam detector. How it operates is not characterized.
+Digital output from the beam detector: the head's flag register, bit 2, an
+input pin fed by a comparator outside the head MCU.
+
+### beam_samples
+
+Read, ASCII, 0-65535
+
+How many samples the head averaged into the last `beam_detect_analog` value
+(register 0x2c): 5 to 6 on the bench reference. Zero means the head's
+converter is not sampling.
+
+### dac
+
+Read, ASCII, 0-4095
+
+The head MCU's DAC level (register 0x1e). `z_current` sets it: 0x3ff with
+`z_current` 1, 0xfff with it 0 (0x3ff on the bench reference at rest, where
+`z_current` reads 1).
+
+### flags
+
+Read, ASCII, 0-255
+
+The head's flag register (0x05), whole: bit 0 the hall sensor, bit 1 the
+accelerometer's interrupt line, bit 2 the beam comparator, bit 3 an input
+whose function is not known (it reads 1 on the bench reference), bit 7 the
+beam detector's own verdict. The sensors logger records it every beat.
 
 ### hall_sensor
 

@@ -329,7 +329,10 @@ its end as the mean of its last 5 s, never single samples. It counts the
 tube current from 15 s before the window to 15 s before its end (the heat's
 lag to the sensor), subtracts that share from the rise, at most 3 °C, and
 judges the remainder against `cool_flow_rise`. The verdict line carries the
-share taken off and the raw rise.
+share taken off and the raw rise, and the sensors logger's `flow` record
+carries the whole check: both sensors' settled baselines and end means, the
+heater's duty, the window and the limit
+([Logging](logging.md#the-sensors-logger)).
 
 ### The air-assist offset on the coolant readings
 
@@ -593,7 +596,8 @@ its 1 Hz tick.
   session. On a healthy supply the line is good in every sample, so the
   warning means the supply's supervisor reported a fault.
 - **Lid IR fire watch.** The four `pic/lid_ir_*` channels are polled every
-  tick; each job logs its baseline and peaks (the characterization dataset).
+  tick; the sensors logger's job record carries each job's baseline and
+  peaks (the characterization dataset).
   The channels are first of all a photometer for the lid lamp, and a cut and
   a candle move them by the same few counts, which is what shapes this watch:
   the measurements are on
@@ -640,13 +644,11 @@ its 1 Hz tick.
   `accel_watch: off | watch | armed | alert | ALARM` (`off` = the part
   absent or not answering; `watch` = thresholds set, window not armed).
 - **Telemetry.** `cnc/faults` transitions to nonzero during a run window
-  are warned; `pic/hv_current` (the only live HV telemetry) is ranged per
-  job in the same log line. The chassis, SoC die, and supply temperatures
-  are ranged over every run session and named once at its end
-  (`cool: temps this job: chassis 24.1..31.8 C, soc 42.8..61.0 C, supply raw 401..455`,
-  with `CPU THROTTLED for N s` appended when the kernel's thermal governor
-  throttled the CPU during the job). No gate stands behind any of them
-  ([Planned](#planned)). The SoC guards itself: the i.MX6 thermal zone
+  are warned. What every sensor read through a job, the chassis, SoC die
+  and supply temperatures and `pic/hv_current` (the only live HV telemetry)
+  among them, is the sensors logger's job record
+  ([Logging](logging.md#the-sensors-logger)). No gate stands behind any of
+  them ([Planned](#planned)). The SoC guards itself: the i.MX6 thermal zone
   throttles the CPU (and the GPU) at its passive trip and powers the board
   off at its critical one; the engine names a throttle when it starts and
   when it ends (`SoC throttled: CPU cooling state N (die T C)`). `/status`
