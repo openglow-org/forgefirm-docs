@@ -120,9 +120,15 @@ kas clones the upstream layers into `forgefirm/layers/`, builds in
 `forgefirm/build/tmp/deploy/images/glowforge/`:
 
 ```
-forgefirm-image-glowforge.rootfs.wic.gz         the release image
-forgefirm-image-dev-glowforge.rootfs.wic.gz     the dev image
+forgefirm-image-glowforge.rootfs.wic.gz         the release image, for an SD card
+forgefirm-image-dev-glowforge.rootfs.wic.gz     the dev image, for an SD card
+forgefirm-image-glowforge.rootfs.ext4           the release root filesystem
+forgefirm-image-dev-glowforge.rootfs.ext4       the dev root filesystem
 ```
+
+The dev image's card image carries a data partition of the card's own
+beside the root filesystem ([The bench](bench.md#the-sd-card)); the release
+image's carries the root filesystem alone.
 
 ## The source variant
 
@@ -223,10 +229,12 @@ committed. Refresh it only when you decide to.
 
 ```console
 cd build/tmp/deploy/images/glowforge
-sudo zcat forgefirm-image-glowforge.rootfs.wic.gz | dd of=/dev/sdX bs=1M
+sudo zcat forgefirm-image-dev-glowforge.rootfs.wic.gz | sudo dd of=/dev/sdX bs=1M
 ```
 
-The bench boots the dev image from an SD card ([The bench](bench.md)). To
+The bench boots the dev image from an SD card. A whole card starts its
+settings over; the root filesystem alone, written to the card's first
+partition, keeps them ([The bench](bench.md#the-sd-card)). To
 install ForgeFIRM on the factory eMMC, use the
 [installation instructions](../install/index.md).
 The installer puts ForgeFIRM in the unused A/B slot, and it archives the

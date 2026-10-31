@@ -8,8 +8,8 @@ The bench is one stock machine with the dev image, and the discipline around
 it. Almost every measured value on this site was obtained there, which is why
 the machine has a name and a definition:
 [the bench reference](../technical/machine/index.md#the-bench-reference).
-This page is the runbook: the bench machine, the clean-up rule, the bench
-diagnostics page, the bench tools, and the bench actuator.
+This page is the runbook: the bench machine, its SD card, the clean-up
+rule, the bench diagnostics page, the bench tools, and the bench actuator.
 
 How a result was obtained is recorded in the commit that carried it.
 
@@ -29,8 +29,9 @@ How a result was obtained is recorded in the commit that carried it.
   in over SSH as root; the dev image permits a root login without a
   password. A serial console is available on `ttymxc0`
   ([serial access](../install/serial-access/index.md)).
-- **Deploy a kernel.** Write the new dev image to the SD card again
-  ([Build](building.md)). This works because U-Boot (in the eMMC boot0 area)
+- **Deploy a kernel.** Write the new dev image to the SD card again: its
+  root filesystem alone, or the whole card ([The SD card](#the-sd-card)).
+  This works because U-Boot (in the eMMC boot0 area)
   reads the saved environment at eMMC user-area offset 0x80000. That
   environment selects the boot device (on the bench, the SD card: `mmcdev=0`,
   `mmcroot=/dev/mmcblk1p1`). U-Boot then loads `/boot/uEnv.txt` and
@@ -85,6 +86,72 @@ How a result was obtained is recorded in the commit that carried it.
   warm `reboot`. The true fresh state of the machine is the powered-on one.
   That state is the lamp and sensor defaults of the PIC, with the start-up
   writes of forgectrl on top.
+
+## The SD card
+
+The dev image's SD card image (`forgefirm-image-dev-glowforge.rootfs.wic.gz`)
+gives a card boot a configuration of its own. A campaign then runs on a
+known configuration, and the settings, extensions, and logs of the machine's
+everyday use stay as they are. The SD card slot is not fitted at the
+factory; the card needs a board with the slot soldered on.
+
+| Partition | Size | Holds |
+|---|---|---|
+| p1 | 200 MiB, the size of an eMMC slot | the root filesystem |
+| p2 | 1 GiB | ForgeFIRM's settings (`forgefirm/`) and logs (`log/`) |
+
+Booted from the card, the boot step `forgefirm-data` shows the card's
+folders over the eMMC's:
+
+| Path | From |
+|---|---|
+| `/data/forgefirm` | the card: the settings, the account, the setup record, the extension packages, the API tokens |
+| `/data/log/forgefirm` | the card: every ForgeFIRM log |
+| `/data/forgefirm/archive` | the eMMC, read-only: the factory firmware archive, so a factory restore still finds it |
+| the rest of `/data` | the eMMC: the factory state, the WiFi configuration (`/data/etc`), the acceptance records (`/data/forgetest`), `/data/bench-scratch` |
+
+The eMMC's own ForgeFIRM folders are never written from a card boot.
+`/run/forgefirm-emmc` shows the eMMC's `/data` as it is under the card's
+folders, read-only.
+
+- **A newly written card** starts as a finished setup with ForgeFIRM's
+  default settings and the account `forgefirm`, password `forgefirm`. The
+  panel refuses a password equal to the name when an account is made there;
+  this one is made with the image. The advisories are accepted, the required
+  steps are recorded as done, and the intake fan count is the default, 2.
+  The checks the setup recommends stay recommended. The required flow
+  calibration is recorded but not measured: the card runs on the default
+  flow threshold. Run Flow calibration once on the card where the loop
+  needs it; the card keeps the result.
+- **At the card's first boot** it takes the machine's identity from the
+  eMMC, once: the SSH host keys, the certificate, the WiFi region, and the
+  last saved time, which sets the clock until the network does (the board
+  has no clock battery). An SSH client and a browser then see the same
+  machine from either boot.
+- **The development bar** says on every boot where the settings,
+  extensions, and logs are: the card's, with its data partition mounted, or
+  the eMMC's, from an eMMC slot or from a card whose data partition is
+  missing or not mounted ([The control panel](../usage/control-panel.md#the-page)).
+  A card boot that shows the eMMC's settings runs on the machine's everyday
+  configuration: do not run a campaign on it.
+- **Write the whole card** for a fresh known configuration. The card's
+  settings, extensions, and logs start over:
+
+  ```console
+  sudo zcat forgefirm-image-dev-glowforge.rootfs.wic.gz | sudo dd of=/dev/sdX bs=1M
+  ```
+
+- **Write the root filesystem alone** to keep them, a flow calibration
+  among them. Any build that fits an eMMC slot fits p1. The build writes the
+  raw ext4 beside the card image ([Build](building.md)):
+
+  ```console
+  sudo dd if=forgefirm-image-dev-glowforge.rootfs.ext4 of=/dev/sdX1 bs=1M
+  ```
+
+`forgefirm-dev.fw`, the same dev image for an eMMC slot, keeps the eMMC's
+`/data`, as the release image does. So does a card written with the release
+image's card image, which has no data partition.
 
 ## Bench hygiene
 

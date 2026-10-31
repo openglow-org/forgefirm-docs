@@ -164,6 +164,9 @@ Both images mount the root filesystem read-only. The booted slot (eMMC p1
 or p2, or the SD card on the bench) is never written while it runs. `/data`
 (p3) is the one writable partition: the machine state, the logs, and the
 staged updates ([Install and update](install-and-update.md#the-update-manager)).
+A boot from the dev image's SD card adds the card's data partition, which
+holds ForgeFIRM's settings and logs in place of the eMMC's (the boot step
+`forgefirm-data`, below).
 
 The `read-only-rootfs` image feature of poky carries the mechanics. The
 root line of `/etc/fstab` is `ro` (the BSP's `base-files` fstab), and
@@ -193,6 +196,38 @@ What must last a reboot, or change at run time, is handled file by file:
 Everything else the daemons and the controllers write is under `/data`,
 `/run`, `/tmp`, or sysfs. The acceptance test `image.health` checks the
 mounts ([The rootfs lint](#the-rootfs-lint) has the files fixed at build).
+
+**The boot step `forgefirm-data`** runs in rcS at S04, after `mountall`
+has mounted `/data` and `/run` and after `slotmigrate`, which needs `/data`
+unmounted, and before anything reads `/data/forgefirm`. It does two things,
+on both images:
+
+- **The SD card's data.** On a boot from the SD card
+  (`root=/dev/mmcblk1p1`) whose card has a ForgeFIRM data partition
+  (`/dev/mmcblk1p2` with `forgefirm/` and `log/`, which the dev image's card
+  image makes), it mounts that partition under `/run/forgefirm-card` and
+  bind-mounts its `forgefirm/` over `/data/forgefirm` and its `log/` over
+  `/data/log/forgefirm`. A read-only, private bind of the eMMC's `/data`
+  stays at `/run/forgefirm-emmc`, and the eMMC's factory archive is bound
+  read-only into the card's folder. At the card's first boot (the `import`
+  marker at the card's top) the SSH host keys, the TLS key and certificate,
+  `wifi_country`, and the last saved time (`timestamp`, so `bootmisc.sh`
+  sets the clock from it as on an eMMC boot) are copied from the eMMC's
+  folder before the binds hide it. Any other boot leaves `/data` as `mountall` made it: `mount -a`
+  goes past a mount point that already holds a mount, so the fstab stays
+  the eMMC's on every boot. The outcome is one word in
+  `/run/forgefirm-data.state` (`emmc`, `card`, `card-none`,
+  `card-failed`), which a dev image's development bar shows. The card itself
+  is on [The bench](../../developers/bench.md#the-sd-card).
+- **A requested reset.** `POST /system/reset` leaves `reset-requested` in
+  `/data/forgefirm` and reboots ([forgectrl](forgectrl.md#http-api)). The
+  boot step then removes everything in the folder but the factory archive
+  (`archive/`), the sshd host keys (`ssh/`), the TLS key and certificate
+  (`tls/`), the boot timestamp, the random seed, and `legacy-logs/`, and
+  removes the marker last, so a wipe cut short by a power loss runs again
+  at the next boot. forgectrl starts with no account and no setup record,
+  and the setup runs as after an install. The logs and `/data/forgetest`
+  are not in the folder and stay.
 
 **The dev image** also mounts the two factory rootfs slots read-only under
 `/factory/img1` and `/factory/img2`, a bench convenience for reading a

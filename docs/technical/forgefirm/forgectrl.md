@@ -184,6 +184,7 @@ costs one bounded error, never a pinned thread.
 | `GET /cam/stream`, `GET /cam/snapshot`, `GET /cam/status`, `GET /cam/h264`, the mjpg-streamer aliases | The camera service ([Video pipeline](video-pipeline.md)). `background=1` on a snapshot marks a capture nobody is waiting for: it is refused with 409 while a stream has a client, because a snapshot borrows the mux and stutters a running stream, and refused with 409 while a job is armed, because a capture costs kernel-side work beside the step stream that a thread priority does not cover. An operator's own snapshot is unmarked and still wins. `fps` (1 to 15) paces one stream viewer and `lamp` (0 to 1023) lights the camera while streams watch. A request with the panel's credential or the extension host's is a local viewer, which has the head camera with the lid open ([the privacy gate](video-pipeline.md#the-privacy-gate)) |
 | `GET /slots`, `POST /boot`, `GET /update/release`, `POST /update/check`, `POST /update/dismiss`, `POST /update/download`, `POST /update/apply`, `POST /update/upload`, `GET /update/status`, `POST /restore/factory`, `POST /restore/factory-return?confirm=1`, `POST /system/reboot` | The update manager ([Install and update](install-and-update.md#the-update-manager)) |
 | `GET /system/ssh`, `POST /system/ssh?enable=0` or `=1` | SSH state, and the switch that turns it on until the next reboot; off at every boot, kept on by a development image |
+| `POST /system/reset?confirm=1` | Every setting back to a fresh install: with the machine button held (403 without it), an idle machine, no lease and no update job, it leaves `reset-requested` in `/data/forgefirm` and reboots; the boot step `forgefirm-data` carries it out ([Image and BSP](image-and-bsp.md#the-read-only-root-filesystem)) |
 | `GET /system/camera-key`, `POST /system/camera-key?rotate=1` | The per-machine camera key (`/data/forgefirm/camera.key`, 128 bits) with the stream and snapshot URLs that carry it, and its rotation. A valid key, as the `key` query parameter or the `X-ForgeFIRM-Camera-Key` header, authorizes any read-only route on either listener, origin checks included, and never a write |
 
 Settings persist in `/data/forgefirm/forgefirm.conf`, shared with the grblHAL
@@ -349,6 +350,21 @@ record is `/data/forgefirm/users`. The record grows with every result, so
 its routes hand out a malloc'd dump, never a fixed buffer; the sanitized
 log export carries it as `system/setup.json`
 ([Logging](logging.md)).
+
+**The seed.** A `setup.seed` beside no record (the dev image's SD card
+carries one, [The bench](../../developers/bench.md#the-sd-card)) becomes
+the record at the daemon's start, before anything reads it
+(`setup_seed`): what a finished first run leaves, in this build's terms.
+Every first-run document is accepted at its current hash with the method
+`seed`, the press is recorded, the account is the one the account record
+holds, the consent and account steps and the table's required steps are
+done at the table's versions with the result `{"seeded": true}`, and the
+run is complete. The recommended steps stay recommended. The record
+carries `seeded` with the time, and the printable summary says "seeded" for
+each document. The seed is removed once read, whether a record was made or
+one was already there; a record that cannot be written keeps the seed for
+the next start. The seed is made at build time and the record at the
+start because the hashes and the step versions are the running build's.
 
 The button LED during the setup (`led.c`, written only while no controller
 runs): breathing teal for the acceptance press; breathing white while a
@@ -1041,7 +1057,7 @@ What asks the lease, and which holders refuse it:
 | Request | Refused while |
 |---|---|
 | A diagnostic, a wizard, a recording, a posted job, an update job, a log export | Anybody else holds it |
-| `POST /mode`, `POST /boot`, `POST /system/reboot`, `POST /update/upload`, `POST /restore/factory-return` | Anybody holds it |
+| `POST /mode`, `POST /boot`, `POST /system/reboot`, `POST /system/reset`, `POST /update/upload`, `POST /restore/factory-return` | Anybody holds it |
 | `POST /settings`, `POST /controller/start`, `POST /cool/quiet`, `POST /motion/jog`, `/motion/release`, `/motion/energize`, `/motion/home`, `/motion/tray` | Anybody but a log export holds it. An export only reads, and a settings write does not disturb it; an update job locks the controls like a diagnostic does |
 
 **One owner may run under a holder.** The cooling wizards run a diagnostic

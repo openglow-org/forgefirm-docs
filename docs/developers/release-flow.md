@@ -209,7 +209,11 @@ forgefirm-image-dev-glowforge.rootfs.wic.gz
 ```
 
 The last two are the dev image of the release, the archive for a slot and
-the image for an SD card. `forgefirm-dev.fw` is signed with the dev key,
+the image for an SD card. The SD card image carries a data partition of the
+card's own: booted from the card, the machine keeps its settings, extensions,
+and logs there, starting from a finished setup, while the archive for a slot
+keeps the eMMC's `/data` ([The bench](bench.md#the-sd-card)); the release
+notes say so. `forgefirm-dev.fw` is signed with the dev key,
 which no machine trusts, so the control panel installs it only with the
 machine button held. The dev image lets root log in over SSH with no
 password and takes changes with the panel token alone, and its pages carry

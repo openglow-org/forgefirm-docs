@@ -67,7 +67,12 @@ On a development image, a red **DEVELOPMENT IMAGE** bar sits at the top of
 every page, the login and the setup included, and stays in view while the
 page scrolls. It says that root can log in over SSH with no password; a
 script on the network can also make changes with the panel token alone
-([Access](#access)). A release image shows no bar.
+([Access](#access)). Its second line says where this boot's settings,
+extensions, and logs are: the eMMC's, from an eMMC slot; the SD card's,
+when the card's data partition is mounted; or the eMMC's, from an SD card
+whose data partition is missing or not mounted
+([The bench](../developers/bench.md#the-sd-card)). A release image shows no
+bar.
 
 All settings controls disable, with a banner, while the machine is not idle or
 while a diagnostic, a setup wizard, the dose-curve recorder, an update job, or
@@ -214,7 +219,7 @@ dialog behind it. [Updating](../install/updating.md),
 [Back to the factory firmware](../install/factory-restore.md), and
 [Recovery](../install/recovery.md) describe the update and restore tools.
 
-Four more cards. **Remote access** turns SSH on until the next reboot: SSH
+Five more cards. **Remote access** turns SSH on until the next reboot: SSH
 is off at every boot, and a development image keeps it on. It opens with
 the panel account's name and password; root has no password and works at
 the serial console only. The machine's SSH host keys are made at the first
@@ -225,7 +230,16 @@ updates. **Extensions** and **API tokens** are described below
 progress, set aside with steps still recommended, or complete) and the
 certificate fingerprint, with a link to run a step again, the printable
 summary of the record, and the record itself as a download
-([Setup](setup.md#the-record)).
+([Setup](setup.md#the-record)). **Reset all settings** puts ForgeFIRM back
+as it was just after the install: the machine restarts, and early in the
+next boot your account, every setting, the setup record, the API tokens,
+the camera key, and every extension package are removed. The setup then
+runs again, and the page opens it by itself when the machine is back. The factory firmware archive, the logs, the SSH host keys, and
+the certificate stay, so a factory restore still works and your browser
+and SSH client still know the machine. The machine must be idle, and the
+machine button must be held while you confirm. Booted from an SD card with
+its own data partition, the reset clears the card's settings and leaves the
+eMMC's alone ([The bench](../developers/bench.md#the-sd-card)).
 
 #### Extensions
 
