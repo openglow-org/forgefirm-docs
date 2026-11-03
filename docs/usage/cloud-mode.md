@@ -200,7 +200,7 @@ to the service as a failed action, so it resolves rather than hanging.
   ([Factory firmware](../technical/machine/factory-firmware.md#pause-cancel-and-park-in-the-factory)).
   Motions and hunts do not pause.
 - **The cooling engine can pause a print too.** A hold from it (a warm-up
-  on a cold machine, coolant over the ceiling, a suspected flow fault) pauses
+  on a cold machine, coolant over the ceiling) pauses
   the print the same way, laser off, and the print resumes by itself when the
   engine clears it. A print that arms on a cold machine waits for the
   warm-up before it starts. A hold that lasts longer than `cloud_hold_max_s`

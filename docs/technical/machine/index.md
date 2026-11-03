@@ -74,8 +74,7 @@ specification. Three things make another machine read differently:
 This is why the numbers that matter are **settings, not constants**. Every
 value a machine can measure for itself is a setting with a wide legal range,
 and the bench reference's measurement is only its shipped default: the fan
-floors, the coolant flow threshold, the tube's heat coefficients, the
-air-assist offset on the coolant readings, the laser floor and dose curve, and
+floors, the air-assist offset on the coolant readings, the laser floor and dose curve, and
 the head's lens travel and reference height. The setup measures most of them
 on your machine and writes your values; the ones it leaves are on
 [Setup](../../usage/setup.md#the-other-laser-numbers).

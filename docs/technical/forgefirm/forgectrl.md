@@ -68,7 +68,7 @@ Parts of the contract live on their own pages:
   says `waiting` and what is open, and the button blinks amber until the
   enclosure closes.
 - **The cooling engine.** The single owner of fans, pump, TEC, and the
-  flow-check heater for both modes ([Cooling engine](cooling-engine.md)).
+  loop heater for both modes ([Cooling engine](cooling-engine.md)).
 - The **web control panel**, **camera service**, **telemetry**,
   **diagnostics**, persisted **machine settings**, the **logging** tree, and
   the A/B **update system**.
@@ -169,7 +169,7 @@ costs one bounded error, never a pinned thread.
 | `POST /cool/state` | Controller job-state report, level-triggered at ~1 Hz; a loopback peer that presents the secret the supervisor handed the running controller, and nobody else ([Cooling engine](cooling-engine.md#job-state-reports)) |
 | `GET /cool/status` | Cooling-engine state: phase, verdict, `fire_ok`, `hold`, `resume_ok`, temps, report age, `gates_off`, the effective `limits`, `fan_gates`, `fire_watch`, `accel_watch`, `quiet_hold` |
 | `POST /cool/quiet?on=1` or `=0`, with `pump=1` | The quiet hold for a listening to the head accelerometer (the bench tools; the setup finder uses the same hold inside the daemon): every fan off, and with `pump=1` the coolant pump and the TEC too, the machine silent. Taken only from an idle machine with no diagnostic running; the engine releases it itself when a run session opens or after 600 s ([Cooling engine](cooling-engine.md#what-the-fans-do-and-when)) |
-| `POST /diag/flow-verify`, `POST /diag/flow-calibrate`, `POST /diag/aa-offset-calibrate`, `POST /diag/abort`, `GET /diag/status` | The diagnostics runner ([Diagnostics](../../usage/diagnostics.md)) |
+| `POST /diag/aa-offset-calibrate`, `POST /diag/abort`, `GET /diag/status` | The diagnostics runner ([Diagnostics](../../usage/diagnostics.md)) |
 | `GET /fuse-identity` | The machine's fuse identity ([Control panel](../../usage/control-panel.md)) |
 | `GET /grbl/settings` | The controller's `$$` view, verbatim; 404 with no live controller |
 | `POST /curve/record`, `GET /curve/status`, `POST /curve/stop`, `GET /curve/ladder.gcode` | The dose-curve recorder ([below](#the-dose-curve-recorder)) |
@@ -327,8 +327,8 @@ running daemon's routes, `POST /settings` and `POST /mode`.
 ### Setup and the gate
 
 The first run of the panel is the setup: the advisories, the account, the
-preferences, the machine facts, the cloud decision, the intake fan count,
-and the coolant flow calibration, then the checks and the focus burn
+preferences, the machine facts, the cloud decision, and the intake fan
+count, then the checks and the focus burn
 ([Setup](../../usage/setup.md)).
 It is served at `/` until the guided run ends, finished or set aside
 (`POST /wiz/complete`, which takes an open gate), and at `/setup` at any
@@ -379,19 +379,14 @@ does not light it), out when the panel is first served.
 The gate (`setup.c`): the supervisor spawns no controller for a sender until
 the advisories are accepted at their current hashes with the press
 recorded, an account exists, the step table's required steps
-(`preferences`, `machine`, `cloud`, `cooling.flow`) are done at the
+(`preferences`, `machine`, `cloud`) are done at the
 versions it names, and `cool_intake_fans` has a value (the Intake fans
 step, the airflow check, or the operator wrote it). Nothing else is in it.
-`cooling.flow` is the flow calibration, required because the flow bands
-differ from loop to loop and the default threshold sits under the flowing
-rise of some loops
-([The cooling engine](cooling-engine.md#each-loop-has-its-own-bands)). A
-release that bumps a required step's version holds the gate again until
+A release that bumps a required step's version holds the gate again until
 the step runs, and `GET /wiz` lists the required steps the gate waits for
 as `missing`, from which the setup page opens the first; a flag on a
 required step (a different head flags
-`machine`, two coolant flow faults in a row flag `cooling.flow`) recommends
-it and leaves the gate open, and the setup page (`wizard.js`) counts a
+`machine`) recommends it and leaves the gate open, and the setup page (`wizard.js`) counts a
 required step that ran as done whatever its flag, so a flag never holds the
 guided run. `GET /mode` reports `controller: gated` with `why`
 naming the first of them missing (`the advisories are not accepted`, `no
@@ -408,16 +403,14 @@ required ones: a
 step that is not required reads `not run yet` when it has not run and
 `this release asks for it again` when it ran at an older version, and a
 conditional step (the cloud header) counts only where its fact holds.
-Four steps are not in the table, so none of them is recommended for not
+Three steps are not in the table, so none of them is recommended for not
 having run: the laser floor (`laser.floor`) and the bed size
-(`motion.envelope`), which are offered; the intake fan count
+(`motion.envelope`), which are offered; and the intake fan count
 (`airflow.intakes`), which the gate holds by the `cool_intake_fans`
-setting instead; and the Flow check (`cooling.flow-verify`). The
+setting instead. The
 flags add what the machine asks for itself, each with its reason: the
-cooling engine's (two coolant flow faults in a row; a fan that runs within
-10 percent of its floor in a job, once for each fan in a run session), the
-setup's Flow check (a failure to separate the bands, a thin margin), the
-head check at boot, and `POST /wiz/changed`. A completed run of
+cooling engine's (a fan that runs within 10 percent of its floor in a job,
+once for each fan in a run session), the head check at boot, and `POST /wiz/changed`. A completed run of
 a step clears its flag, and a flag on a step this build does not have is
 left out. The panel's **Setup not finished** banner shows the list
 ([The control panel](../../usage/control-panel.md#the-page)).
@@ -487,12 +480,7 @@ reason), the bed check (refused unhomed; homed, a lid nobody closes ends it
 with its reason before the envelope opens; the keys the ends less 1 mm; a
 Grbl sender's line ends it with nothing written; a jog the port hangs up
 on, and one that holds past its 60 s wait, each end it with its reason and
-nothing written), the Flow check (the
-diagnostic's phases and result as the check's, a thin margin flagging the
-calibration), and the flow calibration at its first rung (the rung's duty
-goes to its diagnostic alone, whose first trial heats at it: the settings
-file is untouched while it runs,
-after an abort, and after the daemon is killed mid-rung and started again).
+nothing written).
 It runs the floor burn with no laser fired: refused without Focus on the
 record; a thickness outside the lens window is not stored and is asked again, with no
 program line streamed, nothing armed, and the floor unwritten; the floor and
@@ -520,9 +508,7 @@ first press's second start never goes, and the Abort clears the press's
 starting text. And once, from `tests/host_setup.sh`, against the page
 the daemon serves,
 through a relay of the walk's own (`--daemon`), the button pressed by the
-switch word and the flow calibration run on the scripted loop, which finds
-its bands at the second rung and writes that rung's duty beside the
-threshold: `GET /wiz`
+switch word: `GET /wiz`
 must carry the first-run fields the page reads, each with its type, the
 page's required steps must be the setup's, the run ends on the panel with
 the setup complete, and the login's session is read back from `GET /wiz`.
@@ -1037,7 +1023,7 @@ Diagnostics, the setup wizards, update jobs, the job runner, and the log
 export each know whether they themselves are running. The lease is where
 each of them asks about all the others. Whoever runs takes it; whoever wants
 to start while another holds it is refused with 409, and the refusal names
-the holder: `a diagnostic (flow-verify) holds the machine`. The routes that
+the holder: `a diagnostic (aa-offset-calibrate) holds the machine`. The routes that
 must not act under a holder ask it too.
 
 An owner is a short name, `<what>:<which>`. A hold is one of five kinds:
@@ -1075,8 +1061,8 @@ machine is idle and the sender quiet. `/status` carries:
 
 ```json
 "lease": {
-  "holder": {"owner": "diag:flow-calibrate", "kind": "hardware", "for_s": 41,
-             "words": "a diagnostic (flow-calibrate)", "under": "wizard:cooling.flow"},
+  "holder": {"owner": "diag:aa-offset-calibrate", "kind": "hardware", "for_s": 41,
+             "words": "a diagnostic (aa-offset-calibrate)"},
   "observed": {"sender": false, "motors_released": false}
 }
 ```
@@ -1240,7 +1226,7 @@ tube.
 
 Diagnostics ownership: forgectrl stops the motion controller, writes the
 marker file `/run/forgefirm-diag.active`, and recovers on the next start. The
-method is on [the cooling engine](cooling-engine.md#diagnostics-verifying-and-calibrating-flow);
+method is on [the cooling engine](cooling-engine.md#diagnostics);
 the operator's tools are on [Diagnostics](../../usage/diagnostics.md).
 
 ## Verification status
@@ -1266,7 +1252,7 @@ node), the kernel pages, and a live-board spot-check:
   critical line trip with the reading past them and turn off by value; a
   fan floor no fan meets trips after the grace and three ticks, and a
   floor of zero is off; with one intake fan set, intake 2 is published not
-  fitted and never judged while intake 1 still trips: `cool_flow_test`,
+  fitted and never judged while intake 1 still trips: `cool_engine_test`,
   with the settings' cross-checks in `cool_gate_test`, host tests in
   forgectrl's CI. On the bench, a hunt with its fans off is measured and
   not judged (`cloud.mode-switch`), and the header's limits reach the

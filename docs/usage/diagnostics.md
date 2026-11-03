@@ -6,10 +6,6 @@ title: Diagnostics
 
 The panel's Setup tab runs hardware tests that take the machine over.
 This page tells you what each tool does, how long it takes, and when to run it.
-The setup runs the same tests as its coolant steps, with the automatic heater
-retry of its Coolant flow step ([Setup](setup.md#the-first-run)) and the
-record ([Setup](setup.md#the-record)); the tools here are the way to run one
-by hand.
 
 !!! danger "Read the Safety page first"
 
@@ -28,44 +24,8 @@ with a banner. Progress, both coolant temperatures, and a scrolling log stream
 to the page while it runs.
 
 A diagnostic starts only when the machine is idle and no other diagnostic runs.
-The routes are `POST /diag/flow-verify`, `POST /diag/flow-calibrate`,
-`POST /diag/aa-offset-calibrate`, `POST /diag/abort`, and `GET /diag/status`
-for the live progress.
-
-## Cooling system: verifying and calibrating flow
-
-The two flow tools prove and tune coolant flow verification, the check that
-tells a circulating loop from a stagnant one by heating the coolant and
-watching the downstream sensor ([The cooling engine](../technical/forgefirm/cooling-engine.md)).
-
-Both tools run at your *configured* duty, window, and threshold
-(`cool_flow_heater_pct`, `cool_flow_check_s`, `cool_flow_rise`), so the
-verdict applies to the check the machine actually performs, and both use
-cut-profile chassis fans, the condition the numbers were characterized under.
-Both read the rise from averages, as the check does. Any heater window, pump
-on or off, stops immediately if the downstream sensor reaches 48 °C.
-
-**Flow verify** (about 3 minutes): one check with the pump running and one
-with it commanded off.
-
-- **PASS** = your threshold separates the two readings.
-- Margins under 1.5 °C add a warning that you should re-calibrate.
-- A failure here means the threshold no longer suits the loop, or the loop has
-  a real problem.
-
-**Flow calibrate** (15 to 25 minutes): three trials of each case, alternating,
-with settle gates between them. It reports both bands and recommends a
-threshold midway between the highest flowing reading and the lowest stagnant
-one, with an **Apply** button that writes it to `cool_flow_rise`.
-
-- If the gap between the bands is under 3 °C it refuses to recommend anything
-  and tells you to raise the heater duty and rerun.
-
-**When to calibrate:** after replacing coolant (a different blend carries heat
-differently), after changing or servicing the pump, if flow verify warns about
-thin margins, or if you see suspicions that you can trace to nothing real. The
-setup's Coolant flow step runs it on every machine, because the right
-threshold differs from machine to machine ([Setup](setup.md#the-first-run)).
+The routes are `POST /diag/aa-offset-calibrate`, `POST /diag/abort`, and
+`GET /diag/status` for the live progress.
 
 ## Coolant offset
 

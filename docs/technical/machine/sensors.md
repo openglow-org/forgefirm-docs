@@ -41,7 +41,7 @@ Reference points: raw 640 → 27.0 C, 680 → 23.9 C, 740 → 19.2 C; inversely
 31.04 C → raw 591, 50.01 C → raw 391. Checked against a thermometer with the
 loop at room-temperature equilibrium: within about 1 C of measured.
 
-`water_temp_1` is **downstream** of the flow-check heater, `water_temp_2`
+`water_temp_1` is **downstream** of the loop heater, `water_temp_2`
 **upstream**. The run and resume ceilings gate on the upstream sensor (see
 [the cooling engine](../forgefirm/cooling-engine.md)).
 
@@ -82,8 +82,7 @@ emission shows none): every toggle sits inside a lit period. The remaining
 candidate is the high-voltage supply's input current on a return the
 thermistor reference shares, or its switching. **The source stays
 uncharacterized by decision**: the toggle sits inside the over-temperature
-ceiling's 2 C hysteresis, and the flow check reads means rather than single
-samples, so it has no consequence for any gate. Settling it wants a scope on
+ceiling's 2 C hysteresis. Settling it wants a scope on
 the two sensor lines during a cut.
 
 Rare excursions of 10 to 25 counts appear in every regime at a few samples per

@@ -372,7 +372,7 @@ with it:
   at debug level. The undecided count is the one that should be zero.
 
 Thermal policy is the cooling engine's, on purpose: it runs its own coolant
-ceiling and critical line, flow verification, airflow gates, emission
+ceiling and critical line, airflow gates, emission
 witness, and silence timeout, and a remote service can tighten those limits
 for a job and never loosen them ([The cooling engine](cooling-engine.md)).
 

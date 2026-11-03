@@ -738,9 +738,8 @@ as one comma-separated list of values, each exactly four hex characters wide.
 Read, ASCII, 0-1023
 
 HV current. The exact meaning of this value is not characterized. It is the
-only live HV telemetry; the cooling engine ranges it per job and uses it in
-the flow check's tube-share compensation
-([Cooling engine](cooling-engine.md#coolant-flow-verification)).
+only live HV telemetry; the cooling engine ranges it per job
+([Cooling engine](cooling-engine.md)).
 
 ### hv_voltage
 

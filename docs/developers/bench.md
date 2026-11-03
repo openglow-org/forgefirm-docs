@@ -119,10 +119,7 @@ folders, read-only.
   panel refuses a password equal to the name when an account is made there;
   this one is made with the image. The advisories are accepted, the required
   steps are recorded as done, and the intake fan count is the default, 2.
-  The checks the setup recommends stay recommended. The required flow
-  calibration is recorded but not measured: the card runs on the default
-  flow threshold. Run Flow calibration once on the card where the loop
-  needs it; the card keeps the result.
+  The checks the setup recommends stay recommended.
 - **At the card's first boot** it takes the machine's identity from the
   eMMC, once: the SSH host keys, the certificate, the WiFi region, and the
   last saved time, which sets the clock until the network does (the board
@@ -141,8 +138,7 @@ folders, read-only.
   sudo zcat forgefirm-image-dev-glowforge.rootfs.wic.gz | sudo dd of=/dev/sdX bs=1M
   ```
 
-- **Write the root filesystem alone** to keep them, a flow calibration
-  among them. Any build that fits an eMMC slot fits p1. The build writes the
+- **Write the root filesystem alone** to keep them. Any build that fits an eMMC slot fits p1. The build writes the
   raw ext4 beside the card image ([Build](building.md)):
 
   ```console
@@ -219,8 +215,7 @@ tools that also run from a LAN host use `gfbench.py`:
   files are then under `/data/forgetest/bench/` (`FORGETEST_BENCH_DATA`;
   next to the tool otherwise), and the panel token is in `GF_TOKEN`.
 
-The tools that drive the thermal hardware directly (the flow
-characterization family) run with forgectrl, the owner of the thermal
+The tools that drive the thermal hardware directly run with forgectrl, the owner of the thermal
 hardware, and the controller stopped. The takeover of the page does that.
 From a host, stop them first.
 
@@ -248,16 +243,9 @@ From a host, stop them first.
 | `gfbench.py` | Not a tool: the helper that the board and host tools share. `HOST` and `LOCAL` from `GF_HOST`; `board(cmd)` (a local `sh -c`, or ssh); the factory coolant conversion `degc()`; `data_path()` (`FORGETEST_BENCH_DATA`, or next to the tool); the HTTP API of forgectrl with the panel token; `setting(key)` (from forgectrl, or from `/data/forgefirm/forgefirm.conf` on the board while forgectrl is stopped). |
 | `fan_test.py` | The fan and coolant bench (board or host; the controller runs). Takes a snapshot of the fan PWMs, the tachometers, and the temperatures. Drives M8 (the cut fans), then M9 (cooldown, then idle). Verifies through the tachometer readbacks. |
 | `fan_floor_measure.py` | The numbers that the airflow gates ship with (board or host). `spinup` opens a run session with M8 from idle and samples the four tachometers and the purge current at 1 Hz. It reports, for each fan, the steady speed, the time to 90 percent, and the spread over the steady window, plus the purge current at idle and at run duty (the pump is always on; a dead pump reads about 1), and candidate floors at 55 percent. `cut` only samples, during a real cut, for the spread under load. Results as JSON in the bench data directory. |
-| `flow_characterize.py` | The coolant flow characterization with the factory temperature curve (board or host; forgectrl and the controller stopped): baseline, flow, no flow, recovery. Prints the ΔT bands and their separation. Takes the heater duty as an argument (`flow_characterize.py 30`). Aborts if the downstream sensor passes 45 °C. |
-| `flow_matrix.py` | **The flow-detection design matrix** (board or host; forgectrl and the controller stopped; with `flow_sampler.py` from `/usr/share/forgetest/bench/`). Duty × duration × flow/no-flow, each run from a common cooled baseline, with interleaved repeats. One heating trace gives the metric at each candidate duration. Thus cost and precision come from the same 60 runs. Prints a cost table, a precision table (mean ± sd, worst-case margin, d′), and a ranked shortlist. `flow_matrix.py [duties] [repeats]` (or the environment variables `FM_DUTIES`, `FM_REPEATS`, `FM_RESULTS`). Results and log in the bench data directory. Resumable. |
-| `flow_sustained.py` | A long run of the real re-check cadence through M8 (board or host; the controller runs). Counts the verdicts and the false faults against the configured `cool_flow_rise`, and follows whether the loop accumulates heat. `flow_sustained.py [minutes]`. |
 | `temp_calibrate.py` | The coolant temperature spot-check helper (board or host): `watch [seconds]`, `point <measured_C> [note]`, `fit`. Pairs a measured temperature with averaged raw ADC readings and fits a per-machine line, to compare the factory curve with a thermometer. The points accumulate in `temp_calibration.json` in the bench data directory. The `supply-*` modes (`supply-watch`, `supply-point <C>`, `supply-fit`) do the same for the sensor of the power supply (`pic/pwr_temp`, raw) against a thermometer on its heatsink. The fit is printed next to the unverified guess on the [Kernel module](../technical/forgefirm/kernel-module.md) page. Three points during a long cut settle it. |
-| `critical_tier_drill.py` | The coolant critical tier on a rising temperature (board or host). Sets the ceiling, the resume gate, and the critical line a few tenths above the live upstream reading. Then it lets the flow-check heater of the engine warm the loop through them in one `M8` session. Expects `OVERTEMP` at the ceiling, then `CRITICAL` (fire blocked, hold, no resume), with the fault that ends at `M9`. Restores the settings and cycles a session, so that the engine reads them again. Results as JSON in the bench data directory. |
-| `flow_warm_validate.py` | Runs the real check from a heater-warmed baseline (board or host; forgectrl and the controller stopped; `flow_warm_validate.py [cycles_per_case]`). Results and log in the bench data directory. Exit 1 if a run is misclassified. Note the ceiling: 100 percent duty pushes the downstream sensor past 50 °C in 30 s while the bulk hardly moves. Thus warm-loop validation above about 23 °C needs the laser, not the heater. |
-| `flow_recheck_char.py` | Characterizes short in-run re-checks and the differential metric (board or host; forgectrl and the controller stopped; `flow_recheck_char.py [heater_pct] [window_s]`). Shows why over-temp cannot see a stopped pump, and why passive warming trends are ambiguous. |
-| `flow_confirm_drill.py` | The coolant flow suspicion and confirmation drill (on the board). One continuous M8 session walks the verdict state machine through real pump-off transients: verified, SUSPECT (with an immediate re-check), cleared, SUSPECT, FAULT (consecutive), recovered. Prints PASS or FAIL for each transition. Leaves the machine idle (M9, pump on, heater off). |
-| `flow_escalate_drill.py` | The coolant starved-re-check escalation drill (on the board; the controller runs). Sets the confirmation budget of the engine, `cool_confirm_max_s`, to a short value through the settings of forgectrl (`flow_escalate_drill.py [budget_s]`, default 60, the minimum of the setting), and restores it after. With the pump off, the job-start check reads SUSPECT, the stagnant loop cannot pass the settle gate in the budget, and the engine must escalate to FAULT. PASS or FAIL (exit status). Leaves the machine idle. |
-| `flow_sampler.py` | The board-side coolant sampler that the flow tools use (`flow_sampler.py <duration_s> <interval_s>`, prints `elapsed,raw_down,raw_up`). Run it on the board (dev image: `/usr/share/forgetest/bench/`), so that the cadence does not depend on the ssh latency. |
+| `critical_tier_drill.py` | The coolant critical tier on a rising temperature (board only, since it writes the heater). Sets the ceiling, the resume gate, and the critical line a few tenths above the live upstream reading. Then it opens one `M8` session and runs the loop heater at full duty to warm the loop through them. The heater goes off at `CRITICAL`, past 45 °C downstream, on `SENSOR`, if anything else writes it, and on every exit. Expects `OVERTEMP` at the ceiling, then `CRITICAL` (fire blocked, hold, no resume), with the fault that ends at `M9`. Restores the settings and cycles a session, so that the engine reads them again. Results as JSON in the bench data directory. |
+| `flow_sampler.py` | The board-side coolant sampler (`flow_sampler.py <duration_s> <interval_s>`, prints `elapsed,raw_down,raw_up`). Run it on the board (dev image: `/usr/share/forgetest/bench/`), so that the cadence does not depend on the ssh latency. |
 | `build-glowforge.sh` | Cross-compiles **grblHAL-glowforge** (the driver repository) in the Yocto build environment, with the toolchain of the recipe. Run: `bash <path>/build-glowforge.sh` (from Windows, start it through the WSL distro from PowerShell; Git Bash mangles the mount paths). Environment: `FF_SRC_TOP`, `FF_BUILD_TOP`. This is the production controller build. |
 | `build-forgectrl.sh` | Cross-compiles **forgectrl** (the daemon repository) in the same way, with the toolchain from the work directory of the forgectrl recipe (run `bitbake forgectrl` again after a clean). |
 | `build-feeder.sh` | Cross-compiles `feeder.c` in the same way. |
@@ -299,10 +287,6 @@ From a host, stop them first.
 
 These data files stay next to the tools:
 
-- `flow_matrix_results.json` and `flow_matrix_log.txt`: the 60-run
-  flow-detection matrix.
-- `flow_warm_results.json` and `flow_warm_log.txt`: the warm-baseline
-  validation.
 - `temp_calibration.json`: the coolant sensor spot checks.
 - `lid_ir_ambient_baseline.csv`: the lid-IR ambient level, lid closed, idle.
 
@@ -314,48 +298,6 @@ have three options:
 - Build the named recipe again.
 - Point `TC` at the current work directory of any target recipe.
 - Build an SDK with `bitbake meta-toolchain`.
-
-## How the coolant-flow fire-gate threshold was derived
-
-The cooling engine of forgectrl refuses to let the laser fire unless a
-heater-based flow check passes. With the pump commanded on, the loop heater
-runs at `COOL_FLOW_HEATER_PCT` (40 percent) for `COOL_FLOW_CHECK_S` (50 s).
-The rise of the downstream sensor over its settled baseline must stay below
-`COOL_FLOW_RISE_C` (14.4 °C). A stopped pump lets the output of the heater
-pool at the downstream sensor instead of a carry-away. The three constants
-are in `forgectrl/src/cool.h`. They are the compiled defaults behind the
-`cool_flow_*` settings.
-
-The 14.4 °C threshold and the 40 percent / 50 s operating point come from
-`flow_matrix.py`. The matrix was 6 duties × 2 flow states × 5 interleaved
-repeats, that is 60 heating runs. Each run started from a common cooled
-baseline. `flow_sampler.py`
-sampled both sensors at 1 Hz. One heating trace was scored at each candidate
-check duration. The committed `flow_matrix_results.json` and
-`flow_matrix_log.txt` are that data set. The selection rule was the cheapest duty at which each observed no-flow
-rise was above each observed flow rise, with a comfortable d′. At 40 percent / 50 s:
-
-- flow: 12.75 °C or less, over 17 observations;
-- no flow: 16.04 °C or more, over 8 observations;
-- d′ 8.4;
-- about 0.8 °C of loop heating for each check.
-
-The threshold is the balanced midpoint of the two
-bands (14.4 °C). `flow_warm_validate.py` then ran the real check again from
-heater-warmed baselines (`flow_warm_results.json`).
-
-To reproduce this on another machine, boot the dev image. Then run the
-**flow-matrix** tool from the bench page (`#bench`). It is a takeover, and
-the full matrix takes about 1.6 h. The results land under
-`/data/forgetest/bench/`. Or
-run `flow_matrix.py [duties] [repeats]` from a host with `GF_HOST` (and
-`GF_SSH` if ssh needs a wrapper), with forgectrl and the controller stopped.
-The same derivation is also in forgectrl, as the **flow-calibrate** tool on
-the Diagnostics tab of the panel. It does 3 trials for each case at the
-operating point. It reports both bands and a recommended threshold. On the bench, its
-recommendation lands within a few tenths of a degree of 14.4. Apply a
-per-machine value through the `cool_flow_rise` setting. Do not edit the
-constant.
 
 ## The bench actuator: forgefixture
 

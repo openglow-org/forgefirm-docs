@@ -148,13 +148,12 @@ forgectrl's sensors logger (`src/senslog.c`, its records in
 the `sensors` logger, so a bundle shows how one machine differs from
 another, before a fault and not only at it. Its own thread samples every
 sensor once a second, apart from the cooling engine, so nothing it does can
-delay a verdict. It writes six records:
+delay a verdict. It writes five records:
 
 | Record | When | What |
 |---|---|---|
 | `beat` | every 10 s while a run session is open, cooling down, armed, running, or in diagnostics; every 60 s at idle; and at every change of the engine's phase | every sensor, every commanded output, the engine's verdict |
 | `job` | once a job is over: from the run session's opening to the machine's return to idle, the cooldown included | the job's summary |
-| `flow` | at every flow verdict, the engine's checks (`src=check`) and the diagnostics' trials (`src=verify`, `src=cal`) alike | the check and the readings around it |
 | `inv`, `cfg` | at start, after the clock is set, when either changes, and daily | the machine's inventory; the settings in force |
 | `clock` | when the wall clock steps | the step |
 | `fr`, `frc` | 30 s after an event | the flight recorder: the 1 Hz samples from 120 s before the event to 30 s after it, one `frc` line a channel |
@@ -195,16 +194,8 @@ at the session's opening (`down_start`, `up_start`), at its end (`down_end`,
 `chassis`, `soc`, `psu_raw` as `min/mean/max` over the whole job; `thr_s`;
 the fans' speeds and the purge current as `min/mean/max` over the run phase
 past the first 15 s (the spin-up); `ir_base`, `ir_peak`; `beam_dark`
-(`min/mean/max` while dark), `beam_peak` (lit), `beam_rise`; `flow_checks`,
-`flow_worst`; `verdicts` (every verdict other than OK the job saw).
-
-**`flow`.** `src`, `verdict` (`verified`, `suspect`, `fault`, `cleared`,
-`recovered`; a trial's `pump-on` or `pump-off`), `trial` (i/n, a
-calibration's), `rise` (as judged), `rise_raw`, `laser` (the tube's share
-taken off), `limit`, `duty` (the heater's percent), `window_s`, `base_down`,
-`base_up` (the settled means the check started from), `rest_dt`
-(`base_down - base_up`: the two sensors' disagreement at rest), `end_down`,
-`end_up` (the means at the window's end), `dt`, `hv_dose`.
+(`min/mean/max` while dark), `beam_peak` (lit), `beam_rise`; `verdicts`
+(every verdict other than OK the job saw).
 
 **`inv` and `cfg`.** `why` (`start`, `clock`, `change`, `daily`). The
 inventory: `image`, `kernel`, `module`, `soc`, `soc_rev`, `soc_trips` (the

@@ -7,7 +7,7 @@ title: Setup
 Setup is the first run of the control panel on a new ForgeFIRM
 install. It collects your consent, creates your account, records the
 machine's facts, decides whether cloud mode exists, and checks and measures
-the machine. The first steps, through the coolant flow calibration, are
+the machine. The first steps, through the intake fan count, are
 required: no controller runs for a Grbl sender until they are done. Every
 step after them is recommended, never required. This page describes the steps, the button
 press, the record, what the setup recommends, and the gate. It also
@@ -60,29 +60,17 @@ The setup runs in these steps:
    fan that has stopped, so it asks. When intake 2 gave no reading and you
    choose **Two**, every cut stops with an airflow fault until intake 2
    turns. Nothing moves, and the laser stays locked.
-8. **Coolant flow.** The flow calibration, fifteen to twenty-five minutes.
-   When the bands are too close to separate, the heater duty steps up from
-   40 to 45 to 50 percent and the trial repeats. If a stronger test would
-   run the loop too hot, the step stops and asks you to check the coolant
-   level and look for air in the lines. The threshold and the duty
-   it was found at are written together: `cool_flow_rise` and
-   `cool_flow_heater_pct`. A calibration that ends before its threshold is
-   found, for any reason, a power loss included, leaves
-   `cool_flow_heater_pct` as it was.
-   The step is required because the coolant's rise differs from machine to
-   machine: without it, a machine whose coolant warms more with flow can
-   have every cut stopped by the flow check.
-9. **Continue or start.** The machine is yours to use from here. Choose
+8. **Continue or start.** The machine is yours to use from here. Choose
    **Continue the setup**, which we recommend, or **Start using the
    machine**.
-10. **The checks.** Seven checks of the machine with the laser locked, eight
-    with cloud mode on ([The checks](#the-checks)).
-11. **Focus.** The laser burn that measures the head's focus
+9. **The checks.** Seven checks of the machine with the laser locked, eight
+   with cloud mode on ([The checks](#the-checks)).
+10. **Focus.** The laser burn that measures the head's focus
     ([The laser burns](#the-laser-burns)).
-12. **Ready.** What the setup found, the record
+11. **Ready.** What the setup found, the record
     ([The record](#the-record)), and **Open the control panel**.
 
-Steps 2 to 8 are required: no controller runs for a Grbl sender until they
+Steps 2 to 7 are required: no controller runs for a Grbl sender until they
 are done, and none of them can be skipped ([The gate](#the-gate)). Every
 step after the choice is recommended, and has **Finish later** in its
 footer. **Start using the machine** and **Finish later** end the
@@ -93,8 +81,8 @@ at any time to go on.
 
 A document that changes in a later release must be accepted again, and
 until it is, no controller runs for a Grbl sender. A later release can
-also ask for a step again. Preferences, Your machine, Cloud mode, and
-Coolant flow then hold the controllers until you run them, and `/setup`
+also ask for a step again. Preferences, Your machine, and Cloud mode
+then hold the controllers until you run them, and `/setup`
 opens on the first; any other step is recommended. A step that is open
 again is a link in the setup's rail, from any other step, and
 `/setup?step=advisories` opens it directly.
@@ -167,9 +155,6 @@ and the record keeps the values before and after.
    ([forgectrl](../technical/forgefirm/forgectrl.md#the-setup-burns-and-the-lens)).
    The lens and its travel are on
    [The motion hardware](../technical/machine/motion-hardware.md#the-lens-and-its-travel).
-
-One more check, **Flow check**, is the short form of the flow calibration
-(about three minutes) for a re-run; the first run does not need it.
 
 ### Bed size
 
@@ -299,10 +284,7 @@ No setup step burns for the rest. The tube's dose curve comes from the
 dose-curve recorder on the panel's GRBL tab
 ([Diagnostics](diagnostics.md#other-measurements-from-the-panel)). The
 corner rolloff is the `laser_corner_gamma` setting
-([Settings](settings.md#settings-that-affect-motion)). The tube's heat
-coefficients, `cool_laser_heat_cw` and `cool_laser_heat_density`, keep
-their defaults: no step measures them
-([Cooling and fans](cooling-and-fans.md#the-other-gate-settings-on-the-machine-tab)).
+([Settings](settings.md#settings-that-affect-motion)).
 
 ## The button press
 
@@ -366,7 +348,6 @@ recommends the steps that measure or prove the new part:
 | The change | Recommended again |
 |---|---|
 | The laser tube | Laser floor |
-| The coolant pump, or the coolant | Coolant flow |
 | A fan | Airflow |
 | The head | Your machine, Lens travel, Focus, Motion, Cameras |
 | The tray | Focus |
@@ -445,18 +426,14 @@ it may do. See [Extensions](extensions/index.md).
 
 No controller runs for a Grbl sender until the required steps are done:
 the advisories (every document, then the button press), the account,
-Preferences, Your machine, Cloud mode, Coolant flow, and the count of the
-intake fans. Coolant flow matters because the coolant's rise differs from
-machine to machine (step 8 of [The first run](#the-first-run)). The gate
-waits for that step itself: a **Flow calibrate** applied from
-[Diagnostics](diagnostics.md) writes the threshold but does not count as
-the step. The count matters because a machine built with one intake fan would
+Preferences, Your machine, Cloud mode, and the count of the intake fans.
+The count matters because a machine built with one intake fan would
 otherwise stop every cut with an airflow fault. The Intake fans step
 counts them, and so does the Airflow check; setting Intake fans on the
 Machine tab gives the count too
 ([Cooling and fans](cooling-and-fans.md#settings)). Nothing else holds the
 controllers. A later release that changes a document, or asks again for
-Preferences, Your machine, Cloud mode, or Coolant flow, closes the gate
+Preferences, Your machine, or Cloud mode, closes the gate
 again until you accept it or
 run the step.
 

@@ -169,10 +169,10 @@ exhaust and intake fans to factory run speeds, then a cooldown of about 15 s
 after the layer before returning to idle. Leave it ON for anything that will
 eventually involve the beam; expect real fan noise.
 
-The machine forces the cut fan profile on while armed and continuously
-verifies coolant flow; a flow fault or over-temperature pauses or blocks
-firing, and the messages appear in LightBurn's console
-([Cooling and fans](cooling-and-fans.md)).
+The machine forces the cut fan profile on while armed; an over-temperature
+pauses or blocks firing, and the messages appear in LightBurn's console
+([Cooling and fans](cooling-and-fans.md)). Nothing checks that the coolant
+is flowing: make sure the pump runs before you cut.
 
 ## Dry runs (motion only, no fire)
 

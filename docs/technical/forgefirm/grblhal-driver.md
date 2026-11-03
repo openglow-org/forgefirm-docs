@@ -273,8 +273,8 @@ the latch relocks on disarm, alarm, and reset.
 The first laser-on of a job does not fire. Instead the controller runs the
 arm flow on the protocol thread:
 
-1. **Checks the coolant verdict.** If a flow fault or an over-temperature
-   condition stands, arming is refused outright
+1. **Checks the coolant verdict.** If an over-temperature or another
+   cooling hold stands, arming is refused outright
    ([The cooling engine](cooling-engine.md)).
 2. **Checks that a print head is present.** No head, no arming: the lens,
    the air assist, and the beam detector live on the head, and the hardware
@@ -285,7 +285,7 @@ arm flow on the protocol thread:
    EV_SW bit on the input device the device tree names `switches`; no
    device, no arm, because a button that cannot be read is no consent.
 4. **Forces the cut airflow profile on**, so every fire window is covered
-   by running fans and active flow verification.
+   by running fans.
 5. **Unlocks the kernel laser latch, lights the button white, and pauses
    the job** until the operator presses the physical button. The sender
    keeps getting status reports, so it does not time out; the `ok` for the
@@ -306,7 +306,7 @@ during the wait.
 
 The re-check waits for a verdict that answers this job. Forcing the airflow
 profile on is a report to the cooling engine, and the engine applies the run
-duties and the flow interrogation when it reads that report. Until it does,
+duties when it reads that report. Until it does,
 the verdict on file is the one computed for the idle session before the arm,
 which says fire is fine because at idle nothing is wrong. So the controller
 holds at the re-check until the engine's own armed flag comes back in the
@@ -560,8 +560,8 @@ two channels ([The cooling engine](cooling-engine.md) owns both formats):
 - **The verdict.** The driver reads the engine's published verdict file
   every 500 ms and enforces the cached flags on every poll. A missing or
   stale verdict (older than 2 s) reads as fire-blocked and held. The armed
-  window requires a fresh `fire_ok` verdict (flow verification,
-  over-temperature, the airflow floors on every fan, the lid-IR fire watch)
+  window requires a fresh `fire_ok` verdict (over-temperature, the
+  airflow floors on every fan, the lid-IR fire watch)
   and the engine's own `armed` acknowledgment. Inside an open window the
   verdict has two tiers, keyed on its name:
     - `FIRE`, `CRASH`, `AIRFLOW`, and `CRITICAL` are the fail tier. The

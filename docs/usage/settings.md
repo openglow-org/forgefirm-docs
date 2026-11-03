@@ -48,7 +48,7 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | `gf_password` | Cloud sign-in password override (64 hex; write-only: `GET` reports `gf_password_set`). |
 | `ui_units` | Panel display units: `metric` or `imperial` (values are stored and exchanged in metric). |
 | `lid_lamp_idle` | Brightness of the lid lamp while the machine is idle (0 to 255, default 236). Applied immediately, at every daemon start, and at every controller start. Cloud mode drives the lamp itself while it runs. 0 is dark. |
-| `cool_*` | Coolant-loop protection tunables (flow-check bands, temperature ceiling and resume, cooldown, fan floors, the flame and crash watches). [Cooling and fans](cooling-and-fans.md) has every key. |
+| `cool_*` | Coolant-loop protection tunables (temperature ceiling and resume, cooldown, fan floors, the flame and crash watches). [Cooling and fans](cooling-and-fans.md) has every key. |
 | `wifi_country` | WiFi regulatory region, ISO 3166-1 alpha-2; unset = automatic (the AP's 802.11d country, else world). Applied via `iw reg reload`/`iw reg set` at startup and on change; power save is pinned off in the same pass. |
 | `log_<logger>_disk`, `log_<logger>_remote` | Log level per logger (`forgectrl`, `grblhal`, `gfcloud`, `gfhome`, `forgeext`, `kernel`, `system`) and destination: `off`, `error`, `warning`, `notice`, `info` (disk default), `debug`; remote defaults to `off`. Applied at the next reboot ([Logging](logging.md)). |
 | `syslog_server`, `syslog_port`, `syslog_proto` | Remote syslog target (host or address; 514; `udp` or `tcp`). Nothing is forwarded until a server is set. Applied at the next reboot. |

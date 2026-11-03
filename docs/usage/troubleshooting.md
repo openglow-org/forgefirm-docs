@@ -44,7 +44,7 @@ its reference, and the controller starts; nothing else to do.
 |---|---|---|
 | The button lights white and the job waits | The job's first laser-on is waiting for your press: the armed window ([GRBL mode](grbl-mode.md)) | Check the bed and the lid, then press the button. Press Stop in your sender if you did not mean to fire. |
 | Alarm 3 at the button prompt, "laser fire blocked: no head detected" | No print head is present; the machine refuses to arm without one | Seat the head, then start the job again. |
-| Alarm 3 at the button prompt, a coolant message | A flow fault or an over-temperature condition stands, and arming is refused | Resolve the cooling verdict (below), then start again. |
+| Alarm 3 at the button prompt, a coolant message | An over-temperature or another cooling hold stands, and arming is refused | Resolve the cooling verdict (below), then start again. |
 | Alarm 3 after a long wait at the prompt | Nobody pressed within `laser_button_timeout_s` (default 300 s) | `$X` to clear, then start again. |
 | The job ends with a lid or interlock message, no alarm | The lid or the interlock loop opened during the job or the button wait; the job is canceled and the head returns to where the job started | Close the lid, start the job again; the next job asks for the button. |
 | The resume asks for the button again | The job sat paused past `laser_disarm_s` (default 60 s) and disarmed itself | Press the button. |
@@ -84,12 +84,10 @@ when; this is what you do.
 
 | Verdict | What you see | What to do |
 |---|---|---|
-| `SUSPECT` | A warning and a hold; the machine re-checks flow at once | Wait. A clean re-check ends the hold and the job resumes; if the button lights, press it. Expect one on the first checks after you stop and start the pump by hand: that is an airlock, and it clears. |
-| `FAULT` | Fire gated, the hold stands | Check the pump, the lines, and the coolant level. Run **flow verify** on the Diagnostics tab; if the threshold no longer suits the loop, run **flow calibrate** ([Diagnostics](diagnostics.md)). |
 | `OVERTEMP` | A hold with the cooling airflow forced on | Wait. The hold ends once the upstream coolant is under the resume gate (31 °C by default), and the job resumes; if the button lights, press it. A jog is canceled instead of held. |
 | `CRITICAL` | Fire blocked, hold, no resume for the rest of the job; a resume under it is held again | Reset the job and let the loop cool. The next job judges the line afresh. A loop that ran through the pause tier and kept climbing needs looking at. |
 | `COLD` | Fire blocked; the coolant is under the floor | Let the room and the machine warm up. The gate clears a degree above the floor. |
-| `WARMUP` | The job holds with the loop heater on and the fans idle | Wait for the coolant to reach the warm-up gate; the job then runs and verifies flow. |
+| `WARMUP` | The job holds with the loop heater on and the fans idle | Wait for the coolant to reach the warm-up gate; the job then runs. |
 | `SENSOR` | Fire blocked, hold; the reason names the coolant sensor the machine cannot read | Wait a moment: a passing read failure clears by itself and the job resumes. One that stands means the sensor or its wiring needs looking at; the coolant readings on the Status tab show which one is missing. |
 | `AIRFLOW` | Fire blocked, hold, no resume for the rest of the job; a resume under it is held again; the reason names the fan, the reading, and the floor | Reset the job and check that fan. The next job judges every fan afresh after the spin-up grace. A fan that reads differently from the shipped floor on a healthy machine gets its own floor on the Machine tab. |
 | `FLAME` | Hold, fire blocked, while a lid-IR reading is over its alert | Look at the bed. The hold releases when the reading is back under the alert. |
@@ -97,9 +95,6 @@ when; this is what you do.
 | `FIRE` | Motion stopped, laser locked, the smoke airflow held; no resume until the next job | Deal with the fire. The fire watch is not a fire alarm: never leave a running laser unattended. |
 | `BUMP` | Hold, fire blocked, after a knock past the head accelerometer's alert | Check that the head is clear; the hold releases once the head sits quiet. |
 | `CRASH` | Motion stopped, laser locked, for the rest of the job | Check the head and the gantry for a collision before the next job. |
-
-Three cleared suspicions in one job earn an aggregated "check your coolant"
-warning: look at the loop before the next job.
 
 ## The panel refuses something
 

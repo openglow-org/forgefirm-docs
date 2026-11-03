@@ -26,7 +26,7 @@ keeps months of history in under 15 MB, the others a few megabytes each.
 | Logger | What it holds |
 |---|---|
 | `forgectrl` | The machine-services daemon: supervision, cooling, cameras, settings, updates. |
-| `sensors` | Every sensor and every fan, pump and heater setting: once a minute at idle, every 10 seconds in a job. A summary of each job, each coolant flow check, and the two and a half minutes around every fault. Numbers only. |
+| `sensors` | Every sensor and every fan, pump and heater setting: once a minute at idle, every 10 seconds in a job. A summary of each job, and the two and a half minutes around every fault. Numbers only. |
 | `grblhal` | The GRBL controller. |
 | `gfcloud` | The cloud-mode client. |
 | `gfhome` | The camera-referenced homing runner. |

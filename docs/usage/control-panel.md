@@ -153,8 +153,8 @@ calibration, the X and Y motor release with the manual home beside it
 ([Homing](homing.md#manual-homing); both shown while the GRBL controller
 runs), the lens, the crumb tray, the stepper drive (the X and Y microstep mode,
 [Settings](settings.md#settings-that-affect-motion)), and the cooling
-tunables. The cooling cards are the coolant loop, flow verification, and the
-airflow gates ([Cooling and fans](cooling-and-fans.md)).
+tunables. The cooling cards are the coolant loop and the airflow gates
+([Cooling and fans](cooling-and-fans.md)).
 
 **The crumb tray.** While the GRBL controller runs, the Lens card says
 whether the tray is in or out, with a button that switches it. Take the
@@ -307,10 +307,8 @@ else the world rules; a selected country pins it. The setting applies
 immediately and at every boot.
 
 Every machine tunable, shared, cloud-override, and GRBL-mode, has a home in
-one of these tabs, with three exceptions: `cool_laser_heat_cw` and
-`cool_laser_heat_density` are bench-measured coefficients set by hand in the
-settings file, and `cool_aa_offset_counts` is written by the air-assist
-offset diagnostic's Apply button.
+one of these tabs, with one exception: `cool_aa_offset_counts` is written by
+the air-assist offset diagnostic's Apply button.
 
 ## The routes an operator uses
 

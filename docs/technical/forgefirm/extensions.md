@@ -516,7 +516,7 @@ once, comes back, and starts them again.
 A required hold is proven by host tests: forgeext's `holdkeep_test` takes
 the hold decision through every state, and its `run_test.py` keeps the
 hold file fresh and never clears it on a crash loop; forgectrl's
-`cool_flow_test` has the engine withhold fire on the hold and drop it on
+`cool_engine_test` has the engine withhold fire on the hold and drop it on
 safe mode and extensions off, and `holds_test` has the reader stand on a
 stale required hold and drop a stale advisory one. forgectrl's
 `holds_wire_test`, built from the host's own `holdkeep.c`, reads the files

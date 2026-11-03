@@ -5,18 +5,19 @@ title: Cooling engine
 # Cooling engine
 
 The cooling engine is the part of forgectrl that owns every piece of thermal
-hardware (fans, pump, TEC, and the flow-check heater) and answers one
+hardware (fans, pump, TEC, and the loop heater) and answers one
 question at a time for whichever controller is running: *is it safe to fire
 right now?* This page describes how it decides: the two client channels, the
-fan phases and the airflow gates, coolant flow verification, the temperature
-gates, the fire watch, and the gate settings.
+fan phases and the airflow gates, the temperature gates, the fire watch, and
+the gate settings. ForgeFIRM has no coolant flow verification
+([Coolant flow](#coolant-flow)).
 
 What the hardware is (the loop, the fans, the sensors) is on
 [Coolant and airflow](../machine/coolant-and-airflow.md). What the operator
 sees and tunes (the settings reference, turning a gate off, the quick
 reference of what the machine does when) is on
 [Cooling and fans](../../usage/cooling-and-fans.md). The operator procedure
-for the flow diagnostics is on [Diagnostics](../../usage/diagnostics.md).
+for the diagnostics is on [Diagnostics](../../usage/diagnostics.md).
 The beam itself is gated in hardware
 ([Safing chain](../machine/safing-chain.md)).
 
@@ -79,7 +80,7 @@ header and runs on the settings alone.
 
 **If a diagnostic takes the hardware over**, the engine suspends its own
 writes and publishes fire-blocked until the diagnostic finishes
-([Diagnostics: verifying and calibrating flow](#diagnostics-verifying-and-calibrating-flow)).
+([Diagnostics](#diagnostics)).
 
 **If the engine itself is provably gone** while the laser is armed, the
 controller writes the factory run duties to the fans once, holds the job,
@@ -95,7 +96,7 @@ The engine runs in phases. Duties are the factory machine's own values.
 |---|---|---|---|---|---|
 | **Idle** | on | 204 | off | off | off |
 | **Warm-up hold** (a session opened under `cool_temp_start`) | on | idle | off | off | on |
-| **Run** (or armed, whatever the reported mode) | on | 1023 | 65535 | 43278 | flow checks only |
+| **Run** (or armed, whatever the reported mode) | on | 1023 | 65535 | 43278 | off |
 | **Cooldown, smoke clear** (15 s) | on | run duty | run duty | run duty | off |
 | **Cooldown, thermal** | on | idle | 32768 | 21639 | off |
 | **Over-temp or fault hold** | on | run duty | forced | forced | off |
@@ -106,15 +107,12 @@ Notes on the phases:
   Circulation is cheap; a stagnant loop with a warm tube is not. The one
   exception is the quiet hold below, an idle-only listening with the laser
   latched.
-- **The heater is off at idle by design.** An always-on flow heater
-  measurably warms the loop within minutes, eating headroom below the start
-  gate for no benefit while nothing can fire. The warm-up hold is the one
-  phase that runs it for heat
-  ([Low temperature](#low-temperature-the-floor-and-the-warm-up-hold)).
+- **The heater runs only in the warm-up hold**
+  ([Low temperature](#low-temperature-the-floor-and-the-warm-up-hold)). A
+  heater left on measurably warms the loop within minutes.
 - **Being armed counts as running.** If the laser is armed, the engine
-  forces the run profile and the flow checks regardless of what mode the
-  controller reported. Fire never happens without cut airflow and active
-  flow verification.
+  forces the run profile regardless of what mode the controller reported.
+  Fire never happens without cut airflow.
 - **Cooldown has two stages**: a smoke clear at full run duty, then reduced
   airflow (the radiator cools the loop measurably) until the upstream
   coolant temperature is back under the resume gate or the cooldown budget
@@ -138,8 +136,7 @@ the air assist, exhaust, intake and purge fans off whatever the phase says,
 the pump still running (the finder was proven that way). The bench tools
 take the same hold through `POST /cool/quiet?on=1`, and with `pump=1` the
 coolant pump and the TEC go off as well, so the machine is silent: the one
-pump-off state besides the heater-only flow diagnostics, and a dry one,
-since the laser stays latched at idle. Release with `on=0`;
+pump-off state, and a dry one, since the laser stays latched at idle. Release with `on=0`;
 `GET /cool/status` shows the hold as `quiet_hold`. The hold is taken only
 from an idle machine with no diagnostic running, and the engine releases it
 itself the moment a run session opens or after 600 s, so a job never runs
@@ -220,123 +217,19 @@ Outside a run the gates read `idle`. `/cool/status` carries each fan's
 `reading`, `floor`, and `state` (`grace`, `ok`, `under`, `TRIPPED`, `off`,
 `unjudged`, `not fitted`, or `idle`) as `fan_gates`.
 
-## Coolant flow verification
+## Coolant flow
 
-### The problem
+ForgeFIRM has no coolant flow verification: nothing checks that the coolant
+is moving, before a job or during one. A pump can stop, an impeller can
+slip, or a line can airlock, and none of it shows in a temperature reading
+until the tube is already in trouble. The pump runs whenever the machine is
+on, and the coolant gates that stand are the temperature ones
+([Over-temperature](#over-temperature),
+[Low temperature](#low-temperature-the-floor-and-the-warm-up-hold)).
 
-A pump can stop, an impeller can slip, a line can airlock, and none of it
-shows up in a temperature reading until the tube is already in trouble.
-Absolute coolant temperature only tracks a loop that is *circulating*, and
-"coolant should warm up while cutting" is not a usable signal either: a
-light engrave may add no measurable heat at all.
+## The air-assist offset on the coolant readings
 
-### The method
-
-The small heater sits between the two thermistors. Each check runs it at a
-fixed duty for a fixed window and watches how far the **downstream** sensor
-climbs:
-
-- **flowing coolant carries that heat away**: the downstream sensor rises a
-  little;
-- **a stagnant loop cooks the sensor**: the downstream sensor rises a lot.
-
-The discriminator is the rise, not the difference between sensors, and the
-operating point is measured rather than assumed:
-
-| Parameter | Value | Why |
-|---|---|---|
-| Heater duty | 40 % | Below about 40 %, natural convection sheds the heat well enough to *mimic* flow: dead-pump trials have looked healthier than a working pump. At 40 % heat input outruns convection, and it is the cheapest duty that does. |
-| Window | 50 s | Long enough for the bands to separate cleanly. |
-| Fault threshold | 14.4 °C rise | The default: midway between the flowing band and the stagnant band observed on the bench reference. Each loop gets its own ([below](#each-loop-has-its-own-bands)). |
-| Re-check interval | 150 s | A pump that stops mid-job is invisible otherwise. |
-
-The derivation of the operating point, from a 60-run design matrix, is on
-[The bench](../../developers/bench.md#how-the-coolant-flow-fire-gate-threshold-was-derived).
-
-Each check costs the loop under a degree of heating, and with cut-profile
-fans running the loop still nets cooler over a long job.
-
-**The record behind the operating point**, all on the bench reference: 25 of
-25 correct classifications at 40 percent duty, plus all three settle cases.
-The bands hold across the loop temperatures a real machine sees, with the
-margin widening as the loop warms:
-
-| Baseline | Flowing, worst | Stagnant, worst | Gap |
-|---|---|---|---|
-| 19 to 23 C | 12.75 C | 16.04 C | 3.3 C |
-| 24 to 25 C | 12.15 C | 18.07 C | 5.9 C |
-| 26 to 27 C | 11.89 C | 18.00 C | 6.1 C |
-
-A warmer loop sheds the heater's heat no worse with the pump on and holds it
-better with the pump off, so the threshold needs no warm-end value through
-27 C. Above that only a running tube warms this loop, and the check takes the
-tube's share off (below).
-
-### Each loop has its own bands
-
-The bands differ from loop to loop, and the 14.4 °C default is the bench
-reference's midpoint. On the bench reference the stagnant rise starts at
-about 16 °C. On an early Pro, whose flow calibration ran at the same 40
-percent heater duty, the coolant rose 15.8 to 16.2 °C with flow and 20.5 to
-20.9 °C without: the default sits under that loop's flowing rise, so until
-the loop is calibrated the flow check reads good flow as no flow on every
-job. The flow calibration
-([Diagnostics: verifying and calibrating flow](#diagnostics-verifying-and-calibrating-flow))
-is therefore a required step of the setup: no controller runs for a sender
-until the setup's Coolant flow step has run, writing the loop's own
-threshold and the heater duty it was found at, and the setup record holds
-it (`cooling.flow`). A calibration applied from the Diagnostics tools
-writes the threshold but leaves the gate closed
-([Setup](../../usage/setup.md#the-gate)). For the same
-reason the recommended band of `cool_flow_rise` is its whole legal range
-([Gate settings](#gate-settings-range-band-off-end)): no one loop's band
-judges another loop's value.
-
-### Checks start from a settled loop
-
-Measuring a rise from a baseline captured while the loop is still cooling
-from earlier heat produces garbage, and it fails in the dangerous direction:
-it can report flow with the pump stopped. So a check is *requested*, and
-starts only once the two sensors agree within 1.5 °C **and** the downstream
-reading has stopped drifting.
-
-Stationarity is judged by comparing the mean of the first half of a
-15-second window against the second half, not by peak-to-peak spread. On a
-settled loop, peak-to-peak noise is about 0.5 °C while the split-half
-difference is about 0.1 °C. Any peak-to-peak threshold tight enough to catch
-real drift would sit below the noise floor and never open the gate.
-
-### The tube's share of the rise
-
-Under laser load the tube itself heats the coolant, and that heat would read
-as a stagnant loop. It is the right size to matter: on the bench reference a
-**fully lit 50 s check window adds about 1.5 C** to the rise, against a margin
-of about 1.6 C, and about 0.46 C at 45 percent density. The heat arrives 10 to
-20 seconds after the first emission, as a smooth ramp on both sensors
-together, never as a step at fire start. Left uncorrected, a check that
-overlaps a cut reads about 14 C where the same loop reads 11.7 to 12.1 C dark,
-which is a hair from a false suspicion.
-
-Two tunables ride with the flow gate and are not gates:
-`cool_laser_heat_cw` and `cool_laser_heat_density`, the tube's share of a
-heater rise in °C per raw-second of `pic/hv_current` under each power model
-(defaults 3.06e-5 and 2.36e-5, legal 0 to 2e-4; no setup step measures
-them, so the defaults stand). The model the controller
-reports with its job state selects which applies (density, on every
-machine), and density is assumed when the report carries none. The check
-reads its baseline as the mean of the settled window the gate verified and
-its end as the mean of its last 5 s, never single samples. It counts the
-tube current from 15 s before the window to 15 s before its end (the heat's
-lag to the sensor), subtracts that share from the rise, at most 3 °C, and
-judges the remainder against `cool_flow_rise`. The verdict line carries the
-share taken off and the raw rise, and the sensors logger's `flow` record
-carries the whole check: both sensors' settled baselines and end means, the
-heater's duty, the window and the limit
-([Logging](logging.md#the-sensors-logger)).
-
-### The air-assist offset on the coolant readings
-
-A third tunable rides with the coolant readings themselves:
+A tunable rides with the coolant readings themselves:
 `cool_aa_offset_counts` (ADC counts, default 0, legal 0 to 60). It corrects
 the shift the air-assist fan's return current puts on both coolant sensors,
 about 20 counts or 1.2 °C at the run duty on the bench reference; the
@@ -355,46 +248,16 @@ every PIC transaction, so a reading no longer depends on whether the reader
 had just woken) recommends it and the panel's Apply writes it. Zero, the default, is the factory behavior, which
 never corrected the shift.
 
-### One bad reading is a suspicion, not a fault
-
-Transients happen: cycling the pump by hand can burp an airlock that clears
-itself within minutes. So the engine runs a two-step decision:
-
-1. **First over-limit check: `COOLANT FLOW SUSPECT`.** A warning, a hold
-   request, and an immediate re-check, with no waiting for the normal
-   cadence.
-2. **The next completed check decides.** Over-limit again, with no clean
-   check in between: `COOLANT FLOW FAULT`. Clean: the suspicion clears and
-   the job continues.
-
-Two more rules close the loopholes:
-
-- **A suspicion that cannot resolve escalates.** If no verdict can be
-  produced within the confirmation budget (default 480 s), it becomes a
-  fault: a loop that will not settle after a fault-level reading has shown
-  no evidence of health.
-- **Cleared suspicions still count.** Three of them in one job earn an
-  aggregated "check your coolant" warning; the counter resets when cooldown
-  reaches idle.
-
-A clean check from the fault state logs a recovery.
-
-Expect a legitimate suspicion on the first checks after manually stopping
-and starting the pump. That is an airlock, the machinery above absorbs it,
-and it clears on its own.
-
-### What the verdicts do
+## What the verdicts do
 
 | Verdict | Effect |
 |---|---|
 | `OK` | Fire permitted. |
-| `SUSPECT` | Hold requested, cut airflow held; released on a clean re-check. |
-| `FAULT` | Fire gated and the hold stands, for the operator to resolve. |
 | `OVERTEMP` | Hold with forced cooling airflow; released below the resume gate. |
 | `COLD` | The coolant under `cool_temp_min`: fire blocked, hold; back a degree above it. |
-| `WARMUP` | A session opened under `cool_temp_start`: held with the loop heater on and the fans idle until the gate is reached, then run with the flow check requested. |
+| `WARMUP` | A session opened under `cool_temp_start`: held with the loop heater on and the fans idle until the gate is reached, then run. |
 | `CRITICAL` | The coolant at or over the critical line in a run session: fire blocked, hold, no resume this job. |
-| `SENSOR` | A coolant sensor unreadable for two ticks in a row: fire blocked, hold, heater off; released the moment both sensors read again. The other coolant gates keep their state while the engine is blind. A flow check in flight is abandoned and asked for again; a warm-up gets its heater back. |
+| `SENSOR` | A coolant sensor unreadable for two ticks in a row: fire blocked, hold, heater off; released the moment both sensors read again. The other coolant gates keep their state while the engine is blind; a warm-up gets its heater back. |
 | `AIRFLOW` | A fan under its floor: fire blocked, hold, no resume this job. |
 | `FLAME` | The fire watch's pause tier: hold, fire blocked; released when the reading clears. |
 | `FIRE` | The fire watch's fail tier: motion stopped, latch locked, the controller stopped and started again, hold until the next run session. |
@@ -494,8 +357,7 @@ Two gates sit below the operating window:
 - **The warm-up gate** (`cool_temp_start`, default 16 °C, kept above the
   floor): a session that opens under it holds with the loop heater on and
   the fans idle until the gate is reached (verdict `WARMUP`, phase `warm-up`
-  in `/cool/status`), then runs with the flow check requested. At 0 the gate
-  is off.
+  in `/cool/status`), then runs. At 0 the gate is off.
 
   **The release judges a one-minute rolling minimum of the upstream reading,
   not the instant one.** With the pump running, a slug of the heater's output
@@ -529,17 +391,19 @@ TEC above its own threshold on the filtered upstream reading; what a Pro
 sets is unknown (no Pro capture), so the defaults here are chosen, not
 inherited.
 
-## Diagnostics: verifying and calibrating flow
+## Diagnostics
 
-The web panel's **Diagnostics** tab runs the two cooling tools. The
-operator procedure is on [Diagnostics](../../usage/diagnostics.md); this
-section is the method.
+The web panel's **Diagnostics** tab runs the cooling tool,
+`aa-offset-calibrate`
+([The air-assist offset](#the-air-assist-offset-on-the-coolant-readings)).
+The operator procedure is on [Diagnostics](../../usage/diagnostics.md);
+this section is the method.
 
-Both tools take the hardware over: the active controller is suspended for
+The tool takes the hardware over: the active controller is suspended for
 the duration, the engine stands aside, and the controller is restored on
 every exit path (completion, error, or Abort). The laser stays latched
 throughout. Progress, both coolant temperatures, and a scrolling log stream
-to the page while a tool runs.
+to the page while it runs.
 
 A diagnostic owns the thermal hardware between `cool_diag_take` and
 `cool_diag_release`. Take succeeds only from an idle engine, every tool
@@ -547,42 +411,9 @@ write goes through the engine's guarded diag helpers (one owner), the tick
 publishes phase `diag` with `fire_ok=false, hold=true` and touches nothing,
 and the release reasserts the idle posture in one place.
 
-Both tools run at the *configured* duty, window, and threshold, so the
-verdict applies to the check the machine actually performs, and both use
-cut-profile chassis fans, the condition under which the numbers are
-characterized. They read the rise as the check does: the baseline is the mean
-of the settled window, taken under those fans, and the end is the mean of the
-window's last 5 s. Any heater window, pump on or off, stops the moment the
-downstream sensor reaches 48 °C.
-
-**Flow verify** runs one check with the pump running and one with it
-commanded off, and passes when the threshold separates the two readings.
-**Flow calibrate** runs three trials of each case, alternating, with settle
-gates between them, logs each trial's starting temperature beside its rise,
-and recommends a threshold midway between the highest flowing reading and the
-lowest stagnant one; it refuses to recommend anything when the gap between the
-bands is under 3 °C, because a threshold in a narrow gap is a threshold that
-will misclassify.
-
-The setup's Coolant flow step runs Flow calibrate at 40 percent heater duty
-and, while the bands are too close, at 45 and then 50 percent. It steps up
-only when every trial of the rung it ran, its rise scaled by the higher duty
-and added to its starting temperature, stays 3 °C under the 48 °C stop: on
-the bench reference the rise grew faster than the duty, by up to a quarter
-between 30 and 40 percent, and the loop warms over a calibration. Between 40
-and 50 percent it grew about as the duty did there, and the peaks projected
-from the 40 and 45 percent rungs, 39.6 and 41.6 °C, were the peaks measured
-at 45 and 50 percent within 0.1 °C. A rung with no room ends the step with its
-reason instead of at the stop. The duty the step finds is the one every check
-during a job runs at.
-
-The operator's procedure, what each result means and when to run either is on
-[Diagnostics](../../usage/diagnostics.md).
-
 ## The fire watch
 
-Alongside the flow work, the engine runs the physical-evidence witnesses at
-its 1 Hz tick.
+The engine runs the physical-evidence witnesses at its 1 Hz tick.
 
 - **Emission evidence.** `cnc/laser_on_sampled` counts the last ~1 s
   window's emitting samples on the gated output of the hardware AND-gate:
@@ -665,10 +496,7 @@ A gate is a comparison the engine makes against a setting. Every gate
 setting is a plain number on the Machine tab, and there is no separate
 switch for any gate: the one table in `src/gates.c` gives each its **legal
 range** (wide on purpose), its **recommended band** (the shipped default
-with the margin one machine's loop needs; for `cool_flow_rise`, the whole
-legal range, since
-[each loop has its own bands](#each-loop-has-its-own-bands)), and its
-**off end**,
+with the margin one machine's loop needs), and its **off end**,
 the end of the legal range at which the gate never trips. A value outside
 the band is legal and warned about; a value at the off end is legal and
 reported as the gate being off. The validators, the engine, the settings
@@ -691,8 +519,6 @@ is on [Cooling and fans](../../usage/cooling-and-fans.md).
 | `cool_accel_x_alert` | `crash_x_alert` (head-accel X high event; pause tier) | 132 | 0 to 255 | 100 to 170 | 0 |
 | `cool_accel_y_alert` | `crash_y_alert` (head-accel Y high event; pause tier) | 112 | 0 to 255 | 85 to 145 | 0 |
 | `cool_accel_abort` | `crash_abort` (head-accel shared abort; fail tier) | 133 | 0 to 255 | 100 to 170 | 0 |
-| `cool_flow_check_s` | `flow` (flow verification) | 50 s | 0 to 300 s | 30 to 120 s | 0 |
-| `cool_flow_rise` | (tunes `flow`; set from flow calibrate, which the setup requires: [each loop has its own bands](#each-loop-has-its-own-bands)) | 14.4 °C | 1 to 40 °C | 1 to 40 °C | never |
 | `cool_tach_exhaust_min_rpm` | `exhaust` | 6400 rpm | 0 to 20000 | 5800 to 7000 | 0 |
 | `cool_tach_intake_min_rpm` | `intake` (each tach fitted) | 2290 rpm | 0 to 20000 | 2100 to 2500 | 0 |
 | `cool_tach_air_assist_min_rpm` | `air_assist` | 6000 rpm | 0 to 30000 | 5500 to 6600 | 0 |
@@ -703,8 +529,7 @@ is on [Cooling and fans](../../usage/cooling-and-fans.md).
 hold from it) and keeps measuring. With `coolant_max` off, the first reading
 in a run session over the shipped default is logged once as what the gate
 would have done; with a fan floor off, the first reading under the shipped
-default likewise; with `flow` off there is no heater interrogation at all
-and the run start says so. A header limit never overrules an off gate.
+default likewise. A header limit never overrules an off gate.
 
 **What an off gate is not:** a way to reach anything that is not a thermal
 gate. The hardware chain, the laser latch, the emission witness, the
@@ -758,8 +583,7 @@ mode=idle|run|cooldown & armed=0|1 [& model=density|analog]
 - **Level-triggered, repeated at ~1 Hz** while the controller runs, not
   edge-triggered events. A lost report self-heals on the next one.
 - `armed` = the laser is armed (fire possible). The engine forces the run
-  fan profile and flow interrogation whenever `armed` is true, whatever
-  `mode` says.
+  fan profile whenever `armed` is true, whatever `mode` says.
 - The duty parameters are the optional per-job run fan profile (cloud mode
   passes the factory pulse-header duties; GRBL mode omits them, so the
   configured/factory defaults apply). Out-of-range values fall back to
@@ -840,7 +664,7 @@ plus rename) at ~1 Hz and on every verdict change:
   publishes, so a verdict carrying `armed=true` was computed with the run
   session open. A controller waits for it at the arm rather than firing, and
   refuses the job if it does not arrive.
-- `verdict` is one of `OK`, `SUSPECT`, `FAULT`, `OVERTEMP`, `COLD`,
+- `verdict` is one of `OK`, `OVERTEMP`, `COLD`,
   `WARMUP`, `CRITICAL`, `SENSOR`, `AIRFLOW`, `FLAME`, `FIRE`, `BUMP`, `CRASH`,
   `EXT` ([What the verdicts do](#what-the-verdicts-do)). `hold=true` asks the
   active controller for a feed hold, and for it again if the job is

@@ -142,7 +142,7 @@ count is the one that should be zero.
 | everything else | **Undecided**: counted and named at debug level by every job. Of the 346 header-legal tags, the factory binds 283 to a source; 20 configure the client's own network backoff, 39 belong to the three fans of an air filter, the camera families are exposure and gain values the mainline driver's units do not take, and most of the rest are per-phase idle variants of the limits above. A hunt header from the live service leaves 49 undecided. |
 
 Thermal policy is the cooling engine's, on purpose: it runs its own coolant
-ceiling and critical line, flow verification, airflow gates, emission witness
+ceiling and critical line, airflow gates, emission witness
 and silence timeout, and a remote service can tighten those limits for a job
 and never loosen them. The factory's own policy, decoded from its firmware and
 from the captured headers, is below.
@@ -176,9 +176,9 @@ ForgeFIRM's answer to each of those is on
 [the cooling engine](../forgefirm/cooling-engine.md): every gate is a plain
 setting with an off end, a header value can only ever tighten a local one,
 every fan is held to a measured floor with a fault rather than a pause for the
-session, there is a coolant critical line above the ceiling's pause, the board
-temperatures are watched per job, and coolant flow is verified by
-interrogation. The rest of the envelope is declared tag by tag in the table
+session, there is a coolant critical line above the ceiling's pause, and the board
+temperatures are watched per job. Coolant flow is not verified here
+either. The rest of the envelope is declared tag by tag in the table
 above.
 
 ## How the factory sets power

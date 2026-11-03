@@ -112,8 +112,8 @@ On top of the chain, software adds gates in front of it, and never a bypass:
 - the **operator-armed window**: the physical button must be pressed before
   the first fire of a job, and the window relocks after idle
   ([The grblHAL driver](grblhal-driver.md#the-armed-window));
-- the coolant **fire gates**: flow verification and over-temperature
-  ([The cooling engine](cooling-engine.md));
+- the coolant **fire gates**: over-temperature and the coolant floor
+  ([The cooling engine](cooling-engine.md)); coolant flow is not verified;
 - fail-safe behavior on fault, abort, or underrun
   ([The pulse-feeder contract](pulse-feeder-contract.md)).
 
@@ -203,7 +203,7 @@ is allowed only when the machine is idle ([Modes](../../usage/modes.md)).
 | [The pulse-feeder contract](pulse-feeder-contract.md) | The pulse device: the ring, append and free, end of data, underrun, the dead-man, and backtrack. |
 | [The grblHAL driver](grblhal-driver.md) | The GRBL-mode controller: from G-code to pulse bytes, the laser path, the armed window, lid and button handling, faults, the cooling client. |
 | [forgectrl](forgectrl.md) | The machine-services daemon: supervision, the pulse-device broker, the motion-liveness gate, telemetry, settings, diagnostics. |
-| [The cooling engine](cooling-engine.md) | Fans, pump, TEC, and heater; flow verification; the gates; the job-state reports and the verdict file. |
+| [The cooling engine](cooling-engine.md) | Fans, pump, TEC, and heater; the gates; the job-state reports and the verdict file. |
 | [The video pipeline](video-pipeline.md) | What the cameras send, the privacy gate, the encoders, lighting, and the arbitration of the single camera path. |
 | [Cloud mode](cloud-mode.md) | The factory-experience client: components, scope, jobs, the firmware-update policy, the offline service, the emulator. |
 | [Homing](homing.md) | Camera-referenced homing in both modes, running unhomed, and the planned limit-switch cycle. |
