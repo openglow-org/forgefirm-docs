@@ -207,8 +207,10 @@ services daemon, cloud mode) are on
     |---lid_ir_3:            (RO) Lid IR sensor 3 measurement
     |---lid_ir_4:            (RO) Lid IR sensor 4 measurement
     |---lid_led:             (RW) Output PWM of Lid LEDs
+    |---means:               (RO) The sampler's 1 s and 10 s means of the analog inputs
     |---pwr_temp:            (RO) Power supply temperature
     |---raw:                 (RW) Read/Write binary data to/from registers
+    |---snapshot:            (RO) The sampler's newest read of every register, binary
     |---tec_temp:            (RO) Thermo-Electric Cooler temperature
     |---water_temp_1:        (RO) Coolant temperature, downstream
     |---water_temp_2:        (RO) Coolant temperature, upstream
@@ -693,7 +695,37 @@ microseconds (a module parameter, 500 by default, writable at runtime under
 `/sys/module/glowforge/parameters/`) before every transaction, longer than
 one PIC loop, and the value read was converted under the same load whoever
 the reader is and whatever it was doing: the cooling engine, `/status`, a
-diagnostic and a bench sampler read the same value. Zero turns it off.
+diagnostic and a bench sampler read the same value. Zero turns it off. The
+settle does not hold off every load: on the bench reference a lid camera
+stream moves both coolant thermistors about 5.5 counts colder, alike on both
+within 0.3, and two busy loops move them 1 and 3 counts. Its measured gain is
+the noise: with it a coolant channel's one-second mean at the full read rate
+wanders about 0.09 counts, without it about 0.19.
+
+### The sampler
+
+A kernel thread reads every PIC register in one transaction (the `grp_all`
+read, `pic_settle_us` included) `pic_sampler_hz` times a second: a module
+parameter, 50 by default, fixed at load, 0 for no sampler, more than 200
+taken as 200. It keeps the newest read and, for each analog input
+(`water_temp_1`, `water_temp_2`, `tec_temp`, `pwr_temp`, `lid_ir_1` to
+`lid_ir_4`, `hv_current`, `hv_voltage`), rolling one-second and ten-second
+windows. Every input of one read is converted within the same transaction,
+and a reader takes the mean of many reads instead of one read of its own.
+On the bench reference one transaction takes about 1.4 ms, 0.5 ms of it the
+settle, so the default rate keeps the CPU busy about 25 ms a second for the
+settles and holds the PIC for about 70 ms a second in all; the thread itself
+measures about 2.9 percent of the core. A single coolant read wanders about
+2 counts, and the one-second mean of 50 reads about 0.3 to 0.5 with the
+loop's own drift in it. `water_temp_2` reads about 0.7 counts lower inside
+the full transaction than read alone, a constant. The thread runs at normal priority on an absolute grid (20 ms
+at the default rate), and after an overrun the grid restarts from the
+moment it notices.
+
+`means` and `snapshot` report what it holds. Both refuse with `ENODATA`
+while the sampler is off or its newest read is more than a second old, so a
+reader cannot take stale values for current ones. The other attributes are
+unchanged and still read the PIC live.
 
 ### button_led_1, button_led_2, button_led_3
 
@@ -768,6 +800,22 @@ Read/Write, ASCII, 0-1023 (0 = OFF, 1023 = FULL)
 Lid LEDs. Not intended to be set directly. Set it through the
 `/sys/class/leds/lid_led` interface instead ([LEDs](#leds)).
 
+### means
+
+Read, ASCII, varies
+
+The [sampler](#the-sampler)'s statistics. The first line is
+`hz <rate> age_ms <age of the newest read> reads <total> errors <total>`;
+then one line per analog input:
+
+```
+<name> <mean 1 s> <mean 10 s> <min 1 s> <max 1 s> <reads in 1 s> <reads in 10 s>
+```
+
+The means are raw counts to three decimals; the minimum and maximum are raw
+counts; a window not yet full reports the reads it holds. `ENODATA` while
+the sampler is off or its newest read is more than a second old.
+
 ### pwr_temp
 
 Read, ASCII, 0-1023
@@ -783,6 +831,15 @@ Read/Write, Binary, varies
 Sends a block of raw binary straight to the PIC. A write has to be a multiple
 of three bytes long. Reading returns the bytes the PIC sent back over the
 previous write.
+
+### snapshot
+
+Read, Binary, 42 bytes
+
+The [sampler](#the-sampler)'s newest read: a little-endian signed 64-bit
+`CLOCK_MONOTONIC` time of the read in nanoseconds, then every register as
+`grp_all` lays them out, little-endian 16-bit values. `ENODATA` on the same
+rule as `means`.
 
 ### tec_temp
 
