@@ -74,9 +74,12 @@ every settings dispatch, in RAM only, the way `$35` is: a `$100` typed by a
 sender is overwritten on the spot. `$110`/`$111` are held under the feed the
 tick carries (one step per tick per axis), which only bites when the bench
 lowers the tick with `GFSINK_RATE`. `$102` (the lens screw's half-steps per
-millimeter), `$32` (laser mode) and `$44`-`$46` (the homing cycle masks) are
+millimeter), `$32` (laser mode), bit 0 of `$63` (laser off in a hold) and
+`$44`-`$46` (the homing cycle masks) are
 pinned the same way: a typed `$102` would move the Z envelope off the head,
-laser mode is the machine's, not a sender's choice, and the core keeps an
+laser mode is the machine's, not a sender's choice, a held job's laser is
+off whatever a sender typed (the disarm grace under a hold rests on it; the
+other bits of `$63` stay the sender's), and the core keeps an
 axis homed only while a homing cycle names it, so a typed `$44` would drop
 the Z homed bit that the lens hold rests on. The cycles stay the core's
 defaults (`$44=4`, `$45=3`, `$46=0`); the driver's `$H` never runs them
@@ -263,8 +266,9 @@ unlock that fails refuses the arm. A run start unlocks only a lock this
 process wrote inside an open window with the fire gate open; a lock it did
 not write, the cooling engine's fail tier, is never undone: the job plays
 dark and the verdict closes the window. Locking the latch also sets the
-hardware button latch, which only a physical press clears, so every lock the
-software writes costs a new press by construction. The hardware safety
+hardware button latch, which only a press taken with the lock released
+clears ([The safing chain](../machine/safing-chain.md#logic)), so every lock
+the software writes costs a new press by construction. The hardware safety
 AND-chain stays authoritative regardless: an armed underrun fails safe, and
 the latch relocks on disarm, alarm, and reset.
 
@@ -274,8 +278,21 @@ The first laser-on of a job does not fire. Instead the controller runs the
 arm flow on the protocol thread:
 
 1. **Checks the coolant verdict.** If an over-temperature or another
-   cooling hold stands, arming is refused outright
-   ([The cooling engine](cooling-engine.md)).
+   cooling hold stands, arming is refused outright with `ALARM:3`
+   ([The cooling engine](cooling-engine.md)). The refusal says
+   `laser fire blocked: a cooling gate is closed`, or, while a fault waits
+   for its Acknowledge (the verdict's `ack_wait`, under any verdict name),
+   `laser fire blocked: a fault waits for its Acknowledge on the
+   control panel`
+   ([The operator's attention](cooling-engine.md#the-operators-attention)).
+   The re-check after the press uses the same words. Every refused arm,
+   and a wait that ends without a press (the button timeout, a sender
+   change, unreadable switches, an alarm under the wait), also resets the
+   job the way `^X` resets it, and the alarm stands through the reset:
+   the parser drops the job's `M3`/`M4` and the rest of the stream, so
+   after `$X` the next laser-on asks for the press again. A lid or
+   interlock opening during the wait cancels the job with the reset alone
+   (below).
 2. **Checks that a print head is present.** No head, no arming: the lens,
    the air assist, and the beam detector live on the head, and the hardware
    chain has no head term. Presence is the head driver having probed (the
@@ -286,10 +303,10 @@ arm flow on the protocol thread:
    device, no arm, because a button that cannot be read is no consent.
 4. **Forces the cut airflow profile on**, so every fire window is covered
    by running fans.
-5. **Unlocks the kernel laser latch, lights the button white, and pauses
-   the job** until the operator presses the physical button. The sender
-   keeps getting status reports, so it does not time out; the `ok` for the
-   line that armed the laser follows the press.
+5. **Unlocks the kernel laser latch, sets the button breathing white, and
+   pauses the job** until the operator presses the physical button. The
+   sender keeps getting status reports, so it does not time out; the `ok`
+   for the line that armed the laser follows the press.
 
 The hardware button latch is what the press clears. The software wait exists
 so the job does not start streaming FIRE bits into a blocked gate. A press
@@ -313,31 +330,75 @@ holds at the re-check until the engine's own armed flag comes back in the
 verdict, and refuses the job if it does not arrive within its wait
 ([The cooling engine](cooling-engine.md#airflow-gates-a-fan-that-is-not-moving-the-air),
 "The first fire waits for the fans"). A press that lands the instant the
-button lights is the case this covers: it reaches the re-check before the
+button starts breathing is the case this covers: it reaches the re-check before the
 engine has ticked, and without the wait the first fire goes out with the
-fans still at their idle duty.
+fans still at their idle duty. The window belongs to the sender that asked
+for the press: a sender that changes during this wait cancels the job as a
+change during the button wait does (`sender changed during arm - job
+canceled`, `ALARM:3`, the reset), and the poll closes an open window whose
+sender is any other.
 
 **The window is per job, not per fire.** It survives `S` changes and
 `M5`/`M3` toggles, so nothing re-prompts mid-job. It closes, relocking the
 latch, when any of these happens:
 
-- program end (`M2`, `M30`, `%`), the normal case, within the cycle;
+- program end (`M2`, `M30`), the normal case, within the cycle. A `%` is
+  not a program end here: the core reports one only for a program read
+  from a file stream, which the TCP transport is not, so a program that
+  ends on `%` closes its window by the grace;
 - the sender's connection changes (the consent belonged to that session);
-- `laser_disarm_s` (default 60 s) of spindle-off grace, counted down in
-  Idle, in a jog, and in a job parked in Hold, Door, and Tool Change; only a
-  cycle or a lingering `M3` keeps the window open, and a jog is not the job
-  the press consented to;
+- `laser_disarm_s` (default 60 s) of grace. It counts with the laser off
+  in Idle, in a jog, and in a job parked in Hold, Door, and Tool Change,
+  and with `M3`/`M4` still modal whenever the machine is at rest: Idle with
+  nothing planned, or a jog. A window does not outlive its job at rest, and
+  a jog is not the job the press consented to. Only a cycle, or a laser
+  the core left on in a parked job, keeps the window open, and bit 0 of
+  `$63` is pinned so that a hold leaves it off
+  ([The XY scale](#the-xy-scale));
 - the cooling verdict's fail tier (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`):
   the latch locks, the job is reset the way `^X` resets it, and `ALARM:3`
   says why ([The cooling client](#the-cooling-client));
-- on homing, a stream fault, or a reset at rest: at once. A soft reset
-  during motion, and an alarm the core reports before the driver's poll
-  sees it, close the window after the core's alarm report
+- on a home of either kind (the web-service home as it enters the homing
+  state; the manual home, which never leaves Idle, at the completion event
+  every provider ends on), a stream fault, or a reset at rest: at once. A
+  soft reset during motion, and an alarm the core reports before the
+  driver's poll sees it, close the window after the core's alarm report
   ([Faults](#faults)).
 
 Nothing widens the window. A jog under an open window ships dark and does not
 restart the grace, and the pause tier of the verdict holds the job under the
 window without touching the latch.
+
+**The parser's `M3`/`M4` goes with the window.** The core asks the spindle
+only when an `M3`, `M4`, or `M5` changes the modal state, so a window that
+closed with `M3`/`M4` still modal would leave the next job's identical word
+asking nothing: no arm and no prompt. When a window closes that way with no
+job parked, the controller turns the modal state off once, at Idle
+(`modal_poll`, through the core's `gc_spindle_off`: `M5` and `S0` in the
+parser and in the reports), and says
+`laser off (M5): the armed window closed - the next M3 or M4 asks for the button`.
+The next `M3`/`M4` is then a state change and runs the arm. A job parked in
+Hold, Door, or Tool Change keeps its `M3`/`M4`: the resume gate re-arms a held job by that
+state ([Lid, interlock, and button](#lid-interlock-and-button)), and a
+window that opens again cancels the drop.
+
+**A stalled job does not run on dark.** The drop takes `M3`/`M4` from under
+whatever was in progress, and a job that had only stalled (a sender that
+stopped sending for longer than the grace, a long dwell) would carry on with
+the laser off. From the drop on, the first feed move that the core plans
+with the laser off under an `S` above zero ends the job
+(`dark_watch_poll`): the sender is told
+`the laser window closed while the job waited - job stopped; start it again`,
+the job is reset the way `^X` resets it, and `ALARM:3` follows. The drop
+zeroes the modal `S`, so that `S` is a word the job sent after it; a feed
+move with no `S` word or with `S0`, a rapid, and a jog move on. The newest
+planned block is looked at on every poll and each time the core reads the
+sender's stream, which follows the line that planned it. The watch ends at
+an `M3` or `M4` (the arm asks for its own press), a program end, a reset or
+an alarm, any disarm, and a window that opens. One limit stands: an `M5`
+that changes nothing never reaches the driver, so after such a drop a
+stream that sends `M5` and then feed moves with `S` words is stopped once,
+where it would have run dark.
 
 **Disarm.** After the disarm grace, or on program end or abort, the
 controller relocks the latch, turns the button LED off, and stands the
@@ -345,7 +406,11 @@ cooling profile down. A job paused on the button is no laser use: the grace
 counts down through the hold and closes the window under a job left
 standing, so a long pause ends with the machine disarmed and the next
 emission needs a fresh press. The relock waits for the kernel to finish the
-queue tail, so a controlled stop can never leave FIRE driven.
+queue tail, so a controlled stop can never leave FIRE driven. A laser-on
+that arrives while a program end's close is still waiting for that tail
+belongs to the next job: the controller waits for the tail (2 s at most),
+closes the window, and runs the arm, so it gets a press of its own. In a
+held state the window closes at once.
 
 The next job re-arms with a fresh button press, the same press the hardware
 button latch itself requires. That is why software and hardware cannot
@@ -383,7 +448,7 @@ planned deceleration, and what happens next is the `lid_policy` setting:
   the door or loop closes the controller reports `Door:0`, and a cycle start
   finishes the move with its position intact.
 
-During the arm wait (button lit), either opening cancels the job outright
+During the arm wait (the button breathing), either opening cancels the job outright
 under both policies.
 
 While the core is idle, jogging, or homing, and during the return-to-start
@@ -414,9 +479,41 @@ open, which is what lets the next press resume the job. Emission still ends
 with the pause: the stream stops driving FIRE, and the chain drops HV_ENABLE
 by itself ([The kernel module](kernel-module.md)). The window closes on its
 own if the pause outlives the disarm grace. A cycle start after that, from
-the sender or the button, re-arms first: the button lights and the press
-resumes the job. A lid or interlock open while paused takes the cancel path,
-so nothing resumes past an enclosure opening.
+the sender or the button, goes through the resume gate
+(`gflaser_resume_gate`) and re-arms first: the latch unlocks, the button
+breathes white (`press the button to resume the laser job`), and the press
+is recorded once the button has been seen up. The window opens, and the
+cycle start follows, when the cooling engine has acknowledged the job
+(its `armed` in the verdict), inside the same budget as at the first arm;
+an acknowledgment that does not arrive refuses the job with `ALARM:3`.
+The press and the acknowledgment are both taken from the poll, because a
+blocking wait cannot run in a held state. The switches are read through
+the whole re-arm, the wait for the acknowledgment included. A sender
+change or a button timeout ends the re-arm with the latch relocked and the
+job still held; under a standing pause-tier verdict, or a fault that waits
+for its Acknowledge, the gate refuses and the job stays held
+([The cooling client](#the-cooling-client)). A lid or interlock open while
+paused takes the cancel path, so nothing resumes past an enclosure opening.
+
+**The button's light** (`button_lamp`) has three states of the
+controller's own: breathing white while the arm or the re-arm waits for the
+press, solid white while the core is in a cycle, a jog, or homing (set from
+`gflaser_poll`, except while an arm wait has the button), and dark
+otherwise, a job paused or held included: a paused job's button breathes
+only once a resume has asked for the re-arm's press, and is dark again
+from that press to the resume. A write happens on a change,
+and it stops the LED trigger's pulse before the new pattern. Once a second
+(`lamp_keep`, from `gflaser_poll`) the controller reads the LED back against
+the state it set and writes that state again if something wrote over it,
+never over the cooling engine's red flash, which stands over all three
+([The button's light](forgectrl.md#the-buttons-light)). The lamp that
+follows the machine's state is not written over the flash either
+(`lamp_follow`): a change under it is recorded, and `lamp_keep` writes it
+within a second of the flash ending. The flash leaves
+the button dark when it ends, so an arm or re-arm wait under it breathes
+again within a second. Solid white is judged as no pulse and every target
+at 254 or more, which is how a settled 255 reads back
+([LEDs](kernel-module.md#leds)).
 
 **Telemetry that gates nothing.** The `hv_enable` bit is the readback of the
 board's HV_ENABLE output (high only while a run feeds the charge-pump
@@ -456,8 +553,9 @@ The operator's table of what each stop does is on
     [Pulse feeder contract](pulse-feeder-contract.md)): the kernel's own stop
     plays the shipped bytes time-stretched with the beam on, which would
     over-dose more than the planned deceleration does. A resume against a
-    window the grace has closed re-arms first: the button lights, and the
-    press resumes the job.
+    window the grace has closed re-arms first: the button breathes white,
+    the press is taken, and the job resumes once the cooling engine has
+    acknowledged it ([Lid, interlock, and button](#lid-interlock-and-button)).
 - **A sender change while a job runs** holds the job and closes the window.
   The next sender finds the cut in Hold where it stopped and resumes it
   through the same re-arm, or resets it.
@@ -542,7 +640,13 @@ The operator's table of what each stop does is on
 Anything that invalidates position (an underrun, a stream fault, a soft
 reset whose position cannot be read back, a soft reset during the
 web-service homing session) drops the homing anchor deliberately, so a
-stale origin cannot be reused.
+stale origin cannot be reused. A controller restart drops it too: the
+anchor belongs to the controller that wrote it, and a respawn starts
+unreferenced. forgectrl restarts the controller after a crash or hang and
+after the two fail-tier verdicts that end the controller, `FIRE` and
+`CRASH` ([The cooling engine](cooling-engine.md#what-the-verdicts-do)). The other fail-tier
+verdicts, `AIRFLOW` and `CRITICAL`, end the job through the driver alone:
+the reset reads the position back, and the home stays.
 
 ## The cooling client
 
@@ -575,10 +679,33 @@ two channels ([The cooling engine](cooling-engine.md) owns both formats):
       verdict's `resume_ok` resumes the hold the driver took, with no new
       press while the window is open. The grace counts down through the
       hold, so once it has closed the window the resume re-arms first: the
-      button lights, and the press resumes the job
+      button breathes white, and the press resumes the job
       ([The armed window](#the-armed-window)). The pause tier never writes
       the latch: a lock sets the hardware button latch, which only a press
-      clears, so a lock belongs to the fail tier alone.
+      clears, so a lock belongs to the fail tier alone. A `SENSOR`,
+      `FLAME`, or `BUMP` still standing when the window closes leaves a
+      fault waiting for its Acknowledge once it clears: the verdict's
+      `ack_wait`, and the name `ACK` where no other verdict stands
+      ([The operator's attention](cooling-engine.md#the-operators-attention)).
+      The driver does not resume its hold while a fault waits for its
+      Acknowledge (`gfcool_poll`; `gfcool_ack_waits` reads the field and
+      the name): the job stays held until the
+      operator acknowledges it, and the clean verdict's resume then goes
+      through the re-arm's press.
+    - **A resume with the window closed** (the button, `~`, a sender) goes
+      through the resume gate (`gflaser_resume_gate`). Under a fresh
+      verdict short of the fail tier that blocks fire or carries
+      `ack_wait` (`gfcool_hold_stands`), the gate refuses and the job
+      stays held: no alarm, no reset, no unlock. Under a closed cooling
+      gate it says
+      `laser fire blocked: a cooling gate is closed - the job stays held`,
+      and the same resume re-arms once the verdict has cleared. Under a
+      fault that waits for its Acknowledge it says
+      `laser fire blocked: a fault waits for its Acknowledge on the control panel - the job stays held`.
+      A re-arm already waiting when a gate closes, or a fault comes and
+      goes, ends the same way once its press is in: the latch relocks, the
+      job stays held. The fail tier and a stale verdict end the job on the
+      resume instead: the arm's refusal (above), `ALARM:3`, and the reset.
 - **The fire gate.** The stream engine masks the FIRE bit on every tick with
   a gate the laser module publishes: the window, and the verdict's
   `fire_ok`, held open through the pause tier's first deceleration. A gate

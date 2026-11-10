@@ -102,9 +102,11 @@ unflashable image. The rootfs is read-only
 16 MiB holds the filesystem's own metadata and a little slack for a bench
 hot copy, nothing more. The filesystem reserves no blocks for root and has
 one inode per 8 KiB (`EXTRA_IMAGECMD:ext4 = "-i 8192 -m 0"`), and it keeps
-its journal for the hot copy's writable window. The SD card image
-(`glowforge.wks` in meta-openglow) makes its root filesystem with the same
-options. `scripts/mkfw.sh` packs the ext4 into the signed `.fw`
+its journal for the hot copy's writable window. The SD card images make
+their root filesystem with the same options: the release image's from
+`glowforge.wks` in meta-openglow, the dev image's from
+`forgefirm-dev-sd.wks.in` in meta-forgefirm, which adds the card's own data
+partition ([The bench](../../developers/bench.md#the-sd-card)). `scripts/mkfw.sh` packs the ext4 into the signed `.fw`
 ([Install and update](install-and-update.md)). Each image carries
 `/etc/forgefirm-manifest.json`, the build-input identity the acceptance
 tool and the release gate compare
@@ -199,13 +201,16 @@ mounts ([The rootfs lint](#the-rootfs-lint) has the files fixed at build).
 
 **The boot step `forgefirm-data`** runs in rcS at S04, after `mountall`
 has mounted `/data` and `/run` and after `slotmigrate`, which needs `/data`
-unmounted, and before anything reads `/data/forgefirm`. It does two things,
-on both images:
+unmounted, and before anything reads `/data/forgefirm`. It does two things:
 
-- **The SD card's data.** On a boot from the SD card
-  (`root=/dev/mmcblk1p1`) whose card has a ForgeFIRM data partition
-  (`/dev/mmcblk1p2` with `forgefirm/` and `log/`, which the dev image's card
-  image makes), it mounts that partition under `/run/forgefirm-card` and
+- **The SD card's data**, on the dev image alone (its marker
+  `/etc/forgefirm-dev`): a release image booted from a card leaves `/data`
+  as `mountall` made it, with the outcome `card-none`. On a dev boot from
+  the SD card (`root=/dev/mmcblk1p1`) whose card has a ForgeFIRM data
+  partition (`/dev/mmcblk1p2` with `forgefirm/` and `log/`, which the dev
+  image's card image makes), it mounts that partition under
+  `/run/forgefirm-card` (`noatime,errors=remount-ro`, so a filesystem error
+  found while the card is in use stops the writes to it) and
   bind-mounts its `forgefirm/` over `/data/forgefirm` and its `log/` over
   `/data/log/forgefirm`. A read-only, private bind of the eMMC's `/data`
   stays at `/run/forgefirm-emmc`, and the eMMC's factory archive is bound
@@ -217,17 +222,34 @@ on both images:
   goes past a mount point that already holds a mount, so the fstab stays
   the eMMC's on every boot. The outcome is one word in
   `/run/forgefirm-data.state` (`emmc`, `card`, `card-none`,
-  `card-failed`), which a dev image's development bar shows. The card itself
+  `card-failed`), which a dev image's development bar shows.
+  **`card-failed` fails closed.** A data partition that is there but cannot
+  be used (it did not mount, it mounted read-only from write protection or
+  a filesystem error, it is not ForgeFIRM's, or its `forgefirm/` or `log/`
+  folder could not be shown; the boot log says which) never leaves the
+  boot writing the eMMC's folders: `/data/forgefirm` is bound read-only
+  over itself, and `/data/log/forgefirm` is a 32 MB tmpfs, lost at the
+  reboot. An eMMC with no ForgeFIRM folder (an empty `/data/forgefirm`)
+  has nothing to keep, and a read-only empty folder would leave the boot no
+  host keys, certificate, or log rules, so that boot's `/data/forgefirm` is
+  a 16 MB tmpfs instead: writable, and gone at the next boot. forgectrl reads the word and holds the controllers
+  ([Setup and the gate](forgectrl.md#setup-and-the-gate)). The card itself
   is on [The bench](../../developers/bench.md#the-sd-card).
 - **A requested reset.** `POST /system/reset` leaves `reset-requested` in
   `/data/forgefirm` and reboots ([forgectrl](forgectrl.md#http-api)). The
-  boot step then removes everything in the folder but the factory archive
-  (`archive/`), the sshd host keys (`ssh/`), the TLS key and certificate
-  (`tls/`), the boot timestamp, the random seed, and `legacy-logs/`, and
-  removes the marker last, so a wipe cut short by a power loss runs again
-  at the next boot. forgectrl starts with no account and no setup record,
-  and the setup runs as after an install. The logs and `/data/forgetest`
-  are not in the folder and stay.
+  boot step then removes everything in the folder but `archive/`, `ssh/`,
+  `tls/`, the boot timestamp, the random seed, and `legacy-logs/`, and
+  removes the marker last, and only when every removal succeeded. A wipe
+  cut short by a power loss finds the marker at the next boot and runs
+  again. A wipe in which a removal failed keeps the marker and logs
+  `the reset is not complete: the request stays, and the next boot clears
+  the rest`. A `card-failed` boot runs no reset: the folder it shows is the
+  eMMC's, read-only, and not that boot's to clear, so a marker there waits
+  for a boot that uses the eMMC's folder. The logs and `/data/forgetest`
+  are not in the folder and stay. What that keeps and removes for the operator is on
+  [The control panel](../../usage/control-panel.md#system); when forgectrl
+  takes a request, and how it withdraws one that no boot carried out, is on
+  [forgectrl](forgectrl.md#http-api).
 
 **The dev image** also mounts the two factory rootfs slots read-only under
 `/factory/img1` and `/factory/img2`, a bench convenience for reading a

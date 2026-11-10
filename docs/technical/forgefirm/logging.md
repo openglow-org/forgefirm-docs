@@ -128,8 +128,8 @@ classes (bearer and basic credentials, JWTs, key=value secrets, e-mail
 addresses, MAC addresses, IPv4 and IPv6 addresses with loopback kept, hex of
 32 or more characters, base64-like strings of 40 or more). Placeholders are
 stable per value within a bundle, and the output is idempotent. forgectrl
-does not log the account name; as a known value it still comes out of lines
-an older release wrote, and an account name that is a common word takes that
+does not log the account name; as a known value it comes out of any log
+line that carries it, and an account name that is a common word takes that
 word out of the bundle with it, the over-redaction the sanitizer accepts. The
 setup record's `account.name` is also replaced by its key in
 `system/setup.json`, which covers a name too short for the known-value pass
@@ -148,7 +148,7 @@ forgectrl's sensors logger (`src/senslog.c`, its records in
 the `sensors` logger, so a bundle shows how one machine differs from
 another, before a fault and not only at it. Its own thread samples every
 sensor once a second, apart from the cooling engine, so nothing it does can
-delay a verdict. It writes five records:
+delay a verdict. It writes seven record types:
 
 | Record | When | What |
 |---|---|---|
@@ -170,7 +170,8 @@ converted value, so a corrected conversion can be applied to old records.
 
 **`beat`.** `ph`, `vd`, `hold`, `fire`, `arm` (the engine's phase, verdict,
 hold, fire permission and armed window); `kst`, `flt`, `sw` (the kernel's
-state, its fault mask, the switch bits); `down`, `up` (the coolant in °C, as
+state, its fault mask, the switch bits; `sw=-` when the switch device could
+not be read, never a word of zeros); `down`, `up` (the coolant in °C, as
 the engine converts it) with `down_raw`, `up_raw`; `chassis`, `soc` (°C);
 `psu_raw`, `tec_raw` (`pic/pwr_temp`, `pic/tec_temp`); `thr` (the CPU's
 cooling state); per fan the commanded duty, the tach reading and the speed
@@ -202,8 +203,9 @@ inventory: `image`, `kernel`, `module`, `soc`, `soc_rev`, `soc_trips` (the
 SoC thermal zone's trip points), `mem_kb`, `data_kb`, `pic_id`, `head_id`,
 `head_fw`, `beam_coeffs` (the head's beam-detector coefficients as it holds
 them), `model`, `tec`, `camera` (the setup record's). The settings record:
-every `cool_*` tunable as the engine resolved it, then a fixed list of
-machine settings as stored (`-`: unset, the default stands). It is a list,
+every `cool_*` tunable of the engine as it resolved it at the last run start
+(the flow watch's `cool_flow_*` keys are not among them), then a fixed list
+of machine settings as stored (`-`: unset, the default stands). It is a list,
 never the settings file, which holds credentials.
 
 **`clock`.** `from`, `to` (UTC). The step dates the boot: every record of
@@ -222,7 +224,13 @@ mono), `pre`, `post` and the event's words in `msg`; each `frc` carries `ev`,
 `ch` (the channel: `ph`, `vd`, `down`, `up`, `down_raw`, `up_raw`,
 `heater_pwm`, `hv`, `lon`, `beam`, `ir1` to `ir4`, the four fan speeds,
 `purge_cur`, `soc`, `cpu`), `n`, `t0`, `t1` and `vals`, the samples one a
-second. At most six dumps are written in any hour.
+second. At most six dumps are written in any hour for the alarm tier (the
+verdicts FIRE, CRASH, FLAME and CRITICAL, emission with no armed window, a
+power-good drop, a silent controller, a stepper driver fault) and six for
+the rest, so a warning that flaps never costs an alarm its dump; an event
+past its budget is counted and named in the next dump. A dump still inside
+its 30 s when the daemon stops is written before it stops, with the samples
+it has.
 
 **What it never holds.** No serial number (the head's serial line is
 skipped and the SoC's unique id is never read), no network name or address,

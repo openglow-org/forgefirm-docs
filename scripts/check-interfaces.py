@@ -183,10 +183,20 @@ def http_routes(main_c: str) -> set[str]:
 
 
 def settings_keys(main_c: str) -> set[str]:
-    """Every key in forgectrl's validated-settings table."""
+    """Every key in forgectrl's validated-settings table: a key, then a
+    validator whose name carries ``valid`` (``valid_mm``,
+    ``logs_valid_level``, ``tray_offset_valid``), then the secret flag."""
     return set(
-        re.findall(r'^\s*\{\s*"([a-z][a-z0-9_]*)"\s*,\s*valid_[a-z0-9_]+\s*,', main_c, re.M)
+        re.findall(
+            r'^\s*\{\s*"([a-z][a-z0-9_]*)"\s*,\s*[a-z0-9_]*valid[a-z0-9_]*\s*,\s*[01]\s*\}',
+            main_c,
+            re.M,
+        )
     )
+
+
+# A per-logger level key: the site names the form once, with every logger.
+LOG_KEY = re.compile(r"log_([a-z0-9]+)_(disk|remote)")
 
 
 # --------------------------------------------------------------------------
@@ -206,8 +216,17 @@ def documented(name: str, text: str, kind: str) -> bool:
     a path separator in front of it is allowed. A route must match whole: the
     ``/status`` route is not documented by a mention of ``/cool/status``. A
     route's ``:id`` parameter is written ``<id>`` in prose, so each parameter
-    segment matches either form.
+    segment matches either form. A per-logger level key (``log_sensors_disk``)
+    is documented by the form ``log_<logger>_disk`` and its logger named as
+    code (`` `sensors` ``).
     """
+    log_key = LOG_KEY.fullmatch(name) if kind == "settings key" else None
+    if log_key:
+        logger, dest = log_key.groups()
+        return (
+            f"log_<logger>_{dest}" in text
+            and re.search(r"`" + re.escape(logger) + r"`", text) is not None
+        )
     if kind == "HTTP route":
         parts = []
         for seg in name.split("/"):

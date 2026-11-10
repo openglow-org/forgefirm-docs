@@ -141,6 +141,9 @@ factory event/progress state machine is advisory):
   screen needs nothing else).
 - Unsolicited `lid:opened` / `lid:closed`, which drive the app's header state
   and trigger an immediate service `lid_image` refresh.
+- `fault:<name>:set` and `fault:<name>:reset`, which tell the app why a print
+  is held ([below](#what-the-app-shows)). ForgeFIRM sends only the faults
+  that name a cooling hold ([Cloud mode](../forgefirm/cloud-mode.md#scope-telemetry-is-excluded)).
 - Alongside the events, a running print sends the `type:"progress"` frame
   described below. It is a different message type, not an event.
 
@@ -159,6 +162,59 @@ Service behavior worth knowing:
 - Server-side session state can be sticky: after abnormal session deaths the
   service may stall silently mid-sequence in the next session. A fresh WS
   session recovers it.
+
+## What the app shows
+
+The service works out what the app displays from the machine's events; the
+machine sends no text. What connects an event to the app's words comes
+from driving the service with the
+[emulator](../forgefirm/cloud-mode.md#the-emulator-in-this-machines-identity)
+and reading the app.
+
+**The prompt.** `print:download:completed` puts "Push the button on your
+Glowforge to begin" on screen, with the job's time.
+
+**A print that is held.** The message comes from the fault reported just
+ahead of `print:paused`. The reverse order, or a fault with no pause, does
+not show it.
+
+| Sent | The app shows |
+|---|---|
+| `print:paused` alone | PAUSED: "Press the button on your Glowforge to continue printing, or click below to cancel." |
+| `coolant_recoverable_alert` | COOLING DOWN: "Your print will automatically resume in a few minutes." |
+| `head_accel_x_alert`, `head_accel_y_alert` | BUMPED: "The laser head experienced a bump during your print, and your print is now paused." |
+| `interior_temp_alert`, `lid_ir_1st_quartile_alert` | OVERHEATED: "Safety sensors have registered a very high temperature in your Glowforge." |
+| `air_assist_alert`, `intake_1_fan_alert`, `intake_2_fan_alert` | AIR ASSIST FAN: "The air assist fan on the printer head is not running at the correct speed." The intake faults get the same text. |
+| `exhaust_fan_alert` | No message: the countdown keeps running. |
+
+`fault:<name>:reset` and then `print:resumed` take the message down and go
+back to the countdown.
+
+- **A pause before the press takes the prompt away for good.** Once a print
+  has paused before the press, `print:download:completed`, `print:waiting`,
+  `print:resumed`, and a reset all leave the pause on screen, and only
+  `print:running` ends it. So anything that holds a print goes after the
+  press, where the factory's warm-up is too.
+- **The temperatures in a fault's settings are not read.** The factory's
+  fault events carry a settings snapshot, and the app's message comes
+  without one: hot and cold readings show the same COOLING DOWN.
+
+**The machine's conditions.** `GET /gfcore/users/machines` gives each
+machine a `state` (`ready`, `active`, `unavailable`) and a `conditions`
+list, which the service also pushes to the page. A fault changes the list,
+not the state:
+
+| Sent | Condition |
+|---|---|
+| `intake_1_fan_alert`, `intake_2_fan_alert` | `intake_fan_fault` |
+| `exhaust_fan_alert` | `exhaust_fan_fault` |
+| `air_assist_alert` | `air_assist_fan_fault` |
+| `interior_temp_alert` | `interior_too_hot` |
+
+On the bench reference, a condition showed within about 6 s and went about
+6 s after the reset. A
+condition left standing stays on the machine's record at the service, so a
+client resets what it set.
 
 ## Progress reporting
 

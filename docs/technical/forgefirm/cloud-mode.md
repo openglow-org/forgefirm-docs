@@ -40,7 +40,7 @@ test levers.
 | `gfhome.py` (`/usr/sbin`) | One-shot service-driven homing. Invoked for `$H` when `homing_mode = gfcloud`; dispatches with `allow_print=False` so a print can never run inside a homing session. Completion is guarded: a run of near-identical service corrections aborts (the machine is not physically moving), and quiet only counts as homed when the head accelerometer witnessed real motion during the session ([Homing](homing.md)). Every exit, SIGTERM from the controller included, goes through one shutdown: the service socket is shut and the machine stopped, the laser latched and the device released. |
 | `ffmachine.py` (site-packages) | Shared hardware-machine glue: identity overrides from the shared config, and the forgectrl-routed capture machine both clients use. |
 | `gfutilities` | Protocol and service layer: auth, WebSocket client, action dispatch, settings report, pulse-file handling ([Glowforge-Utilities](https://github.com/openglow-org/Glowforge-Utilities)). |
-| `gfhardware` | The hardware `Machine`: motion, laser latch, switches, cameras ([python3-gfhardware](https://github.com/openglow-org/python3-gfhardware)). Thermal hardware belongs to the forgectrl cooling engine: the cloud client reports job state (`POST /cool/state`, with the pulse header's run fan duties as the per-job profile) and enforces the published verdict on its fire path, gaining the flow verification and over-temp protection the engine provides ([The cooling engine](cooling-engine.md)). |
+| `gfhardware` | The hardware `Machine`: motion, laser latch, switches, cameras ([python3-gfhardware](https://github.com/openglow-org/python3-gfhardware)). Thermal hardware belongs to the forgectrl cooling engine: the cloud client reports job state (`POST /cool/state`, with the pulse header's run fan duties as the per-job profile) and enforces the published verdict on its fire path, gaining the over-temperature protection and the other gates the engine provides ([The cooling engine](cooling-engine.md)). |
 
 `gfhardware` is the Python library for accessing and controlling Glowforge
 brand CNC laser hardware. Its repository's `forgefirm-app/` directory holds
@@ -129,14 +129,46 @@ channels:
 
 - `POST /api/sensor`, the binary sensor firehose.
 - WSS `type:"log"` messages, the in-band advisory logs.
-- The `fault:*` / `estop:*` / `interlock:*` **cloud reporting** namespace.
-  (Local fault-to-safe handling is independent of reporting and fully
-  active.)
+- The `estop:*` / `interlock:*` **cloud reporting** namespace, and every
+  `fault:*` but the hold faults below. (Local fault-to-safe handling is
+  independent of reporting and fully active.)
 
 On-demand requests are still answered: the `settings` report, image
 captures, and the functional action handshake.
 
-**One exception, deliberately kept: the progress frame.** The app's progress
+**Kept: the reason a print is held.** The app says why a print is paused
+only when it hears a `fault:<name>:set` just ahead of `print:paused`
+([What the app shows](../machine/cloud-protocol.md#what-the-app-shows)).
+While a print is held on the cooling verdict, the client (`machine.py`,
+`HOLD_FAULTS` and `AIRFLOW_FAULTS`) reports the factory fault that matches
+the verdict just ahead of `print:paused`:
+
+| Verdict | Fault sent | The app shows |
+|---|---|---|
+| `OVERTEMP` | `coolant_recoverable_alert` | COOLING DOWN |
+| `BUMP`, `CRASH` | `head_accel_x_alert` | BUMPED |
+| `FLAME`, `FIRE` | `lid_ir_1st_quartile_alert` | OVERHEATED |
+| `CRITICAL` | `interior_temp_alert` | OVERHEATED |
+| `AIRFLOW`, by the fan its reason names | `exhaust_fan_alert` (exhaust), `air_assist_alert` (air_assist), `intake_2_fan_alert` (intake_2), `intake_1_fan_alert` (intake); none for the purge air (purge) | AIR ASSIST FAN, or no message for the exhaust; PAUSED for the purge air, as with no fault |
+| Any other (`SENSOR`, `COLD`, `WARMUP`, `EXT`, `ACK`) | None | PAUSED |
+
+The client keeps one fault set at a time. It resets it with
+`fault:<name>:reset` as the hold ends (just ahead of `print:resumed`), as
+the job ends however it ends, and when the holding verdict changes to one
+with another fault or none. A fault left set stays on the machine's record
+at the service, so at every start the client resets every fault in that
+map: a client stopped mid-hold, as the fail tiers stop it, cannot reset its
+own. `FIRE` and `CRASH` stop the controller at once, so the client reports
+them only if its next pass comes first. The verdict wait before the button
+is asked for reports the same way: a hold there that has a fault sends it and
+`print:paused`, and `print:resumed` follows when the print goes on (a print
+the wait cancels gets none); a hold there with no fault sends neither. The app's PAUSED asks for a press, and a
+press changes nothing while the cooling verdict holds the print; once the
+hold clears the button breathes white and a press resumes the print
+([How a job runs](#how-a-job-runs)), and the
+[control panel](../../usage/control-panel.md#the-page) has the real reason.
+
+**Kept: the progress frame.** The app's progress
 bar rides a WSS `type:"progress"` frame the machine sends every 30 s during
 a job ([The cloud protocol](../machine/cloud-protocol.md)). That is a UI
 status update, not the sensor telemetry this section excludes, so ForgeFIRM
@@ -201,11 +233,26 @@ writes into the ring, and plays:
    steps would be counted and never made, and at the hold current the lens
    rises two steps into the service's ramp and stalls ([The motion
    hardware](../machine/motion-hardware.md#the-lens-and-its-travel)).
-5. The button wait arms the laser. The laser latch stays locked through
-   the button wait, the warm-up, and the verdict wait; it unlocks once the
-   verdict has passed, immediately before the run starts, and it locks
-   again when the job ends.
+5. A print is armed in this order: the pre-checks; the armed session
+   opens; the cooling verdict is waited out with the laser latch locked;
+   the latch is unlocked; the button breathes white and the press is
+   taken; the warm-up dwell; the run. The kernel's lock sets the hardware
+   button latch, which only a press taken with the lock released clears
+   ([The safing chain](../machine/safing-chain.md#logic)), so the press is
+   asked for only once it can count, and every later lock costs a new
+   press. The button goes dark as soon as the press is taken and stays
+   dark through the warm-up. The latch locks again when the job ends.
 6. The ring plays to the end; the client supervises it and reports state.
+   The button is solid white while the run moves (any action's, not only a
+   print's), breathes white while a press would resume a print (one paused
+   on the button, or one whose cooling hold has cleared and whose latch is
+   unlocked again), and is dark while the cooling verdict or a wedged feed
+   holds it, a print paused on the button under a cooling hold included,
+   since a press does not resume that one. It never breathes with the
+   latch locked. Once a second the client puts the
+   pattern back if something wrote over it, never over the cooling engine's
+   red flash
+   ([The button's light](forgectrl.md#the-buttons-light)).
 
 There is no live re-planning. The ring is filled before the button is asked
 for and topped up as it drains, so the ring size caps how much of a job is
@@ -237,27 +284,66 @@ buffered at once, not how long a job may be (below).
       a feeder alive.
     - The lid or interlock opens during the pre-print button wait: latch
       relocked, job canceled; a press with the lid open never arms.
-    - **The cooling verdict**, per the engine's contract
-      ([Cooling engine](cooling-engine.md)), the same as the GRBL
-      controller: `fire_ok=false` locks the laser latch at once; `hold`
+    - **The cooling verdict during a print**, per the engine's contract
+      ([Cooling engine](cooling-engine.md)): `fire_ok=false` locks the
+      laser latch at once, and `hold`
       pauses the print the way the button does (controlled stop, laser-off
-      backtrack, `print:paused`) and `resume_ok` resumes it with the latch
-      back and the laser lead; a hold that stands longer than
-      `cloud_hold_max_s` (default 1800 s) cancels the job, since the fail
+      backtrack, `print:paused`, just after the hold's fault where it has
+      one, [Scope](#scope-telemetry-is-excluded)). The lock sets the
+      hardware button latch and so spends the press on record. When the
+      verdict is clean again (`resume_ok` with `fire_ok`), the client
+      unlocks the latch, sets the button breathing, and the print waits
+      for a press the way a print paused on the button waits, with no
+      clock of its own. The press resumes it with the laser lead and
+      `print:resumed`; a press taken while the latch was locked does not
+      count; the lid, the interlock loop, or a cancel ends it; and a
+      verdict that closes again locks the latch and takes the print back
+      to the hold. A hold that stands longer than
+      `cloud_hold_max_s` (default 1800 s, counted afresh each time the
+      print goes back to the hold) cancels the job, since the fail
       tiers never offer a resume. A verdict that goes missing (the engine
-      gone with the laser armed) locks and holds, turns the check heater
-      off, and writes the run airflow once. Before the run, a print whose
-      armed session opens under a hold (`WARMUP`, `COLD`, a hot loop) waits
-      it out the same bounded way with the latch still locked; a verdict
+      gone with the laser armed) locks and holds, turns the loop heater
+      off, and writes the run airflow once. Motions and hunts are not
+      armed and are not held.
+    - **The cooling verdict before the press.** Two conditions refuse to
+      arm at all, before the armed session opens and with no press asked
+      for: no verdict (an absent engine,
+      `no cooling verdict; the print cannot arm` in the log), and a fault
+      that waits for its Acknowledge, by the verdict's `ack_wait` or the
+      name `ACK`
+      (`a fault waits for its Acknowledge on the control panel; the print cannot arm`).
+      Otherwise the armed session opens and the client waits the verdict
+      out with the latch locked. A hold (`WARMUP`, `COLD`, a hot loop) is
+      waited out, bounded by `cloud_hold_max_s`, with `print:paused` and
+      its fault for a hold that has one
+      ([Scope](#scope-telemetry-is-excluded)); a verdict
       that refuses fire for the whole bound cancels the print with the
-      latch never unlocked, and only an absent engine refuses to arm.
-      That wait also holds until the engine's own `armed` flag comes back in
-      the verdict, so a print never starts on the verdict computed for the
-      idle session before its arm, which would read clean while the fans
-      were still at their idle duty. The warm-up before that wait is taken
-      in 100 ms slices, and the lid, the interlock loop, and a service
-      cancel are sampled between them: any of them ends the job at once.
-      Motions and hunts are not armed and are not held.
+      latch never unlocked. The wait also holds until the engine's own
+      `armed` flag comes back in the verdict, so a print never starts on
+      the verdict computed for the idle session before its arm, which
+      would read clean while the fans were still at their idle duty. On
+      the bench reference, with the coolant in range, that wait for the
+      fans took about 5 s (one sample). A fault that comes to wait for its
+      Acknowledge during the wait cancels the print at once, the log saying
+      `cooling hold a fault waits for its Acknowledge on the control panel - relocking the laser`
+      ([The operator's attention](cooling-engine.md#the-operators-attention)).
+      Then the latch is unlocked and the button is asked for, bounded by
+      `laser_button_timeout_s`. A verdict that stops permitting fire, or
+      goes missing, while the button waits does not cancel the print:
+      within one 100 ms pass the button goes dark and the latch is
+      locked, the verdict is waited out again, and the latch is unlocked
+      and the press asked for anew once it clears. On that way around a
+      missing verdict has 10 s (`VERDICT_STALL_GRACE_S`) before it is lost
+      and the print canceled, and the whole arm is bounded from the first
+      time the press is asked for: `laser_button_timeout_s` plus
+      `cloud_hold_max_s`, whatever the number of trips.
+    - **The cooling verdict after the press** cancels the print: a verdict
+      that stops permitting fire, or goes missing, in the warm-up dwell or
+      at the run's start locks the latch, disarms, and cancels. The
+      warm-up is taken in 100 ms slices, and the lid, the interlock loop,
+      a service cancel, and the verdict are sampled between them. The run
+      starts only on a press taken since the last unlock and a verdict
+      that permits fire.
     - The kernel leaves the run on its own (a fault, a disable): the job
       ends canceled, never completed, and a park that faults reports no
       success; the service re-hunts rather than dead-reckon from a position
@@ -282,7 +368,12 @@ buffered at once, not how long a job may be (below).
       being fed. The laser latch stays unlocked and the armed window open
       through the pause (HV_ENABLE drops by itself when the stream stops,
       and the resume lead covers its re-arm); lid, interlock, or a service
-      cancel while paused cancel the job from where it stands. Motions and
+      cancel while paused cancel the job from where it stands. A cooling
+      verdict that locks the latch under the pause puts the button out; a
+      press then resumes nothing (it turns the pause into the verdict's
+      hold). The lock is released once the verdict permits fire again, the
+      button breathes from then, and the press that resumes is taken with
+      the latch unlocked. Motions and
       hunts do not pause. Both tick counts are `forgefirm.conf` keys.
     - **A live feed that wedges holds the job the same way.** A feeder with
       room in the ring in front of it and no progress behind it is not
@@ -563,7 +654,8 @@ applies to that one start and never to a respawn after it.
 The factory-experience client runs behind the same kernel latch, charge-pump,
 backstop, and dead-man rules as GRBL mode ([The kernel module](kernel-module.md)).
 The precomputed pulse file it loads is subject to the same FIRE gating as
-the live stream. The button wait arms the laser exactly as in GRBL mode
+the live stream. The button wait arms the laser on a press taken with the
+latch unlocked, as in GRBL mode
 ([The grblHAL driver](grblhal-driver.md#the-armed-window)), and forgectrl
 relocks the latch on every transition out of a running client
 ([forgectrl](forgectrl.md)).

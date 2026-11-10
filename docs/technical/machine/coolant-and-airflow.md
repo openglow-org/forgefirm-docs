@@ -23,9 +23,9 @@ small inline heater. Pro machines are specified with a thermoelectric cooler
 (TEC) on the loop; the board cannot tell whether one is fitted, because the TEC
 output has no readback and the TEC temperature input says nothing about it
 ([Sensors](sensors.md#power-supply-and-tec-temperatures-picpwr_temp-pictec_temp)).
-The heater exists for diagnostics, not for warming the
-machine up: it is how the cooling engine proves the coolant is actually moving
-(see [the cooling engine](../forgefirm/cooling-engine.md)).
+ForgeFIRM verifies no coolant flow; it uses the heater for the warm-up hold,
+which warms a cold loop before a job, and for the opt-in coolant flow watch,
+which only logs (see [the cooling engine](../forgefirm/cooling-engine.md)).
 
 | Piece | Control | Notes |
 |---|---|---|

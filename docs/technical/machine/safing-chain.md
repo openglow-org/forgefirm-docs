@@ -86,6 +86,12 @@ LASER_ON      = FIRE · ¬Q1 · ¬Q2                                 (U17-2, U17
 The CD4043B is set-dominant: while SET is high the latch cannot be cleared.
 That ordering is what makes the button meaningful. A press only arms the
 machine when the lid is closed *and* the SoC has already released its lock.
+The lock sets the latch, a press under the lock does nothing, and only a
+press with the lock released clears it
+([measured](#what-is-proven-and-how)). Both controllers therefore release
+the lock before they ask for the press, and ask for a new press after every
+lock ([The armed window](../forgefirm/grblhal-driver.md#the-armed-window),
+[Cloud mode](../forgefirm/cloud-mode.md#how-a-job-runs)).
 
 The chain as wired, in two halves. Hexagons are logic functions on the
 control board (the part reference below each). Wires carry logic levels;
@@ -196,6 +202,13 @@ catalog, which runs them at every release
   0. The lock severs the FIRE drive entirely.
 - Latch **unlocked, chain unarmed** (no button press): `laser_enable` 1
   mid-window, PSU pin flat, `laser_on` 0. The AND gate holds.
+- The button latch against the lock, read as `cnc/button_latch` on the
+  bench reference: 1 after lock, press, unlock (a press under the lock
+  does nothing); 1 after relock, unlock with no press (the lock sets it);
+  0 only after unlock, press. Through a dark cloud print it read 0 from
+  the press to the end of the run. The catalog test `cloud.button-latch`
+  reads it through a print
+  ([Acceptance](../../developers/acceptance.md#the-cloud-tests)).
 - FIRE drop at end-of-data and at true underrun: ≤ 1 tick, both termination
   paths.
 - A latch unlock inside an acceleration ramp does not restore the FIRE drive

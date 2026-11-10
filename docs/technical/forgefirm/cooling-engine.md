@@ -8,8 +8,9 @@ The cooling engine is the part of forgectrl that owns every piece of thermal
 hardware (fans, pump, TEC, and the loop heater) and answers one
 question at a time for whichever controller is running: *is it safe to fire
 right now?* This page describes how it decides: the two client channels, the
-fan phases and the airflow gates, the temperature gates, the fire watch, and
-the gate settings. ForgeFIRM has no coolant flow verification
+fan phases and the airflow gates, the temperature gates, the fire watch, the
+gate settings, and how a failure reaches the operator (the red flash, the
+acknowledgment, and the notices). ForgeFIRM has no coolant flow verification
 ([Coolant flow](#coolant-flow)).
 
 What the hardware is (the loop, the fans, the sensors) is on
@@ -22,15 +23,20 @@ The beam itself is gated in hardware
 ([Safing chain](../machine/safing-chain.md)).
 
 The engine lives in forgectrl (`src/cool.c`, the gates in `src/gates.c`, the
-airflow gates in `src/airflow.c`, the crash watch in `src/accel.c`).
+airflow gates in `src/airflow.c`, the crash watch in `src/accel.c`, the
+coolant flow watch in `src/flowrun.c` and `src/flowwatch.c`).
 Tunables are the `cool_*` keys in the shared machine settings, re-read at
-every run start, with `GFCOOL_*` environment overrides for bench work.
+every run start (the flow watch's `cool_flow_*` keys every 5 s), with
+`GFCOOL_*` environment overrides for bench work.
 `GET /cool/status` reports the engine state for the UI and bench tooling.
 
 ## One owner, two clients
 
 The cooling engine is the **only** thing that writes fans, pump, TEC, and
-heater. Whichever controller is running, GRBL or cloud, is a client of it,
+heater. The one sharer is its own coolant flow watch: when an owner turns it
+on, it borrows the heater while the engine does not need it, and gives it
+back first whenever the engine does ([Coolant flow](#coolant-flow)).
+Whichever controller is running, GRBL or cloud, is a client of the engine,
 over two channels:
 
 - **The controller reports its job state** about once a second: idle,
@@ -94,12 +100,12 @@ The engine runs in phases. Duties are the factory machine's own values.
 
 | Phase | Pump | Air assist | Exhaust | Intake | Heater |
 |---|---|---|---|---|---|
-| **Idle** | on | 204 | off | off | off |
-| **Warm-up hold** (a session opened under `cool_temp_start`) | on | idle | off | off | on |
-| **Run** (or armed, whatever the reported mode) | on | 1023 | 65535 | 43278 | off |
-| **Cooldown, smoke clear** (15 s) | on | run duty | run duty | run duty | off |
+| **Idle** | on | 204 | off | off | off (the flow watch's hold, if on) |
+| **Warm-up hold** (a session opened under `cool_temp_start`) | on | idle | off | off | 40 %, within the warm-up's limits |
+| **Run** (or armed, whatever the reported mode) | on | 1023 | 65535 | 43278 | off (the flow watch's hold, if on) |
+| **Cooldown, smoke clear** (15 s) | on | run duty | run duty | run duty | off (the flow watch's hold, if on) |
 | **Cooldown, thermal** | on | idle | 32768 | 21639 | off |
-| **Over-temp or fault hold** | on | run duty | forced | forced | off |
+| **Over-temp or fault hold** | on | run duty | forced | forced | off (over the ceiling, at the critical line, under the floor, or with a coolant sensor unreadable); the flow watch's hold, if on, under any other fault |
 
 Notes on the phases:
 
@@ -107,9 +113,15 @@ Notes on the phases:
   Circulation is cheap; a stagnant loop with a warm tube is not. The one
   exception is the quiet hold below, an idle-only listening with the laser
   latched.
-- **The heater runs only in the warm-up hold**
-  ([Low temperature](#low-temperature-the-floor-and-the-warm-up-hold)). A
-  heater left on measurably warms the loop within minutes.
+- **The engine's heater runs only in the warm-up hold**
+  ([Low temperature](#low-temperature-the-floor-and-the-warm-up-hold)). The
+  flow watch, when an owner turns it on, holds it at a few percent
+  ([Coolant flow](#coolant-flow)). The warm-up's duty, left on, measurably
+  warms the loop within minutes. Every writer writes the heater again every
+  second, because the kernel holds a write above zero only for its lease
+  (`heater_lease_ms`, 5 s by default), so a forgectrl that stops ticking
+  leaves the heater off
+  ([Kernel module](kernel-module.md#heater_pwm)).
 - **Being armed counts as running.** If the laser is armed, the engine
   forces the run profile regardless of what mode the controller reported.
   Fire never happens without cut airflow.
@@ -138,9 +150,11 @@ take the same hold through `POST /cool/quiet?on=1`, and with `pump=1` the
 coolant pump and the TEC go off as well, so the machine is silent: the one
 pump-off state, and a dry one, since the laser stays latched at idle. Release with `on=0`;
 `GET /cool/status` shows the hold as `quiet_hold`. The hold is taken only
-from an idle machine with no diagnostic running, and the engine releases it
-itself the moment a run session opens or after 600 s, so a job never runs
-with the machine held quiet and a listener that died cannot leave it so.
+from an idle machine with no diagnostic running, and `pump=1` only while the
+engine's own phase is idle (409, "the cooling engine is not idle: the pump
+stays on", under a warm-up, a run, or a cooldown). The engine releases the hold itself the moment a
+run session opens or after 600 s, so a job never runs with the machine held
+quiet and a listener that died cannot leave it so.
 
 ### Airflow gates: a fan that is not moving the air
 
@@ -187,11 +201,13 @@ a job).
 - **The first fire waits for the fans.** The engine acknowledges the
   armed window (`armed` in the verdict) only once every gated fan reads at
   or above its floor, and the controller waits for that acknowledgment
-  before it opens the window: the button lights, the fans come up, then
-  the beam. The controller's wait is the grace plus 5 s; an
+  before it opens the window: the button breathes white, the fans come up,
+  then the beam. The controller's wait is the grace plus 5 s; an
   acknowledgment that never comes refuses the arm (`ALARM:3`, "the
   cooling service did not take the job"), which is what a fan that cannot
-  reach its floor looks like.
+  reach its floor looks like. The cloud client waits for the same
+  acknowledgment before it unlocks the latch and asks for the press
+  ([Cloud mode](cloud-mode.md#how-a-job-runs)).
 - **Three consecutive 1 Hz ticks under the floor trip the gate**, and a
   single reading at or above it in between clears the count, so a tach
   reading that wanders does not end a job.
@@ -227,6 +243,100 @@ on, and the coolant gates that stand are the temperature ones
 ([Over-temperature](#over-temperature),
 [Low temperature](#low-temperature-the-floor-and-the-warm-up-hold)).
 
+An owner can turn on a **coolant flow watch** (`cool_flow_watch 1`; off by
+default). It logs what it sees and stops nothing, and it never touches the
+pump. It exists to learn from machines other than the bench reference
+whether a stopped pump can be told apart reliably on them.
+
+- **The hold.** The watch uses the loop's inline heater, which sits between
+  the two coolant sensors
+  ([Coolant and airflow](../machine/coolant-and-airflow.md#the-coolant-loop)).
+  After a rest with the heater off (until the heater has been off 60 s, and
+  at least 10 s; the difference between the sensors over the rest's last
+  10 s is the rest difference), the heater holds the downstream sensor a
+  step over the upstream one (`cool_flow_hold_c`, 1 °C by default, between
+  `cool_flow_duty_min` and `cool_flow_duty_max`; a change starts the hold
+  over), and the duty it costs is the signal: moving coolant carries the
+  heat away, so it costs more. On the bench reference it cost about 3.3 %
+  at the idle fans with the pump running and about 1.5 % with it stopped,
+  and it warmed an idle loop about 0.5 °C over 90 minutes.
+- **The idle reference.** Each idle stretch's settled duty, taken from its
+  own 60 to 90 s at the idle fans. The first one is the idle reference; each
+  later one is logged as a share of it. A job that starts before the first
+  one leaves the reference to the idle after the job. A settled duty at or
+  under zero is no reference, since nothing can be measured against zero:
+  the watch logs `flow: no idle reference: the hold settled at no duty at
+  the idle fans`, the floor judges nothing, and a job's summary says
+  `no idle reference`, until a later idle stretch gives one.
+- **The fall detector.** The 10 s duty 15 % or more under its own level 60
+  to 90 s earlier, blind for 150 s after the hold starts or the fans change.
+  On the bench reference it named a pump stopped with the tube dark within
+  18 to 20 s.
+- **The floor**, under a job at the run fans: the 10 s duty under the idle
+  reference, judged from 30 s after the run fans start. Before then the 10 s
+  duty is still the idle fans' and sits on the reference; by 30 s the run
+  fans have lifted a flowing duty about 13 % over it on the bench reference.
+  It covers the rest of the fall detector's blind start; on the bench
+  reference it named a pump stopped during a dark job 27 s after the pump
+  stopped.
+- **What it cannot see:** a pump that has not moved since the machine
+  started. The duty means something only as a change on the same machine,
+  because what flowing costs differs from machine to machine.
+
+**Its readings.** The watch reads the kernel sampler's one-second means of
+the two coolant channels (`pic/means`,
+[Kernel module](kernel-module.md#the-sampler)) and corrects them as the
+engine corrects its own readings: the air-assist shift
+([below](#the-air-assist-offset-on-the-coolant-readings)) taken off, then
+the per-machine `cool_temp_offset_c` added. A one-second window is a
+reading only when it holds at least half the sampler's rate of reads on
+both channels: the mean of a window's first reads is not a second's mean.
+With the setting off the watch does not read the sampler at all. With no
+readings from the sampler it holds no heat. In the rest it rests again, logs
+`flow: the sampler gives no readings (pic/means); the hold waits for them`
+once, and `GET /cool/flow`'s `why` says the sampler gives no readings; in
+the hold, readings lost for more than 2 s put its duty to 0 until they
+come back.
+
+**Its limits on the heater.** The hold puts its duty to 0 while the
+corrected downstream reading is at or over 45 °C. A hold that sits at
+`cool_flow_duty_max` for 20 s means a frozen or dead reading or no heater:
+the heater goes off and the watch stops until forgectrl restarts. It writes
+its duty again every second while it holds above zero, for the kernel's
+lease ([Kernel module](kernel-module.md#heater_pwm)). It gives the heater
+back, off, whenever the engine needs it or has called the loop unfit to
+heat. Under a diagnostic it yields, and the engine's tick has nine causes
+of its own: a warm-up, an unreadable sensor, a quiet hold, coolant
+over the ceiling (`OVERTEMP`), coolant under the floor (`COLD`), coolant at
+the critical line, while the TEC runs, upstream coolant over the shipped
+33 °C ceiling while the ceiling gate is turned off, and
+while the engine cools the loop (the thermal cooldown, or the cooling
+airflow an over-temperature forces). Under the floor the reason is the
+heater's place: it sits between the two coolant sensors, and in a loop
+that is still or slow its heat reaches the upstream one, the reading that
+releases the floor. Every engine path that writes the heater takes it back first. The
+engine hands the watch its state at every tick; when that state is more
+than 3 s old, the watch counts it as the engine taking the heater: it turns
+the heater off itself, pauses, and says "the cooling engine stopped
+ticking". The watch starts over after a 60 s rest once it has the
+heater again. At a forgectrl start the rest is 10 s when the watch's own
+stamp in the run directory (`flow-heater-off`, which stands only while the
+heater has stayed off since the watch turned it off) is 60 s old or more,
+and what is left of the 60 s, at least 10 s, when it is younger. With no stamp (a boot, a
+daemon killed in a hold, heat that was the engine's) the watch takes the
+heater as just off and rests the full 60 s.
+
+Its results are `flow:` lines in the forgectrl log, which a log export
+carries: the idle reference, an idle summary every 10 minutes (the duty's
+mean, its 10 s range and the largest fall seen), the first time the fall
+detector or the floor would have held a job, and a summary at the end of
+each job it held under (a job it did not hold under, while on, gets one
+line saying so; with the watch off, a job writes no `flow:` line). The
+Status tab's Cooling card shows whether it is running (and why
+not, when paused or stopped), its heater duty, the fall, the idle reference
+and the settings in force; `GET /cool/flow` gives the same, its `duty` the
+duty commanded ([forgectrl](forgectrl.md)).
+
 ## The air-assist offset on the coolant readings
 
 A tunable rides with the coolant readings themselves:
@@ -244,7 +354,7 @@ it is. The value is the machine's own: the `aa-offset-calibrate` diagnostic
 the step on both sensors at every edge read as the difference of two 3 s
 windows, each the interquartile mean of 48 samples, so the rare excursion
 a sample carries falls out; the module itself keeps the CPU busy before
-every PIC transaction, so a reading no longer depends on whether the reader
+every PIC transaction, so a reading does not depend on whether the reader
 had just woken) recommends it and the panel's Apply writes it. Zero, the default, is the factory behavior, which
 never corrected the shift.
 
@@ -260,10 +370,11 @@ never corrected the shift.
 | `SENSOR` | A coolant sensor unreadable for two ticks in a row: fire blocked, hold, heater off; released the moment both sensors read again. The other coolant gates keep their state while the engine is blind; a warm-up gets its heater back. |
 | `AIRFLOW` | A fan under its floor: fire blocked, hold, no resume this job. |
 | `FLAME` | The fire watch's pause tier: hold, fire blocked; released when the reading clears. |
-| `FIRE` | The fire watch's fail tier: motion stopped, latch locked, the controller stopped and started again, hold until the next run session. |
+| `FIRE` | The fire watch's fail tier: motion stopped, latch locked, the controller stopped and started again (the home is dropped), hold through the session's smoke and thermal phases. It ends when the engine is back at idle, or when a run session opens; `ACK` stands after it. |
 | `BUMP` | The crash watch's pause tier: hold, fire blocked; released once the head sits quiet. |
-| `CRASH` | The crash watch's fail tier: motion stopped, latch locked, the controller stopped and started again, hold for the rest of the run session. |
+| `CRASH` | The crash watch's fail tier: motion stopped, latch locked, the controller stopped and started again (the home is dropped), hold for the rest of the run session. |
 | `EXT` | An extension package's hold stands ([An extension's hold](#an-extensions-hold)): fire blocked, hold; released at the tick after the hold clears. The reason names the package and carries its words. |
+| `ACK` | A failure that waits for the operator's acknowledgment after its own verdict has gone ([The operator's attention](#the-operators-attention)): fire blocked, hold only while an armed window is open, motion free; released by the acknowledgment, or by a restart. The reason is the failure's. |
 
 ### An extension's hold
 
@@ -311,9 +422,115 @@ controller holds the job and resumes it lit when the hold clears: with no
 press while its armed window is open, and after a press once the window's
 grace has closed it
 ([The cooling client](grblhal-driver.md#the-cooling-client)). The cloud
-client locks the latch under any armed `fire_ok=false`, so after a hold
-clears in cloud mode the operator presses the button to resume, and a hold
-that outlasts `cloud_hold_max_s` cancels the print.
+client locks the latch under any armed `fire_ok=false`. When the hold
+clears it unlocks the latch, sets the button breathing, and resumes the
+print on a press: the lock set the hardware button latch, which only a
+press taken with the lock released clears. A press during the hold
+changes nothing, and a hold that outlasts `cloud_hold_max_s` cancels the
+print ([Cloud mode](cloud-mode.md#how-a-job-runs)).
+
+## The operator's attention
+
+Some of what blocks firing is the machine's own to wait out: the warm-up, a
+cold or a hot loop, an extension's hold. The rest needs a person to look:
+`FIRE`, `CRASH`, `FLAME`, `BUMP`, `AIRFLOW`, `CRITICAL`, and `SENSOR`. While
+one of these is the verdict, the engine flashes the machine's button red,
+1 s on and 1 s off, and the panel says why. Red always means firing is
+blocked. `WARMUP`, `COLD`, `OVERTEMP`, `EXT`, and an open lid never light
+it. A failed motion check flashes it too, until a retry clears the motion
+fault ([Mode supervision](forgectrl.md#mode-supervision)).
+
+The flash stands over any pattern a controller writes: the engine reads the
+LED back at every tick and puts the flash back within that tick, and it
+never rewrites a flash that stands, which would restart its period. When
+nothing wants the flash, the engine puts out only its own light: it turns
+the LED off while the button still reads as the flash, or cannot be read,
+and leaves a button that another owner has written since the last tick. A
+pattern the flash covered comes back from its owner.
+The rest of the button's language is on
+[forgectrl](forgectrl.md#the-buttons-light).
+
+**The acknowledgment.** A failure of the fail tier (`FIRE`, `CRASH`,
+`AIRFLOW`, `CRITICAL`), or any failure on that list still standing when an
+armed window closes (the job ended or was canceled, or the GRBL
+controller's grace closed the window during the pause) or when the engine
+returns to idle (a watch that stands down at the session's end, such as a
+flame that started during the smoke phase, ends its verdict without its
+cause having cleared), outlasts its own verdict. So does a head-bump alert
+whose watch stands down inside an open window, when the accelerometer
+stops answering ([The fire watch](#the-fire-watch)): nothing saw the head
+sit quiet. Once its cause has gone,
+the engine publishes `ACK` where it would publish `OK`: `fire_ok` false,
+`hold` true only while an armed window is open, motion free, the failure's
+reason, and the button still flashing red. Any other verdict that stands
+meanwhile (`COLD`, `OVERTEMP`, `WARMUP`, `EXT`, a later cause on the list)
+is published in its place with its own reason, and `fire_ok` stays false
+until the acknowledgment either way. The verdict file's `ack_wait` is true
+for as long as a failure waits for the acknowledgment, whatever the
+verdict's name ([The verdict file](#the-verdict-file)), and it is what both
+controllers read.
+
+- **It ends** with `POST /cool/attention/ack`, the panel's **Acknowledge**,
+  which needs no press of the button. While a cause on the list stands the
+  route answers 409, "the failure still stands". The acknowledgment clears
+  the reason only where it holds the acknowledged failure's words; another
+  cause's words stand. It also ends with a restart of forgectrl, a reboot
+  included: nothing of it is kept.
+- **One failure waits at a time.** Once a failure needs the
+  acknowledgment, a later, different cause does not take its place: the
+  panel keeps asking about the first, and the new one shows as the verdict.
+  One that comes while the first waits is logged as `cool: firing blocked,
+  the operator's attention wanted: <reason> (the acknowledgment of
+  <verdict> still waits)`.
+- **A pause-tier cause that clears while its armed window is still open**
+  needs no acknowledgment: the job it held resumes on its controller's terms
+  ([An extension's hold](#an-extensions-hold) has both controllers' rules).
+- **The controllers under it.** The GRBL controller refuses an arm with
+  `laser fire blocked: a fault waits for its Acknowledge on the control
+  panel` and `ALARM:3`
+  ([The armed window](grblhal-driver.md#the-armed-window)), and a job it
+  holds stays held until the acknowledgment, then resumes through the
+  re-arm's press ([The cooling client](grblhal-driver.md#the-cooling-client)).
+  The cloud client refuses a print before its armed session opens, with
+  no press asked for, its log saying `a fault waits for its Acknowledge on
+  the control panel; the print cannot arm`, and cancels a print when one
+  comes to wait during its verdict wait, which is before the press
+  ([Cloud mode](cloud-mode.md#how-a-job-runs) quotes that log line too).
+  Both read `ack_wait` and the name `ACK`, so an acknowledgment that waits
+  under another verdict's name is refused the same way.
+
+**The notices.** A failure on that list whose cause clears on its own,
+without needing the acknowledgment (a pause-tier cause gone while its armed
+window is still open, or one at idle), leaves a notice: its verdict, its
+reason, when it started, when it cleared, and a count. A failure that gives
+way to another one on the list (a `BUMP` to a `CRASH`, a `SENSOR` under a
+`FLAME`) leaves none: the new one takes its place, and the first may still
+stand under it, since a verdict names only the highest. A repeat of the
+last notice's verdict counts
+on that notice (`times`, with its `cleared_at` moved on) rather than
+stacking, and at most 5 are kept, the oldest going first. A notice blocks
+nothing and lights nothing. `POST /cool/notices/dismiss?upto=<seq>` removes
+the notices up to and including that sequence number, every one when `upto`
+is left out; the panel's **Dismiss** sends the last one it shows. A restart
+clears them.
+
+**Where it shows.** `GET /cool/status` carries `attention`, an object with
+`standing` (a failure stands, live or waiting for its acknowledgment),
+`live` (a cause on the list stands now), `verdict`, `reason`, `at` (when it started), and
+`cleared_at` (when its cause went, 0 while it stands), the times in seconds
+since the epoch and 0 when unset; `ack_wait`, the verdict file's boolean
+(`standing` and not `live`); and `notices`, an array of `{seq,
+verdict, reason, at, cleared_at, times}`. The panel shows the attention as
+a banner at the top of every tab, with **Acknowledge** once the cause has
+gone, and the notices as a second banner with **Dismiss**
+([The control panel](../../usage/control-panel.md#the-page)). The log says
+`cool: firing blocked, the operator's attention wanted:` with the reason as
+a failure starts, `cool: <verdict> cleared on its own after <n> s` for a
+notice, and `cool: the operator acknowledged <verdict>`. The acceptance
+baseline acknowledges a failure a run left waiting for its acknowledgment
+and records it as a leftover, and dismisses the notices the run raised,
+never one that stood before it
+([Acceptance](../../developers/acceptance.md#the-baseline)).
 
 ## Over-temperature
 
@@ -361,16 +578,34 @@ Two gates sit below the operating window:
 
   **The release judges a one-minute rolling minimum of the upstream reading,
   not the instant one.** With the pump running, a slug of the heater's output
-  reaches the upstream sensor within seconds and lifts the instant reading by
-  a degree, while the bulk warms about half a degree a minute; releasing on
-  the instant reading let a hold end in eleven seconds with the loop still
-  cold. Between slugs the rolling minimum falls back to the bulk, which is
-  the number that matters.
+  reaches the upstream sensor within seconds. On the bench reference it lifts
+  the instant reading by a degree while the bulk warms about half a degree a
+  minute, so a release on the instant reading ends a hold in about eleven
+  seconds with the loop still cold. Between slugs the rolling minimum
+  falls back to the bulk, which is the number that matters.
 
-  The hold has no time limit by design. The heater plateaus 8 to 9 C over
+  The hold has no time limit by design; the heater has one (the heat budget
+  below). On the bench reference the heater plateaus 8 to 9 °C over
   ambient, so a loop that stops warming short of the gate is named once and
-  keeps holding: a shop more than about 8 C below the gate needs the gate
+  keeps holding: a shop more than about 8 °C below the gate needs the gate
   lowered or the room warmed.
+
+  **The warm-up heater runs at 40 % within limits**, decided and written at
+  every tick (the kernel's lease,
+  [Kernel module](kernel-module.md#heater_pwm)):
+
+  - **The downstream cutoff.** Off while the downstream sensor reads 45 °C
+    or more, and on again once it reads 40 °C or less. The downstream sensor
+    sits after the heater and reads its heat first; every coolant gate reads
+    upstream, before the heater.
+  - **The heat budget.** Off for the rest of the warm-up once it has run
+    30 minutes. The hold stays, with the reason
+    `WARM-UP: heater off after 30 min, coolant X C under the Y C gate - hold`:
+    a loop that has not reached the gate in that time is not going to.
+  - **A silent pump.** Off while a quiet hold has the pump off.
+  - **A blind sensor.** Off with the downstream sensor unreadable, and
+    under `SENSOR`; a warm-up gets its heater back once both sensors read
+    again.
 
 ### The TEC
 
@@ -393,7 +628,7 @@ inherited.
 
 ## Diagnostics
 
-The web panel's **Diagnostics** tab runs the cooling tool,
+The web panel's **Setup** tab runs the cooling tool,
 `aa-offset-calibrate`
 ([The air-assist offset](#the-air-assist-offset-on-the-coolant-readings)).
 The operator procedure is on [Diagnostics](../../usage/diagnostics.md);
@@ -408,8 +643,17 @@ to the page while it runs.
 A diagnostic owns the thermal hardware between `cool_diag_take` and
 `cool_diag_release`. Take succeeds only from an idle engine, every tool
 write goes through the engine's guarded diag helpers (one owner), the tick
-publishes phase `diag` with `fire_ok=false, hold=true` and touches nothing,
-and the release reasserts the idle posture in one place.
+publishes phase `diag` with `fire_ok=false, hold=true` and leaves the
+thermal hardware to the diagnostic, and the release reasserts the idle
+posture in one place. The engine does not write a diagnostic's heater for
+it: a diagnostic that wants heat writes its duty again inside the kernel's
+lease ([Kernel module](kernel-module.md#heater_pwm)), so one that hangs
+loses its heat with the lease. Nothing is sensed under a diagnostic, so
+the operator's attention stands as the last tick left it: a failure that
+waits for its acknowledgment keeps its red flash, put back over whatever
+the diagnostic's side wrote, and its verdict name `ACK`; a cause that was
+live is still counted live, under the name `OK`, and no notice says it
+cleared.
 
 ## The fire watch
 
@@ -438,9 +682,17 @@ The engine runs the physical-evidence witnesses at its 1 Hz tick.
   factory's statistic) are judged against two tiers per quartile, the
   factory's own shape. A first or second quartile over its alert threshold
   for two ticks is the pause tier (verdict `FLAME`, `hold`, fire blocked;
-  released once the reading is back under the alert for five ticks). Over
+  released by five readings in a row back under the alert). A read of the
+  channels that fails mid-session judges nothing: a standing `FLAME` stays,
+  and its count of clean readings starts over. The watch stands down when
+  the engine is back at idle, and the hold goes with it, into the
+  acknowledgment. A `FLAME` that stands in a session's tail carries into
+  the run session that opens over it and is released there the same way.
+  Over
   its critical threshold is the fail tier (motion stopped, latch locked,
-  verdict `FIRE` with `hold` until the next run session, smoke-clear airflow
+  verdict `FIRE` with `hold` through the session's tail until the engine is
+  back at idle or a run session opens, then `ACK` until the acknowledgment
+  ([The operator's attention](#the-operators-attention)), smoke-clear airflow
   held, and the controller ended: after its own kernel writes the engine
   asks the supervisor to stop the controller and start it again, so no run
   start can relight what was locked and the sender sees the job end
@@ -471,6 +723,11 @@ The engine runs the physical-evidence witnesses at its 1 Hz tick.
   powered down between one-shots; the watch sets 800 Hz and ±4 g, re-asserts
   them every poll, and restores what it found on disarm). A head that fails
   three polls in a row stands the watch down for the session, said once.
+  A `BUMP` whose watch stands down, with the armed window closing or the
+  head not answering, ends with the watch and waits for the acknowledgment
+  ([The operator's attention](#the-operators-attention)): nothing polls
+  the part from there, so nothing saw the head sit quiet. A `CRASH` stands
+  on to its session's end.
   `/cool/status` carries the watch state as
   `accel_watch: off | watch | armed | alert | ALARM` (`off` = the part
   absent or not answering; `watch` = thresholds set, window not armed).
@@ -524,6 +781,15 @@ is on [Cooling and fans](../../usage/cooling-and-fans.md).
 | `cool_tach_air_assist_min_rpm` | `air_assist` | 6000 rpm | 0 to 30000 | 5500 to 6600 | 0 |
 | `cool_purge_min_current` | `purge` (current, raw) | 300 | 0 to 1023 | 150 to 500 | 0 |
 | `cool_fan_grace_s` | (the spin-up window, no gate) | 15 s | 0 to 120 s | 5 to 30 s | never |
+
+**A limit that is not a finite number keeps its default.** The gate
+validator refuses one, so it can only come from a file edited by hand. Every
+comparison against `nan` is false, so such a limit would never trip and
+never read as off: the engine keeps the default instead and logs
+`cool: <key> = <value> is not a finite number; the default <default> stands`
+at each run start. A `GFCOOL_*` override that is not finite is passed over
+the same way (`cool: <variable>=<value> is not a finite number; ignored`),
+and the setting or the default stands.
 
 **What an off gate does:** the engine skips the comparison (no verdict, no
 hold from it) and keeps measuring. With `coolant_max` off, the first reading
@@ -611,7 +877,7 @@ mode=idle|run|cooldown & armed=0|1 [& model=density|analog]
   (5 s), the engine publishes `fire_ok=false` immediately and stands down
   through the normal cooldown path (smoke clear is the right physical
   behavior for a job that died mid-cut), ending at the idle profile (pump
-  on, fans idle, heater off). `GET /cool/status` shows `armed` false from
+  on, fans idle, the engine's heater off). `GET /cool/status` shows `armed` false from
   that point (`report_age_s` tells the age of the last report). The
   timeout holds the controllers' own rule inside it: a controller treats a
   verdict older than 2 s as a hold and reports every second. The report
@@ -641,6 +907,7 @@ plus rename) at ~1 Hz and on every verdict change:
 { "seq": 1234, "ts_mono": 5678.9,
   "fire_ok": true, "verdict": "OK",
   "hold": false, "resume_ok": true, "armed": true,
+  "ack_wait": false,
   "reason": "", "down_c": 21.3, "up_c": 21.1 }
 ```
 
@@ -651,8 +918,9 @@ plus rename) at ~1 Hz and on every verdict change:
   reader's clock is no verdict, like one older than 2 s. A body
   without its closing brace is a torn read, not a verdict; an absent
   `fire_ok`, `hold`, `resume_ok`, or `armed` key takes the fail-safe value
-  (`false`, `true`, `false`, `false`). The publisher never writes a document
-  longer than its buffer.
+  (`false`, `true`, `false`, `false`), and an absent `ack_wait` reads as
+  false: it gates nothing by itself, since `fire_ok` carries the block. The
+  publisher never writes a document longer than its buffer.
 - `armed` is the engine's own view of the armed window, and it is what makes
   a verdict an answer to the session it is read against. **A controller must
   not fire inside its armed window on a verdict whose `armed` is false.** The
@@ -666,7 +934,7 @@ plus rename) at ~1 Hz and on every verdict change:
   refuses the job if it does not arrive.
 - `verdict` is one of `OK`, `OVERTEMP`, `COLD`,
   `WARMUP`, `CRITICAL`, `SENSOR`, `AIRFLOW`, `FLAME`, `FIRE`, `BUMP`, `CRASH`,
-  `EXT` ([What the verdicts do](#what-the-verdicts-do)). `hold=true` asks the
+  `EXT`, `ACK` ([What the verdicts do](#what-the-verdicts-do)). `hold=true` asks the
   active controller for a feed hold, and for it again if the job is
   resumed under it; `resume_ok=true` signals recovery (auto-resume is the
   controller's call). `OVERTEMP`, `COLD`, `WARMUP`,
@@ -674,8 +942,18 @@ plus rename) at ~1 Hz and on every verdict change:
   `FIRE` are the fail tier: they hold for the rest of the run session and
   never offer a resume in it; `CRITICAL`, `AIRFLOW`, and `CRASH` end with
   the session (the ceiling's pause tier keeps holding while the loop is
-  hot), `FIRE` holds until the next one starts. Controllers key on the
-  flags, not the name; an unknown name with `hold=true` holds.
+  hot), `FIRE` holds through the session's tail and ends when the engine is
+  back at idle or a run session opens, with `ACK` after it. `ACK` blocks fire until the
+  operator acknowledges the failure behind it and holds only inside an
+  armed window ([The operator's attention](#the-operators-attention)).
+  Controllers key on the flags, not the name; an unknown name with
+  `hold=true` holds.
+- `ack_wait` is true while a failure waits for the operator's Acknowledge,
+  whatever the verdict's name: the name `ACK` is published only when no
+  other verdict stands, so under a `COLD` or an `OVERTEMP` the field alone
+  says it. `fire_ok` is false whenever it is true. Both controllers read
+  the field, so that neither asks for a press it would then refuse. The
+  engine's tick under a diagnostic carries it too.
 - **Enforcement of the pause tier stays in the controller.** The fire gate
   and hold/resume issuance run in-process in each controller (the GRBL
   controller as a feed hold and cycle start, with FIRE masked on every tick
@@ -701,8 +979,9 @@ plus rename) at ~1 Hz and on every verdict change:
 - **Chassis, SoC, and supply ceilings.** Three temperatures are measured and
   not gated: the chassis LM75 and the SoC die in degrees, the supply sensor
   as a raw count, in `/status` as `temps` (with the kernel's CPU throttle
-  state beside them), on the Status tab, and ranged over every job in one
-  log line. The SoC already guards itself (the kernel throttles the CPU at
+  state beside them), on the Status tab, and ranged over every job in the
+  sensors logger's job record ([Logging](logging.md#the-sensors-logger)).
+  The SoC already guards itself (the kernel throttles the CPU at
   85 °C and powers the board off at 90 °C on this part). A ceiling for each
   is planned once the record says where one belongs. The supply's
   conversion stays unverified by decision (its heatsink is not reachable

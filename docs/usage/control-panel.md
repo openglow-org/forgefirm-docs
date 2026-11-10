@@ -49,9 +49,9 @@ hours idle. Five wrong attempts from one address lock the login for 30 s.
 The **Sign out** button in the header ends the session. The same name and
 password open SSH ([System](#system)).
 
-Forgot the password? Hold the machine's button while you turn the machine
-on, for ten seconds, until the button blinks amber. The setup then asks for
-a new account ([Setup](setup.md#a-forgotten-password)).
+Forgot the password? The button held through the machine's start resets
+the account, and the setup then asks for a new one
+([Setup](setup.md#a-forgotten-password)).
 
 ## The page
 
@@ -64,15 +64,35 @@ or the page with unsaved changes asks first. Each card and field has a "?" that
 opens its help, with a link into this documentation site.
 
 On a development image, a red **DEVELOPMENT IMAGE** bar sits at the top of
-every page, the login and the setup included, and stays in view while the
-page scrolls. It says that root can log in over SSH with no password; a
-script on the network can also make changes with the panel token alone
+every page, the login, the setup, the certificate page, the licenses page,
+and the printable setup record included, and stays in view while the page
+scrolls. It says that root can log in over SSH with no password; a script
+on the network can also make changes with the panel token alone
 ([Access](#access)). Its second line says where this boot's settings,
-extensions, and logs are: the eMMC's, from an eMMC slot; the SD card's,
-when the card's data partition is mounted; or the eMMC's, from an SD card
-whose data partition is missing or not mounted
+extensions, and logs are: the eMMC's, from an eMMC slot or from an SD card
+with no data partition; the SD card's, when the card's data partition is in
+use; or, from an SD card whose data partition is there but not in use,
+"SD card failed - nothing is saved this boot (see logs); controllers
+held"; or, when the boot left no record of it, "UNKNOWN (error - see
+logs); controllers held"
 ([The bench](../developers/bench.md#the-sd-card)). A release image shows no
 bar.
+
+**When firing is blocked** by something you need to look at (a flame, a
+bump or a crash, a fan, a coolant sensor, the critical coolant line), a red
+banner at the top of every tab says why and since when, and the machine's
+button flashes red ([The button](index.md#the-button)). Some failures stay
+after their cause has gone: a fire, a crash, a fan failure, the critical
+line, and anything still wrong when its job ended. The banner then offers
+**Acknowledge**, and firing stays blocked until you press it or the machine
+restarts
+([The button flashes red](troubleshooting.md#the-button-flashes-red)). Another fault
+meanwhile shows as the Status tab's cooling verdict; the banner keeps
+asking about the first. A fault that
+clears on its own leaves a notice in a second banner, with when it started
+and cleared and how many times it happened. A notice blocks nothing;
+**Dismiss** takes the notices away
+([The cooling engine](../technical/forgefirm/cooling-engine.md#the-operators-attention)).
 
 All settings controls disable, with a banner, while the machine is not idle or
 while a diagnostic, a setup wizard, the dose-curve recorder, an update job, or
@@ -200,8 +220,8 @@ advisories and the account
 **What changed?** menu names a replaced part or a service, and the steps
 that depend on it are recommended again
 ([What changed](setup.md#what-changed)). Below them, the cooling
-tools that take the hardware over (the active controller is suspended
-through the supervisor for the duration): verification and calibration
+tool that takes the hardware over (the active controller is suspended
+through the supervisor for the duration): the coolant offset calibration
 ([Diagnostics](diagnostics.md)).
 
 ### Logs
@@ -237,9 +257,16 @@ the camera key, and every extension package are removed. The setup then
 runs again, and the page opens it by itself when the machine is back. The factory firmware archive, the logs, the SSH host keys, and
 the certificate stay, so a factory restore still works and your browser
 and SSH client still know the machine. The machine must be idle, and the
-machine button must be held while you confirm. Booted from an SD card with
-its own data partition, the reset clears the card's settings and leaves the
-eMMC's alone ([The bench](../developers/bench.md#the-sd-card)).
+machine button must be held while you press OK: the dialog stays open until
+the machine takes the reset, says so when the button is not held, and
+**Cancel** leaves it with nothing reset. A job that waits for its button
+press, runs, or is paused must be finished or canceled first, or the hold
+could count as its press ([Access](#access)); the dialog says so. The reset
+is also refused while
+the next boot is set to another slot than the one the machine started from,
+an SD card included: set it back first. Booted from an SD card with its own data partition, the reset
+clears the card's settings and leaves the eMMC's alone
+([The bench](../developers/bench.md#the-sd-card)).
 
 #### Extensions
 
@@ -330,7 +357,8 @@ the air-assist offset diagnostic's Apply button.
 | `POST /controller/stop`, `POST /controller/start` | The manual emergency lever: stop halts the active controller and holds supervision suspended; start resumes it ([Modes](modes.md)) |
 | `POST /motion/jog?x=&y=&z=&feed=`, `POST /motion/cancel`, `GET /motion/state` | A bounded jog beside the Grbl sender, its cancel, and the controller's own state; `POST /motion/release`, `/motion/energize`, and `/motion/home` are the panel's motor release and manual home, and `POST /motion/tray?tray=in\|out` its crumb tray switch ([forgectrl](../technical/forgefirm/forgectrl.md#http-api)) |
 | `GET /events` | The machine's events as a server-sent event stream, for a script: the lid, a job's arm, pause, and end, alarms, the cooling verdict ([forgectrl](../technical/forgefirm/forgectrl.md#the-event-stream)) |
-| `GET /cool/status` | Cooling-engine state: phase, verdict, temps, report age, `gates_off`, the effective `limits`, `fan_gates` |
+| `GET /cool/status` | Cooling-engine state: phase, verdict, temps, report age, `gates_off`, the effective `limits`, `fan_gates`, the `attention` that blocks firing and the `notices` |
+| `POST /cool/attention/ack`, `POST /cool/notices/dismiss` | The banners' **Acknowledge** and **Dismiss** ([The cooling engine](../technical/forgefirm/cooling-engine.md#the-operators-attention)) |
 | `GET /grbl/settings` | The GRBL controller's `$$` view, while a GRBL controller runs |
 | `GET /login`, `POST /login`, `POST /logout` | The login page, the login (`name`, `password`), and the sign-out |
 | `GET /setup`, `GET /wiz`, `GET /wiz/record`, `GET /wiz/record.html`, `GET /advisories/<id>`, `POST /wiz/...` | The setup, its record (as JSON, a download, or the printable summary), and the what-changed menu ([Setup](setup.md#the-routes)) |
@@ -379,6 +407,13 @@ session. It reads `/data/forgefirm/panel.token` and sends it in the
 `X-ForgeFIRM-Token` header. A script on the network needs a login session
 too, except on a development image.
 
-Two things need the physical button held as well as the login: reading the
-fuse identity (`GET /fuse-identity`, which returns the serial, the derived
-hostname, and the password) and installing an unsigned firmware image.
+Some things need the physical button held as well as the login: reading
+the fuse identity (`GET /fuse-identity`, which returns the serial, the
+derived hostname, and the password), installing an unsigned firmware image,
+**Reset all settings**, and, for extension packages, adding a signing key or
+installing a package that no key the machine trusts has signed. While a job
+waits for its button press, runs, or is paused, the machine refuses the
+fuse identity, an unsigned firmware install, the reset, a new signing key,
+and a package install: finish or cancel the job first, or the hold could
+count as its press
+([forgectrl](../technical/forgefirm/forgectrl.md#http-api)).

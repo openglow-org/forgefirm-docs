@@ -48,9 +48,9 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | `gf_password` | Cloud sign-in password override (64 hex; write-only: `GET` reports `gf_password_set`). |
 | `ui_units` | Panel display units: `metric` or `imperial` (values are stored and exchanged in metric). |
 | `lid_lamp_idle` | Brightness of the lid lamp while the machine is idle (0 to 255, default 236). Applied immediately, at every daemon start, and at every controller start. Cloud mode drives the lamp itself while it runs. 0 is dark. |
-| `cool_*` | Coolant-loop protection tunables (temperature ceiling and resume, cooldown, fan floors, the flame and crash watches). [Cooling and fans](cooling-and-fans.md) has every key. |
+| `cool_*` | Coolant-loop protection tunables (temperature ceiling and resume, cooldown, fan floors, the flame and crash watches) and the coolant flow watch's `cool_flow_*`. [Cooling and fans](cooling-and-fans.md) has every key. |
 | `wifi_country` | WiFi regulatory region, ISO 3166-1 alpha-2; unset = automatic (the AP's 802.11d country, else world). Applied via `iw reg reload`/`iw reg set` at startup and on change; power save is pinned off in the same pass. |
-| `log_<logger>_disk`, `log_<logger>_remote` | Log level per logger (`forgectrl`, `grblhal`, `gfcloud`, `gfhome`, `forgeext`, `kernel`, `system`) and destination: `off`, `error`, `warning`, `notice`, `info` (disk default), `debug`; remote defaults to `off`. Applied at the next reboot ([Logging](logging.md)). |
+| `log_<logger>_disk`, `log_<logger>_remote` | Log level per logger (`forgectrl`, `sensors`, `grblhal`, `gfcloud`, `gfhome`, `forgeext`, `kernel`, `system`) and destination: `off`, `error`, `warning`, `notice`, `info` (disk default), `debug`; remote defaults to `off`. Applied at the next reboot ([Logging](logging.md)). |
 | `syslog_server`, `syslog_port`, `syslog_proto` | Remote syslog target (host or address; 514; `udp` or `tcp`). Nothing is forwarded until a server is set. Applied at the next reboot. |
 | `pulse_warn_threshold_bytes`, `pulse_reject_threshold_bytes` | Cloud mode's download guards: bytes of compressed job body held in memory. Unset = 32 MiB warn and 128 MiB refuse; 0 lifts either; 0 to 1073741824 ([Cloud mode](cloud-mode.md)). |
 
@@ -68,7 +68,7 @@ and `POST /settings?key=value&...` ([The control panel](control-panel.md)).
 | `lid_policy` | `cancel` | `cancel` = factory behavior; `hold` = stock Grbl door parking. |
 | `xy_microsteps` | `32` | The X and Y microstep mode: `8` (the factory's), `16` or `32` (the default). The GRBL controller reads it at its start and derives `$100`/`$101`, its machine tick (28160 Hz at 8, doubled at 16, quadrupled at 32) and the kernel stop ramp from it, so nothing else needs typing; `$100`/`$101` are derived, never typed. Saving a change restarts an idle GRBL controller. Cloud mode runs at the service's own 8. 32 asks four times the step rate of 8 and depends on the machine ([The motion hardware](../technical/machine/motion-hardware.md)). |
 | `laser_button_timeout_s` | 300 | How long the machine waits at the button prompt. |
-| `laser_disarm_s` | 60 | Spindle-off grace before the armed window closes. |
+| `laser_disarm_s` | 60 | Idle grace before the armed window closes: how long the machine may sit idle, or a job paused, before the next laser-on asks for the button again (1 to 3600) ([GRBL mode](grbl-mode.md#arming-the-button-press-is-part-of-every-job)). |
 | `laser_floor_density` | 10 | The S-range floor, percent of full: the lowest pulse density that still marks. Loaded into `$35` at every spindle precompute; `$35` is derived, never typed. |
 | `laser_dose_curve` | (built-in measured default) | The measured dose curve as density:light percent pairs; S commands a light fraction and the driver maps it onto the density that delivers it. `off` = identity; a bad value falls back to the default. The panel's recorder measures and applies a machine's own. |
 | `laser_corner_gamma` | 2 | The corner rolloff under M4: delivered light follows (v/v_programmed)^gamma, so 1 is plain proportionality and higher values starve the slow spots where heat accumulates. Rides the curve. Range 0.25 to 4. |

@@ -68,7 +68,8 @@ Parts of the contract live on their own pages:
   says `waiting` and what is open, and the button blinks amber until the
   enclosure closes.
 - **The cooling engine.** The single owner of fans, pump, TEC, and the
-  loop heater for both modes ([Cooling engine](cooling-engine.md)).
+  loop heater for both modes; its opt-in coolant flow watch borrows the
+  heater when the engine does not need it ([Cooling engine](cooling-engine.md)).
 - The **web control panel**, **camera service**, **telemetry**,
   **diagnostics**, persisted **machine settings**, the **logging** tree, and
   the A/B **update system**.
@@ -85,10 +86,12 @@ fingerprint as `tls_fingerprint`; the panel's Setup card and
 `GET /cert` show the same fingerprint. HTTP on port 80
 serves only the read-only routes to the LAN. Those are `GET /status`, the camera routes and the
 mjpg-streamer aliases, `/settings`, `/grbl/settings`, `/mode`,
-`/motion/state`, `/events`,
-`/cool/status`, `/diag/status`, `/curve/status`, `/curve/ladder.gcode`,
-`/slots`, `/update/status`, `/wiz`, `/wiz/advisories/press`, and
-`/advisories/<id>`. A state-changing route over HTTP answers a loopback
+`/motion/state`, `/events`, `/job`, `/extensions`,
+`/cool/status`, `/cool/flow`, `/diag/status`, `/curve/status`,
+`/curve/ladder.gcode`, `/slots`, `/update/status`, `/cert`, `/cert.pem`,
+`/licenses`, `/system/licenses` and its `/manifest`, `/wiz`,
+`/wiz/advisories/press`, `/wiz/dark`, `/wiz/shot`, `/wiz/sheet.svg`,
+`/wiz/sheet.gcode`, and `/advisories/<id>`. A state-changing route over HTTP answers a loopback
 client only; every other client is redirected to HTTPS. The console banner
 (`/etc/issue`) prints the addresses, and the DHCP request carries the
 machine's own name, `forgefirm-<xxxx>`, from the last four hex digits of its
@@ -133,8 +136,17 @@ and password open SSH. The token is `/data/forgefirm/panel.token`, sent as
 writes with the token alone; so does any client on a development image. A
 client on the network needs the session too. The read-only routes answer any
 LAN client while `panel_open_reads` is 1 (the default); 0 closes them to
-sessions and loopback. Unsigned firmware installs and `GET /fuse-identity`
-additionally require the physical button held. A client with no browser and
+sessions and loopback. Five routes additionally take the physical button
+held: an unsigned firmware install (`POST /update/apply` with
+`confirm_unsigned=1`), `POST /system/reset`, `POST /ext/key`,
+`POST /ext/install`, and `GET /fuse-identity`. A refused unsigned install
+answers 403 with `"button": "not held"`, as a refused reset does. A job
+would take the hold as its own press, so each of the five is refused with
+409 before the button is read: "a job waits for the button press: cancel
+it first" while a controller reports its armed window open or the GRBL
+controller waits for the press, and "a job is running or paused: finish or
+cancel it first" while the GRBL controller's state is `Run` or `Hold`
+(`job_takes_button` in `main.c`). A client with no browser and
 no session uses a scoped token ([below](#scoped-tokens)).
 
 The HTTP surface carries accept-side caps: 64 connections in total and 16
@@ -167,24 +179,27 @@ costs one bounded error, never a pinned thread.
 | `POST /motion/tray?tray=in\|out` | The crumb tray's mode (the port's `tray` op, [The grblHAL driver](grblhal-driver.md#the-crumb-tray)): moves nothing, 409 unless the controller is Idle. The panel's own, like the two above. `/status` reads the mode from the controller's marker as `lens.tray`, with `lens.tray_offset_mm`, and moves `lens.reach_min` and `reach_max` up by the offset on the lens step grid while the tray is out. A change of `tray_offset_mm` is refused (409) while the tray is out, and so is every setup card (`POST /wiz/<card>/start`) |
 | `GET /motion/sender`, `POST /motion/sender` | Keeping the Grbl sender out ([A package keeps the Grbl sender out](extensions.md#a-package-keeps-the-grbl-sender-out)). `GET` answers `{"holder": {"id", "for_s"} or null, "notice": {"id", "why": "stopped"} or null}`. The operator's `POST`: `out=0` lets the sender back in, `notice=clear` clears the notice. Only the extension host names a package (`id`), 403 for anybody else: `out=1` keeps the sender out for it and `out=0` ends that, both answering `{"out", "released"}` as `GET` with `id` does; 409 in words when the controller refuses (the machine is not idle, the sender is sending), another package holds it, the lease is taken, or the operator let the sender back in on this package's claim. No scoped token reaches the route (403) |
 | `POST /cool/state` | Controller job-state report, level-triggered at ~1 Hz; a loopback peer that presents the secret the supervisor handed the running controller, and nobody else ([Cooling engine](cooling-engine.md#job-state-reports)) |
-| `GET /cool/status` | Cooling-engine state: phase, verdict, `fire_ok`, `hold`, `resume_ok`, temps, report age, `gates_off`, the effective `limits`, `fan_gates`, `fire_watch`, `accel_watch`, `quiet_hold` |
-| `POST /cool/quiet?on=1` or `=0`, with `pump=1` | The quiet hold for a listening to the head accelerometer (the bench tools; the setup finder uses the same hold inside the daemon): every fan off, and with `pump=1` the coolant pump and the TEC too, the machine silent. Taken only from an idle machine with no diagnostic running; the engine releases it itself when a run session opens or after 600 s ([Cooling engine](cooling-engine.md#what-the-fans-do-and-when)) |
+| `GET /cool/status` | Cooling-engine state: phase, verdict, `fire_ok`, `hold`, `resume_ok`, temps, report age, `gates_off`, the effective `limits`, `fan_gates`, `fire_watch`, `accel_watch`, `quiet_hold`, `armed`, `ack_wait`, `attention`, `notices` ([The operator's attention](cooling-engine.md#the-operators-attention)) |
+| `POST /cool/attention/ack` | The operator's acknowledgment of a failure that blocks firing after its verdict has gone (the verdict `ACK`); no button press needed. 409 "the failure still stands" while its cause is live ([The operator's attention](cooling-engine.md#the-operators-attention)) |
+| `POST /cool/notices/dismiss?upto=<seq>` | Removes the notices of faults that cleared on their own, up to and including `seq`; every one when `upto` is left out |
+| `GET /cool/flow` | The coolant flow watch ([The cooling engine](cooling-engine.md#coolant-flow)): `watch` (`wait`, `rest`, `hold`, `suspended`, `off`), `halted` (stopped until forgectrl restarts), `why` (what keeps it from holding: the engine's reason for taking the heater, "the cooling engine stopped ticking", "the sampler gives no readings", or the halt), the hold's `duty` (the duty commanded, 0 while the readings are lost) and `duty_10s` and the idle reference `ref` in percent, the fall detector's `fall` (a share; null while it is blind), `rest_c`, and the settings in force: `hold_c`, `duty_min`, `duty_max` |
+| `POST /cool/quiet?on=1` or `=0`, with `pump=1` | The quiet hold for a listening to the head accelerometer (the bench tools; the setup finder uses the same hold inside the daemon): every fan off, and with `pump=1` the coolant pump and the TEC too, the machine silent. Taken only from an idle machine with no diagnostic running (409 otherwise); `pump=1` is refused with 409 "the cooling engine is not idle: the pump stays on" unless the engine's phase is idle, so never under a warm-up, a run, or a cooldown; the engine releases it itself when a run session opens or after 600 s ([Cooling engine](cooling-engine.md#what-the-fans-do-and-when)) |
 | `POST /diag/aa-offset-calibrate`, `POST /diag/abort`, `GET /diag/status` | The diagnostics runner ([Diagnostics](../../usage/diagnostics.md)) |
-| `GET /fuse-identity` | The machine's fuse identity ([Control panel](../../usage/control-panel.md)) |
+| `GET /fuse-identity` | The machine's fuse identity ([Control panel](../../usage/control-panel.md#access)), with the machine's button held; 409 while a job could take the press ([above](#http-api)) |
 | `GET /grbl/settings` | The controller's `$$` view, verbatim; 404 with no live controller |
 | `POST /curve/record`, `GET /curve/status`, `POST /curve/stop`, `GET /curve/ladder.gcode` | The dose-curve recorder ([below](#the-dose-curve-recorder)) |
 | `GET /extensions` | The built-in extensions ([below](#built-in-extensions)): what each provides, whether it is on, and which of its providers is selected. Read-only class |
 | `GET /tokens`, `POST /tokens` (`name`, `caps`), `POST /tokens/revoke` (`id`) | Scoped tokens ([below](#scoped-tokens)): the list, a new token (answered once, as `{"id", "token"}`), a revoke. Write class; no scoped token reaches them |
 | `GET /ext/status`, `POST /ext/package` (`id`, `action`) | Extension packages ([the operator's door](extensions.md#the-operators-door)): what is installed and how the extension host is doing, and one action on one package (`enable`, `disable`, `remove`, `remove-keep-data`, `hold-required`, `hold-advisory`), answered with the new status. The logged-in operator's and no scoped token's; taken at any time, a job included. `400` for an id or an action that has no such form, `409` with the host's own words when the host refuses, `502` when the host cannot be asked. |
-| `POST /ext/upload` (multipart file), `POST /ext/install` (`grants`, `phrase`), `POST /ext/upload/discard` | Installing a package ([the operator's door](extensions.md#installing-through-the-panel)): the upload stages one archive (32 MiB at most) and answers with the extension host's `inspect` of it and the `consent` its tier takes (`login`, `typed`, `button`); the install names the capabilities the operator grants, as a comma-separated list, and carries the consent. The machine idle and no lease in the way, as for a firmware upload. `400` for an archive the host will not take (it is not kept), for grants that have not the form of capability names, and for a missing phrase; `409` for the host's refusal, for a button that is not held, and with nothing staged. |
+| `POST /ext/upload` (multipart file), `POST /ext/install` (`grants`, `phrase`), `POST /ext/upload/discard` | Installing a package ([the operator's door](extensions.md#installing-through-the-panel)): the upload stages one archive (32 MiB at most) and answers with the extension host's `inspect` of it and the `consent` its tier takes (`login`, `typed`, `button`); the install names the capabilities the operator grants, as a comma-separated list, and carries the consent. The machine idle and no lease in the way, as for a firmware upload. `400` for an archive the host will not take (it is not kept), for grants that have not the form of capability names, and for a missing phrase; `409` for the host's refusal, for a button that is not held, for a job that could take the press (whatever the package's tier, [above](#http-api)), and with nothing staged. |
 | `GET /ext/catalog`, `POST /ext/catalog/refresh`, `POST /ext/catalog/get` (`id`) | The catalog ([the operator's door](extensions.md#the-catalog)): the signed index the extension host keeps, judged against this firmware, a fresh one fetched and verified, and the version of one listed package that the host offers fetched into the staging file, held to the size and SHA-256 the index names, and answered with the host's `inspect` as an upload is. Only these reach the network, and only when the operator asks. `502` when a fetch fails, `409` for the host's refusal, for bytes that are not the listed archive, for a package with no version this firmware runs, and with no index kept, `404` for an id the index does not list. |
-| `POST /ext/key` (`name`, `key`), `POST /ext/key/remove` (`name`) | The owner's keys ([the operator's door](extensions.md#the-owners-keys)): a key is added only with the machine's button held, as unsigned firmware is installed, and it is written through the extension host, which parses it before it lands. `400` for a name or a key with no such form, `409` for a button that is not held and for the host's refusal. Both answer with the new status. |
+| `POST /ext/key` (`name`, `key`), `POST /ext/key/remove` (`name`) | The owner's keys ([the operator's door](extensions.md#the-owners-keys)): a key is added only with the machine's button held, as unsigned firmware is installed, and it is written through the extension host, which parses it before it lands. `400` for a name or a key with no such form, `409` for a button that is not held, for a job that could take the press ([above](#http-api)), and for the host's refusal. Both answer with the new status. |
 | `POST /job`, `GET /job`, `POST /job/abort` | The job runner ([below](#the-job-runner)): a G-code program run with the daemon as the machine's one sender |
 | `GET /logs`, `GET /logs/tail`, `POST /logs/export` | The logging tree ([Logging](logging.md)) |
 | `GET /cam/stream`, `GET /cam/snapshot`, `GET /cam/status`, `GET /cam/h264`, the mjpg-streamer aliases | The camera service ([Video pipeline](video-pipeline.md)). `background=1` on a snapshot marks a capture nobody is waiting for: it is refused with 409 while a stream has a client, because a snapshot borrows the mux and stutters a running stream, and refused with 409 while a job is armed, because a capture costs kernel-side work beside the step stream that a thread priority does not cover. An operator's own snapshot is unmarked and still wins. `fps` (1 to 15) paces one stream viewer and `lamp` (0 to 1023) lights the camera while streams watch. A request with the panel's credential or the extension host's is a local viewer, which has the head camera with the lid open ([the privacy gate](video-pipeline.md#the-privacy-gate)) |
 | `GET /slots`, `POST /boot`, `GET /update/release`, `POST /update/check`, `POST /update/dismiss`, `POST /update/download`, `POST /update/apply`, `POST /update/upload`, `GET /update/status`, `POST /restore/factory`, `POST /restore/factory-return?confirm=1`, `POST /system/reboot` | The update manager ([Install and update](install-and-update.md#the-update-manager)) |
 | `GET /system/ssh`, `POST /system/ssh?enable=0` or `=1` | SSH state, and the switch that turns it on until the next reboot; off at every boot, kept on by a development image |
-| `POST /system/reset?confirm=1` | Every setting back to a fresh install: with the machine button held (403 without it), an idle machine, no lease and no update job, it leaves `reset-requested` in `/data/forgefirm` and reboots; the boot step `forgefirm-data` carries it out ([Image and BSP](image-and-bsp.md#the-read-only-root-filesystem)) |
+| `POST /system/reset?confirm=1` | Every setting back to a fresh install: with the machine button held, an idle machine, no lease and no update job, it leaves `reset-requested` in `/data/forgefirm` and reboots; the boot step `forgefirm-data` carries it out ([Image and BSP](image-and-bsp.md#the-read-only-root-filesystem)); what the operator keeps and loses is on [The control panel](../../usage/control-panel.md#system). The 409 refusals are answered before the button is asked for, in this order: a lease, a machine that is not idle, a job that could take the press ([above](#http-api); the panel says so for a job that waits for the press before it asks for the hold), an update job, and a next boot set to another slot than the one booted, "the next boot is set to the other slot: set it back to this one first", since the request is the next boot's to carry out. That rule holds for every boot, a boot from the SD card included, and an inventory (`ffboot -l`) that names no booted slot refuses, "the next boot cannot be read". Then the button: 403 without it held, the answer carrying `"button": "not held"`, on which the panel's dialog stays open. At every start forgectrl withdraws a request that no boot carried out and logs `update: a reset of every setting was requested and not carried out at this boot; the request is withdrawn`; one it cannot withdraw (a read-only data folder) is logged as an error, `... and it cannot be withdrawn (<error>): a later boot of this data folder carries it out` |
 | `GET /system/camera-key`, `POST /system/camera-key?rotate=1` | The per-machine camera key (`/data/forgefirm/camera.key`, 128 bits) with the stream and snapshot URLs that carry it, and its rotation. A valid key, as the `key` query parameter or the `X-ForgeFIRM-Camera-Key` header, authorizes any read-only route on either listener, origin checks included, and never a write |
 
 Settings persist in `/data/forgefirm/forgefirm.conf`, shared with the grblHAL
@@ -361,20 +376,38 @@ holds, the consent and account steps and the table's required steps are
 done at the table's versions with the result `{"seeded": true}`, and the
 run is complete. The recommended steps stay recommended. The record
 carries `seeded` with the time, and the printable summary says "seeded" for
-each document. The seed is removed once read, whether a record was made or
-one was already there; a record that cannot be written keeps the seed for
-the next start. The seed is made at build time and the record at the
-start because the hashes and the step versions are the running build's.
+each document and "(seeded, not pressed)" after the press's time. The seed
+is removed once read, whether a record was made or one was already there;
+a record that cannot be written keeps the seed for the next start. The seed
+is made at build time and the record at the start because the hashes and
+the step versions are the running build's. Only a dev image honors a seed:
+a release image leaves it where it is and logs
+`setup: a setup seed on a release image is ignored`, so a release root
+filesystem written to a dev card never starts as a finished setup with a
+published login.
+
+**The record's machine.** The record keeps the machine it was made on, as
+its sheet id (`machine.machine_id`), never the serial. At every start
+(`wiz.c`, `check_machine`, before the head check) the record is compared
+with this machine. A record with no machine facts, as a seeded one is,
+takes this machine's. A record made on another machine (a card moved to
+another board) has its machine step taken out, so the step is asked again;
+it is required, so the controller gate closes until it runs. The facts
+become this machine's, the lens window measured on the other machine is
+cleared, and the steps a head change names are recommended again, since
+each was measured elsewhere. The log says
+`wiz: the record was made on another machine: the machine step is asked again, and the lens window measured there is cleared`.
 
 The button LED during the setup (`led.c`, written only while no controller
-runs): breathing teal for the acceptance press; breathing white while a
-wizard holds the machine with the controller stopped (`wiz_controller_stop`
-in `wizdark.c` sets it, `wiz_controller_start` hands the LED back dark
-before the spawn, since the controller drives it for its arm wait);
-blinking amber while a check waits for the lid to close (`wiz_led_attention`),
-and for the password reset hold; solid green when `POST /wiz/complete` ends
-the guided run with nothing recommended (a run set aside with steps left
-does not light it), out when the panel is first served.
+runs; [The button's light](#the-buttons-light) has every pattern and its writer):
+breathing teal for the acceptance press; solid white while a wizard holds
+the machine with the controller stopped (`wiz_controller_stop` in
+`wizdark.c` sets it, `wiz_controller_start` hands the LED back dark before
+the spawn, since the controller drives it for its arm wait); blinking amber
+while a check waits for the lid to close (`wiz_led_attention`), and for the
+password reset hold; solid green when `POST /wiz/complete` ends the guided
+run with nothing recommended (a run set aside with steps left does not
+light it), out when the panel is first served.
 
 The gate (`setup.c`): the supervisor spawns no controller for a sender until
 the advisories are accepted at their current hashes with the press
@@ -395,6 +428,20 @@ fans are not counted`), and the panel's Status tab shows a banner. A
 wizard's own controller (local posture, loopback only) passes. A gate that closes on a running controller stops it once the
 machine is idle, never mid-job. The `setup.flag` event reports the gate
 opening and closing ([The event stream](#the-event-stream)).
+
+The supervisor's controller gate holds one more case, ahead of the setup's
+(`super.c`, `controller_gate_open`): a dev image booted from an SD card
+whose data partition is there but not in use (`card-failed`,
+[Image and BSP](image-and-bsp.md#the-read-only-root-filesystem)) runs on
+the eMMC's settings, read-only, so no controller runs on it. The gate
+reads the boot's one word in `/run/forgefirm-data.state` and opens for
+`emmc`, `card`, and `card-none` alone: any other word holds the
+controllers, and so does a record that is missing or cannot be read, since
+a dev image that cannot tell whose settings it runs on starts nothing on
+them. A release image is never held here. `GET /mode`
+reads `gated` with the why that
+[The bench](../../developers/bench.md#the-sd-card) quotes, and a
+mode switch is refused with `controllers are gated:` and the same words.
 
 Every other step is recommended, never required. `GET /wiz` lists
 `recommended`, each entry an `id` and a `reason`. The image's step table
@@ -609,6 +656,48 @@ Who reads what:
 - **No process takes `EVIOCGRAB`** on the device, the cloud client's reader
   included. Exclusivity of button *meaning* comes from mode selection, and a
   grab starves every other reader of events.
+
+### The button's light
+
+The button's RGB LED
+([`button_led_1` to `_3`](kernel-module.md#button_led_1-button_led_2-button_led_3))
+says what the machine wants from the operator. What each light means is on
+the operator's pages ([The button](../../usage/index.md#the-button), and
+[What the button says](../../usage/setup.md#what-the-button-says) for the
+setup's colors); this table is who writes each, and when:
+
+| The light | Who writes it, and when |
+|---|---|
+| Breathing white | The running controller: the GRBL arm and re-arm ([The armed window](grblhal-driver.md#the-armed-window)); the cloud client's button wait, dark again the moment the press is taken, a print paused on the button while a press would resume it, and a print whose cooling hold has cleared, waiting with the latch unlocked for the press that resumes it ([Cloud mode](cloud-mode.md#how-a-job-runs)) |
+| Solid white | The GRBL controller in a cycle, a jog, or homing; the cloud client while a print or another motion of the service's runs; forgectrl while the motion check moves the head, and while a setup check holds the machine with the controller stopped |
+| Red, flashing slowly (1 s on, 1 s off) | The cooling engine, over any controller ([The operator's attention](cooling-engine.md#the-operators-attention)) |
+| Breathing teal | forgectrl's setup, for the press that accepts the advisories ([Setup and the gate](#setup-and-the-gate)) |
+| Blinking amber | forgectrl, while a check or the motion check waits for the lid, and for the password reset hold at start |
+| Solid green | forgectrl's setup, when the guided run ends with nothing recommended |
+| Dark | Each writer above, when it has nothing to ask of the operator; the GRBL controller also under a job paused or held; the cloud client also while a print waits out the cooling verdict before its button wait, from the press until the print moves, and while the cooling engine or the pulse feed holds a print |
+
+A controller writes the LED when what it shows changes, and each write
+stops the pulse first, because the LED trigger keeps a pulse running under a
+new target. Once a second it also reads the LED back against the pattern it
+set (breathing white, solid white, or dark) and writes that pattern again if
+something wrote over it, never over the red flash itself: the flash, when it
+ends, leaves the button dark, so a press wait under it breathes again then
+(`lamp_keep` in the GRBL controller, `_lamp_keep` in the cloud client).
+Solid white is read back as no pulse and every target at 254 or more
+([LEDs](kernel-module.md#leds)). The GRBL controller's lamp that follows
+the machine's state is not written over the flash either: a change under
+it is recorded and written once the flash has ended. The cloud client's
+cleanup after every action puts the button out only where the light is its
+own breathing or solid white, or cannot be read.
+forgectrl writes its patterns only while no controller runs, the red flash
+excepted. The engine puts the flash out only while the button still reads
+as the flash, or cannot be read: a button another owner has written since
+is left as that owner set it. forgectrl's own waits put their lamp back
+after a flash that stood over them (`led_keep`, which writes only a button
+that reads dark): the supervisor's wait for the enclosure writes the amber
+again on each pass, and the setup's acceptance press writes the teal again
+on each status poll while it waits. The setup's laser burns read the LED back to prompt the
+press: all three channels pulsing is breathing white (`led_asks_press`).
 
 ## Safety-chain readbacks
 
@@ -1206,7 +1295,7 @@ mode. Readers are unrestricted. This table is normative.
 
 | Hardware | GRBL mode | Cloud mode | Diagnostics |
 |---|---|---|---|
-| `thermal/*` fans, pump, TEC, heater; `head/air_assist_pwm`; `head/purge_air` | forgectrl engine (plus the controller's stale-verdict fallback) | forgectrl engine (plus fallback) | forgectrl runner, through the engine's guarded diag writes (take/release; fire blocked) |
+| `thermal/*` fans, pump, TEC, heater; `head/air_assist_pwm`; `head/purge_air` | forgectrl engine; the heater also the engine's coolant flow watch, when an owner turns it on and the engine does not need the heater ([Cooling engine](cooling-engine.md#coolant-flow)) (plus the controller's stale-verdict fallback for the fans) | forgectrl engine and its flow watch, the same way (plus fallback) | forgectrl runner, through the engine's guarded diag writes (take/release; fire blocked) |
 | `cnc/*` motion, `/dev/glowforge` ring | GRBL controller, through the brokered fd | cloud client, through the brokered fd | none (controller suspended) |
 | `cnc/enable`, `cnc/disable` (40 V rail) | forgectrl (a standalone controller, no broker, enables at init; rail policy above) | forgectrl (the cloud client enables once at its start; rail policy above) | forgectrl |
 | `cnc/laser_latch` | GRBL controller (locked by forgectrl across handovers and on writer death) | cloud client (same) | none |
@@ -1222,7 +1311,8 @@ On a kernel dead-man trip (and on module removal) the kernel itself
 de-energizes the heat sources, the loop heater and the TEC, and touches
 nothing else: the pump, the exhaust and intake fans, and the head airflow
 stay with the engine, which keeps circulation and airflow running over a hot
-tube.
+tube. A heater that forgectrl stops writing goes off on its own at the end
+of the kernel's lease ([Kernel module](kernel-module.md#heater_pwm)).
 
 Diagnostics ownership: forgectrl stops the motion controller, writes the
 marker file `/run/forgefirm-diag.active`, and recovers on the next start. The

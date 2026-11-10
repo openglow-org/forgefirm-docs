@@ -27,7 +27,29 @@ fault** instead of starting a controller: `GET /mode` reads `motion-fault`,
 and the panel offers a retry (`POST /mode`). Retry from the panel. Position
 counters advancing are never accepted as proof that the machine moved: the
 drivers on this board can latch into a state where the counters count while
-the motors produce nothing ([Modes](modes.md)).
+the motors produce nothing ([Modes](modes.md)). The button flashes red
+until the retry clears the fault.
+
+## The button flashes red
+
+Firing is blocked by something you need to look at: a flame, a bump or a
+crash, a fan, a coolant sensor, or the critical coolant line. The banner at
+the top of the control panel says what and since when
+([The control panel](control-panel.md#the-page)). A failed motion check
+flashes the button red too, with no banner: the Status tab's Controller
+mode card shows the motion fault and its **Retry**
+([above](#the-machine-will-not-start-a-controller)).
+
+- **While the cause stands**, deal with it: the verdicts are below.
+- **Once it has gone**, a fire, a crash, a fan failure, the critical line,
+  or anything still wrong when its job ended stays in the banner with
+  **Acknowledge**. Press it; no job fires until you do, and the button keeps
+  flashing. **Acknowledge** appears only once the cause has gone. Turning
+  the machine off and on also clears it, with the banner and the notices:
+  the machine keeps none of it across a restart. Find the cause before you
+  run a job again.
+- **A notice** in the second banner is a fault that cleared on its own. It
+  blocks nothing; read it, then **Dismiss** it.
 
 ## The lid was open at power-on
 
@@ -42,14 +64,19 @@ its reference, and the controller starts; nothing else to do.
 
 | You see | What it means | What to do |
 |---|---|---|
-| The button lights white and the job waits | The job's first laser-on is waiting for your press: the armed window ([GRBL mode](grbl-mode.md)) | Check the bed and the lid, then press the button. Press Stop in your sender if you did not mean to fire. |
+| The button breathes white and the job waits | The job's first laser-on is waiting for your press: the armed window ([GRBL mode](grbl-mode.md)) | Check the bed and the lid, then press the button. Press Stop in your sender if you did not mean to fire. |
 | Alarm 3 at the button prompt, "laser fire blocked: no head detected" | No print head is present; the machine refuses to arm without one | Seat the head, then start the job again. |
 | Alarm 3 at the button prompt, a coolant message | An over-temperature or another cooling hold stands, and arming is refused | Resolve the cooling verdict (below), then start again. |
+| Alarm 3 at the button prompt, "laser fire blocked: a fault waits for its Acknowledge on the control panel" | A failure ended an earlier job, or still stood when it ended, and nobody has acknowledged it ([The button flashes red](#the-button-flashes-red)) | Read the banner on the control panel, press **Acknowledge**, `$X`, then start again. |
 | Alarm 3 after a long wait at the prompt | Nobody pressed within `laser_button_timeout_s` (default 300 s) | `$X` to clear, then start again. |
 | The job ends with a lid or interlock message, no alarm | The lid or the interlock loop opened during the job or the button wait; the job is canceled and the head returns to where the job started | Close the lid, start the job again; the next job asks for the button. |
 | The resume asks for the button again | The job sat paused past `laser_disarm_s` (default 60 s) and disarmed itself | Press the button. |
-| Alarm 3 mid-job with a cooling message (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`) | The cooling engine's fail tier ended the job: laser locked, job reset | Resolve the verdict ([Cooling and fans](cooling-and-fans.md)), `$X`, start again. |
+| A resume is refused, "laser fire blocked: a cooling gate is closed - the job stays held" | The job disarmed itself during a cooling pause, and the cooling verdict still stands | Wait for the verdict to clear ([Cooling verdicts](#cooling-verdicts)); the button then breathes white and a press resumes the job. |
+| "laser off (M5): the armed window closed - the next M3 or M4 asks for the button" | The machine sat idle past `laser_disarm_s` with the laser still switched on by the last job | Nothing; the next job asks for the button. |
+| Alarm 3, "the laser window closed while the job waited - job stopped; start it again" | A job stood still for longer than `laser_disarm_s` (a sender that stopped sending, a long dwell), disarmed itself, and then tried to cut | `$X`, then start the job again. A job that must stand still that long needs a longer `laser_disarm_s` ([Settings](settings.md)). |
+| Alarm 3 mid-job with a cooling message (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`) | The cooling engine's fail tier ended the job: laser locked, job reset | Resolve the verdict ([Cooling and fans](cooling-and-fans.md)), press **Acknowledge** on the control panel, `$X`, start again. |
 | The job pauses with a cooling message and resumes by itself | A pause-tier verdict held the job under the armed window and cleared | Nothing; the resume needs no press. |
+| The job stays held after the cooling message clears, and the button flashes red | The cause still stood when the window closed, so it waits for your **Acknowledge** ([The button flashes red](#the-button-flashes-red)) | Press **Acknowledge** on the control panel; the button then breathes white and a press resumes the job. A press or `~` before that is refused, and the job stays held. |
 | Alarm 2 before a move, after `$H` | The move would leave the bed; the limits are on after a home | Fix the job's origin or size; `^X` then `$X` clears the alarm ([Homing](homing.md)). |
 | Error 15 on a jog | The jog would leave the bed after a home, or Z is unreferenced | Jog the other way; send an empty line before the next command. |
 | Alarm 17, "late events while the laser is armed" in the `grblhal` log | The controller fell behind real time during an armed job and stopped it rather than play the burst | `^X` then `$X` clears the alarm (`$X` alone answers error 79); re-home, start again. If it repeats, note what else the machine was doing (a camera stream, a diagnostic). |
@@ -64,7 +91,7 @@ its reference, and the controller starts; nothing else to do.
 | ALARM:11, every move refused, and `$X` answers error 9 | The X and Y motors are released (`$MD`) | Send `$ME` to energize them, or put the head in the home corner and send `$H` with `homing_mode = manual` ([Manual homing](homing.md#manual-homing)). |
 | The panel's position is red | The machine is unreferenced; coordinates are relative to where the head was | Normal. Use Current Position mode, or `$H` ([Homing](homing.md)). |
 | Your sender disconnects when another program connects | Only one Grbl connection is meaningful; a second one displaces the first | Close the other client. Never point a status poller at port 23. |
-| Your sender is dropped mid-job | It stopped reading for a second (a busy network, a frozen program); a drop is a sender change, so a laser job holds and the window closes | Reconnect; `~` lights the button and a press resumes the job. |
+| Your sender is dropped mid-job | It stopped reading for a second (a busy network, a frozen program); a drop is a sender change, so a laser job holds and the window closes | Reconnect; `~` sets the button breathing and a press resumes the job. |
 | The controller exits when you send `^F` | `^F` (0x06) asks the controller to shut down cleanly: it stops motion, relocks the laser and exits, and the daemon starts it again | Nothing; wait for the reconnect. |
 | The controller does not start, and the sender cannot connect | The machine is in cloud mode, or a motion fault stands | Check the Status tab's controller mode and state ([Modes](modes.md)). |
 
@@ -84,17 +111,18 @@ when; this is what you do.
 
 | Verdict | What you see | What to do |
 |---|---|---|
-| `OVERTEMP` | A hold with the cooling airflow forced on | Wait. The hold ends once the upstream coolant is under the resume gate (31 °C by default), and the job resumes; if the button lights, press it. A jog is canceled instead of held. |
+| `OVERTEMP` | A hold with the cooling airflow forced on | Wait. The hold ends once the upstream coolant is under the resume gate (31 °C by default), and the job resumes; if the button breathes white, press it. A jog is canceled instead of held. |
 | `CRITICAL` | Fire blocked, hold, no resume for the rest of the job; a resume under it is held again | Reset the job and let the loop cool. The next job judges the line afresh. A loop that ran through the pause tier and kept climbing needs looking at. |
 | `COLD` | Fire blocked; the coolant is under the floor | Let the room and the machine warm up. The gate clears a degree above the floor. |
-| `WARMUP` | The job holds with the loop heater on and the fans idle | Wait for the coolant to reach the warm-up gate; the job then runs. |
+| `WARMUP` | The job holds with the loop heater on and the fans idle | Wait for the coolant to reach the warm-up gate; the job then runs. If the heater goes off after 30 minutes short of the gate (`WARM-UP: heater off after 30 min`), the job keeps holding: lower `cool_temp_start` or warm the room, then start the job again. |
 | `SENSOR` | Fire blocked, hold; the reason names the coolant sensor the machine cannot read | Wait a moment: a passing read failure clears by itself and the job resumes. One that stands means the sensor or its wiring needs looking at; the coolant readings on the Status tab show which one is missing. |
 | `AIRFLOW` | Fire blocked, hold, no resume for the rest of the job; a resume under it is held again; the reason names the fan, the reading, and the floor | Reset the job and check that fan. The next job judges every fan afresh after the spin-up grace. A fan that reads differently from the shipped floor on a healthy machine gets its own floor on the Machine tab. |
 | `FLAME` | Hold, fire blocked, while a lid-IR reading is over its alert | Look at the bed. The hold releases when the reading is back under the alert. |
 | `EXT` | Fire blocked, hold; the reason names an extension package and says why it holds the job | Do what the package asks for (present the badge, change the filter). To run without it, turn the package or extensions off, or enter safe mode: the hold ends at once. A reason that says the extension host is not answering means a required hold is standing because the host is down. |
-| `FIRE` | Motion stopped, laser locked, the smoke airflow held; no resume until the next job | Deal with the fire. The fire watch is not a fire alarm: never leave a running laser unattended. |
+| `FIRE` | Motion stopped, laser locked, the smoke airflow on; once the machine is back at idle after its cooldown, `ACK` | Deal with the fire, then press **Acknowledge** on the control panel. Jogs work meanwhile. The fire watch is not a fire alarm: never leave a running laser unattended. |
 | `BUMP` | Hold, fire blocked, after a knock past the head accelerometer's alert | Check that the head is clear; the hold releases once the head sits quiet. |
 | `CRASH` | Motion stopped, laser locked, for the rest of the job | Check the head and the gantry for a collision before the next job. |
+| `ACK` | Fire blocked, the button flashing red, after the failure behind it has gone; the reason is that failure's | Press **Acknowledge** on the control panel ([The button flashes red](#the-button-flashes-red)). |
 
 ## The panel refuses something
 
@@ -108,6 +136,11 @@ when; this is what you do.
 
 ## Cloud mode
 
+- **The button stays dark after you start a print.** The fans are coming
+  up, or the coolant is out of range. The button breathes white when the
+  machine is ready; press it then ([Cloud mode](cloud-mode.md#pause-cancel-and-park)).
+- **A print stopped and the button breathes white.** A cooling pause has
+  cleared. Press the button to carry on.
 - **The app cannot focus, or homing fails.** The lid is open. With the lid
   open nothing moves and nothing captures. Close the lid
   ([Cameras](cameras.md)).

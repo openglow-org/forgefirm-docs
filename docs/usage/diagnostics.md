@@ -4,8 +4,9 @@ title: Diagnostics
 
 # Diagnostics
 
-The panel's Setup tab runs hardware tests that take the machine over.
-This page tells you what each tool does, how long it takes, and when to run it.
+The panel's Setup tab runs a hardware tool that takes the machine over: the
+coolant offset calibration. This page tells you what a diagnostic does to
+the machine and what that tool measures.
 
 !!! danger "Read the Safety page first"
 

@@ -96,7 +96,9 @@ Blank fields mean the factory fuse identity.
 
 The panel can show it: `GET /fuse-identity` returns the serial, the derived
 hostname, and the password. It needs a login and the physical button held
-while the request is made, and it is fetched on demand only.
+while the request is made, and it is fetched on demand only. Finish or
+cancel a job first, or the hold could count as its press
+([Control panel](control-panel.md#access)).
 
 At a console ([Serial access](../install/serial-access/index.md)) the identity comes
 from the i.MX6 OCOTP fuses: the serial from `HW_OCOTP_MAC0`, the password from
@@ -191,6 +193,13 @@ to the service as a failed action, so it resolves rather than hanging.
 
 ## Pause, cancel, and park
 
+- **Press the button when it breathes.** A print starts on your press,
+  and the button breathes once the fans are up to speed.
+  If the coolant is out of range when the print arrives (a cold machine
+  that warms up first, coolant that is too warm), the button stays dark
+  and waits until the coolant is in range, then breathes. If the coolant
+  goes out of range while the button breathes, the button goes dark and
+  breathes again once it is back.
 - **The button pauses and resumes a print**, exactly as the factory does. A
   press stops the head under control and rewinds a little way with the laser
   off; the next press runs forward and lights the beam slightly *before* the
@@ -199,12 +208,30 @@ to the service as a failed action, so it resolves rather than hanging.
   the GF Cloud tab, at the factory's own values
   ([Factory firmware](../technical/machine/factory-firmware.md#pause-cancel-and-park-in-the-factory)).
   Motions and hunts do not pause.
-- **The cooling engine can pause a print too.** A hold from it (a warm-up
-  on a cold machine, coolant over the ceiling) pauses
-  the print the same way, laser off, and the print resumes by itself when the
-  engine clears it. A print that arms on a cold machine waits for the
-  warm-up before it starts. A hold that lasts longer than `cloud_hold_max_s`
-  (30 minutes by default) cancels the print instead.
+- **The cooling engine can pause a print too.** A hold from it (coolant
+  over the ceiling, for one) pauses
+  the print the same way, laser off, and the button goes dark; pressing it
+  meanwhile does nothing. When the hold clears, the button breathes white:
+  press it to carry on. A hold that
+  lasts longer than `cloud_hold_max_s` (30 minutes by default) cancels the
+  print instead, before the press or during the print.
+- **The app says why a print is held** where it has words for it: COOLING
+  DOWN for coolant over the ceiling, BUMPED for a bump or a crash,
+  OVERHEATED for a flame, a fire, or the critical coolant line, and AIR
+  ASSIST FAN for the air assist or an intake fan. An exhaust fan hold shows
+  no message, and any other hold shows as a plain pause; the control panel
+  has the real reason
+  ([Cloud mode internals](../technical/forgefirm/cloud-mode.md#scope-telemetry-is-excluded)).
+- **The button's light** breathes white while the print waits for your
+  press and goes dark once you press. It is solid white while the head
+  moves, breathes again while a press would resume the print (after your
+  own pause, or after a cooling pause has cleared), and is
+  dark while the cooling engine holds the print
+  ([The button](index.md#the-button)).
+- **A fault that waits for your Acknowledge cancels the next print.** After
+  a failure, the control panel's banner asks for **Acknowledge**; a print
+  started before that is canceled without asking for the press
+  ([The control panel](control-panel.md#the-page)).
 - **A lid or interlock open, or a cancel from the app, ends the job.** Motion
   stops, whatever remains in the ring is dropped so nothing can play later,
   and the head parks back at the job's starting point, ignoring the lid, as

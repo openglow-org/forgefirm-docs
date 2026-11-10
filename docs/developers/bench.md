@@ -119,17 +119,42 @@ folders, read-only.
   panel refuses a password equal to the name when an account is made there;
   this one is made with the image. The advisories are accepted, the required
   steps are recorded as done, and the intake fan count is the default, 2.
-  The checks the setup recommends stay recommended.
+  The checks the setup recommends stay recommended. The printable record
+  marks the press "(seeded, not pressed)". The seed is the dev image's
+  alone: a release image ignores one and says so in the log
+  ([forgectrl](../technical/forgefirm/forgectrl.md#setup-and-the-gate)).
+- **The record keeps the machine it was made on**, by its sheet id. The
+  seeded record takes the machine's facts at the first start. Moved to
+  another machine, the card's setup asks the machine step again (the
+  controllers wait for it, since the step is required), clears the lens
+  window measured on the first machine, and recommends the steps a new head
+  does.
 - **At the card's first boot** it takes the machine's identity from the
   eMMC, once: the SSH host keys, the certificate, the WiFi region, and the
   last saved time, which sets the clock until the network does (the board
   has no clock battery). An SSH client and a browser then see the same
   machine from either boot.
+- **A card whose data partition cannot be used fails closed.** The
+  partition is there but did not mount, mounted read-only (a
+  write-protected card, or a filesystem error), is not ForgeFIRM's (no
+  `forgefirm/` and `log/`), or one of its folders could not be shown: the
+  boot log says which. The eMMC's `/data/forgefirm` is then shown
+  read-only (on an eMMC that never ran ForgeFIRM, this boot's folder is in
+  RAM instead, writable and gone at the next boot), this boot's ForgeFIRM
+  logs go to a 32 MB RAM filesystem and are lost at the reboot, and forgectrl holds the controllers: `GET /mode`
+  reads `gated`, with the why
+  `the SD card's data partition is not in use: nothing is saved this boot (see the boot log)`.
+  Nothing of the boot lands in the eMMC's ForgeFIRM folders. A dev image
+  whose boot left no record of where its settings are is held the same way
+  ([forgectrl](../technical/forgefirm/forgectrl.md#setup-and-the-gate)).
 - **The development bar** says on every boot where the settings,
-  extensions, and logs are: the card's, with its data partition mounted, or
-  the eMMC's, from an eMMC slot or from a card whose data partition is
-  missing or not mounted ([The control panel](../usage/control-panel.md#the-page)).
-  A card boot that shows the eMMC's settings runs on the machine's everyday
+  extensions, and logs are: the card's, with its data partition in use; the
+  eMMC's, from an eMMC slot or from a card with no data partition; or "SD
+  card failed - nothing is saved this boot (see logs); controllers held"
+  from a card that fails closed; or "UNKNOWN (error - see logs);
+  controllers held" when the boot left no record
+  ([The control panel](../usage/control-panel.md#the-page)). A card boot
+  that shows the eMMC's settings runs on the machine's everyday
   configuration: do not run a campaign on it.
 - **Write the whole card** for a fresh known configuration. The card's
   settings, extensions, and logs start over:
@@ -147,7 +172,10 @@ folders, read-only.
 
 `forgefirm-dev.fw`, the same dev image for an eMMC slot, keeps the eMMC's
 `/data`, as the release image does. So does a card written with the release
-image's card image, which has no data partition.
+image's card image, which has no data partition, and a release root
+filesystem written to a dev card's p1: the card's data partition is the
+dev image's alone, and a release image booted from a card leaves `/data`
+as `mountall` made it.
 
 ## Bench hygiene
 
@@ -244,7 +272,8 @@ From a host, stop them first.
 | `fan_test.py` | The fan and coolant bench (board or host; the controller runs). Takes a snapshot of the fan PWMs, the tachometers, and the temperatures. Drives M8 (the cut fans), then M9 (cooldown, then idle). Verifies through the tachometer readbacks. |
 | `fan_floor_measure.py` | The numbers that the airflow gates ship with (board or host). `spinup` opens a run session with M8 from idle and samples the four tachometers and the purge current at 1 Hz. It reports, for each fan, the steady speed, the time to 90 percent, and the spread over the steady window, plus the purge current at idle and at run duty (the pump is always on; a dead pump reads about 1), and candidate floors at 55 percent. `cut` only samples, during a real cut, for the spread under load. Results as JSON in the bench data directory. |
 | `temp_calibrate.py` | The coolant temperature spot-check helper (board or host): `watch [seconds]`, `point <measured_C> [note]`, `fit`. Pairs a measured temperature with averaged raw ADC readings and fits a per-machine line, to compare the factory curve with a thermometer. The points accumulate in `temp_calibration.json` in the bench data directory. The `supply-*` modes (`supply-watch`, `supply-point <C>`, `supply-fit`) do the same for the sensor of the power supply (`pic/pwr_temp`, raw) against a thermometer on its heatsink. The fit is printed next to the unverified guess on the [Kernel module](../technical/forgefirm/kernel-module.md) page. Three points during a long cut settle it. |
-| `critical_tier_drill.py` | The coolant critical tier on a rising temperature (board only, since it writes the heater). Sets the ceiling, the resume gate, and the critical line a few tenths above the live upstream reading. Then it opens one `M8` session and runs the loop heater at full duty to warm the loop through them. The heater goes off at `CRITICAL`, past 45 °C downstream, on `SENSOR`, if anything else writes it, and on every exit. Expects `OVERTEMP` at the ceiling, then `CRITICAL` (fire blocked, hold, no resume), with the fault that ends at `M9`. Restores the settings and cycles a session, so that the engine reads them again. Results as JSON in the bench data directory. |
+| `critical_tier_drill.py` | The coolant critical tier on a rising temperature (board only, since it writes the heater). Sets the ceiling, the resume gate, and the critical line a few tenths above the live upstream reading. Then it opens one `M8` session and runs the loop heater at full duty to warm the loop through them. The heater goes off at `CRITICAL`, past 45 °C downstream, on `SENSOR`, if anything else writes it, and on every exit. The drill writes the heater again every second, so a drill that dies leaves it off at the end of the kernel's lease ([Kernel module](../technical/forgefirm/kernel-module.md#heater_pwm)). Expects `OVERTEMP` at the ceiling, then `CRITICAL` (fire blocked, hold, no resume). It turns the coolant flow watch off for the run, and does nothing while a failure already waits for the operator's acknowledgment. Restores the settings and cycles a session, so that the engine reads them again. Then it hands the machine back as found: it waits for the cause to clear, acknowledges the fault it provoked (`POST /cool/attention/ack`), and fails if the verdict is not the one at its start. Results as JSON in the bench data directory. |
+| `offset_probe.py` | Which actuator moves both coolant readings (on the board, with forgectrl's cooling engine idle: it writes the fans only at session transitions, so a write here stands until the next session). Switches one actuator at a time, dark (no laser, no press): the exhaust, the intake, the air assist, the purge air, the heater, the pump, the TEC, and the lid lamp, with both coolant sensors sampled at 25 Hz, and scores the common-mode step at every edge and the toggling inside every dwell. The pump stops for one short dwell, with the tube dark and the heater off. `offset_probe.py [repeat]` (repeats of the exhaust run edge, default 2), `ladder` (the air-assist duty ladder alone), `jog` (the air assist at its run duty while the gantry jogs dark; GRBL mode, 35 mm of free +X and 10 mm of +Y), `armed` (an armed window with the tube dark: `M3 S0`, the operator's press, a 60 s dwell, `M2`; any lit sample soft-resets the job). The actuator runs refuse unless the pump is on and the heater off, and turn the coolant flow watch off for the run, refusing when it does not turn off, and back on at exit, a SIGTERM or a lost terminal included. Every value is restored on the way out. Results as JSON in `FORGETEST_BENCH_DATA`, or `/tmp`. |
 | `flow_sampler.py` | The board-side coolant sampler (`flow_sampler.py <duration_s> <interval_s>`, prints `elapsed,raw_down,raw_up`). Run it on the board (dev image: `/usr/share/forgetest/bench/`), so that the cadence does not depend on the ssh latency. |
 | `build-glowforge.sh` | Cross-compiles **grblHAL-glowforge** (the driver repository) in the Yocto build environment, with the toolchain of the recipe. Run: `bash <path>/build-glowforge.sh` (from Windows, start it through the WSL distro from PowerShell; Git Bash mangles the mount paths). Environment: `FF_SRC_TOP`, `FF_BUILD_TOP`. This is the production controller build. |
 | `build-forgectrl.sh` | Cross-compiles **forgectrl** (the daemon repository) in the same way, with the toolchain from the work directory of the forgectrl recipe (run `bitbake forgectrl` again after a clean). |
@@ -259,7 +288,7 @@ From a host, stop them first.
 | `xy_pattern_accel.py` | The XY microstep modes by the head accelerometer with the machine silent (on the board, the machine homed and standing at home, the lid closed, no other Grbl sender). Per mode given (default 8, 16, 32) it stores `xy_microsteps`, waits for the restarted controller, takes the cooling engine's quiet hold (`POST /cool/quiet`: the air assist, exhaust, intake and purge fans, the coolant pump and the TEC off, so the modes can be heard as well as measured; the pattern is dry, the laser latched), waits the fixed 10 s, then samples the head accelerometer straight over the bus at 800 Hz through the pattern: from home to (18, 9) in, to (9, 9) in, a 9 in circle from its mid-bottom back to (9, 9), to (9, 0), home, every leg at F12000. Reports the cruise-window RMS and peak-to-peak of X and Y per leg and overall, the leg times, the kernel counters against home, and `cnc/underruns`; a JSON record with the raw trace goes to the bench data directory. Ends at 32. |
 | `arc_tolerance_sweep.py` | How fine an arc the controller can plan: a `$12` ladder on the 9 in circle at F12000 (on the board, the machine homed and at home, the lid closed, no other Grbl sender, the machine silent through the quiet hold). Per rung it reports the chords and the chord boundaries a second, the circle time against the ideal, the lowest feed mid-circle and the fewest free planner blocks (a starved planner shows as both), the controller CPU, clamped events, underruns and the accelerometer's cruise RMS. `$12` goes back to what it was on every exit path and the head returns home. `--mode` picks the XY microstep mode (default 16). |
 | `raster_dry.py` | A dry raster at top speed at each XY microstep mode (on the board, the controller in GRBL mode, idle, no other Grbl sender). For each mode given (default 8, 16, 32) it stores `xy_microsteps` through forgectrl, waits for the restarted controller, streams 60 passes of 150 mm at F12000 with the laser off, and reports the peak feed, the controller CPU, the kernel counters against the start, `cnc/underruns` and any clamped-event line. Needs 150 mm of free +X and 12 mm of free +Y travel from where the head stands. Ends at 32. |
-| `platform_drills.py` | The kernel platform drills (on the board, forgectrl stopped so that the pulse device is free; start forgectrl again after). `platform_drills.py deadman|rmmod|decay|led|all`. `deadman` trips the kernel dead-man in the middle of a run and reads back what it touched. `rmmod` does three rmmod and modprobe cycles while another thread reads `cnc/state` and `cnc/position` in a tight loop. `decay` sets each decay mode and microstep mode on each axis and reads each back. `led` drives the button and lid LEDs through their target and pulse settings and back to rest. |
+| `platform_drills.py` | The kernel platform drills (on the board, forgectrl stopped so that the pulse device is free; start forgectrl again after). `platform_drills.py deadman|rmmod|decay|led|all`. `deadman` trips the kernel dead-man in the middle of a run and reads back what it touched: the heater and the TEC off, with the heater's lapse count (`heater_lapses`) unmoved, so the dead-man and not the lease turned the heater off; it puts back the resting posture it found on every exit. `rmmod` does three rmmod and modprobe cycles while another thread reads `cnc/state` and `cnc/position` in a tight loop. `decay` sets each decay mode and microstep mode on each axis and reads each back. `led` drives the button and lid LEDs through their target and pulse settings and back to rest. |
 | `fdscan.sh` | On the board. While forgectrl spawns helper children (the curl of the update check, the media-ctl and v4l2-ctl of the snapshot), scans each child for a descriptor on the pulse device. Expected: none. Only the controller inherits `/dev/glowforge`. Usage: `fdscan.sh <panel-token>`. |
 | `netblip.sh` | On the board, while a cloud session is live. Blackholes each established port 443 peer and breaks name resolution for N seconds, then restores both. The cloud client must see the dead socket and exit toward stopped-and-safe, and the respawn of the supervisor must connect again when the network is back. Usage: `netblip.sh [seconds]` (default 75). |
 
@@ -435,7 +464,9 @@ each run, and at most every 30 s otherwise. What holds:
   fixture out, the button is not covered, and the tests that press it stay
   attended. The arm press of a live test belongs to a person unless the
   bench configuration says `arm_press: true`. Then, and only with the jumper
-  in, the fixture presses when the button lights, and the record says so.
+  in, the fixture presses when the button breathes white (all three LED
+  channels pulsing, the pattern a controller shows only while a job waits
+  for the press), and the record says so.
 - **No press is ever held.** Every reader of the button catches a press of
   a quarter second or less: forgetest reads the presence press as an edge
   from the switches' input events, the controller's arm wait reads the

@@ -131,12 +131,12 @@ count is the one that should be zero.
 | `MCsn`, `PDfm` | **Refused on**: the serial the job is locked to and the pulse-data format, both checked before a byte reaches the ring; a mismatch is `refusing the job:` in the log and `:cancelled` to the service. <!-- style: ignore --> |
 | `CFrh`, `CCwp`, `CCrp`, `CCup` | **Logged**: the lifecycle keys, named in every job's log and driving nothing, which is what the factory does with them (below, "A print's warm-up and its rest"). |
 | `AAw?`, `EFw?`, `IFw?` | **Declared ignored**: the warm-up phase fan profile. The run profile covers the warm-up hold, and every captured header sets the warm-up values equal to the run values. |
-| `PTmn`, `PTmx` | **Declared ignored**: the supply temperature window. The service sends the whole ADC range (a window that cannot trip) and the factory binds the pair to nothing; the supply's raw reading is watched per job by the engine instead. |
-| `BT??`, `HT??`, `LT??`, `IT??`, `FT??` | **Declared ignored**: the board, head, lid, interconnect and fused temperature ceilings, sent in a unit that is not millidegrees and not established. The chassis (board) sensor is watched per job; the other four locations have no sensor on this platform. |
+| `PTmn`, `PTmx` | **Declared ignored**: the supply temperature window. The service sends the whole ADC range (a window that cannot trip) and the factory binds the pair to nothing; the supply's raw reading over each job is in the sensors logger's job record instead ([Logging](../forgefirm/logging.md#the-sensors-logger)). |
+| `BT??`, `HT??`, `LT??`, `IT??`, `FT??` | **Declared ignored**: the board, head, lid, interconnect and fused temperature ceilings, sent in a unit that is not millidegrees and not established. The chassis (board) sensor's range over each job is in the sensors logger's job record, with no gate behind it; the other four locations have no sensor on this platform. |
 | `CTrn`, `CTrx` | **Declared ignored**: the coolant window in raw counts. A hunt header carries it wide open (0 to 1023, a window no reading leaves) and no `CM` window; a cut or motion header carries `CMrn`/`CMrx` and no `CT`. |
 | `HA??` | **Declared ignored**: the head accelerometer thresholds. They are LIS2HH12 interrupt-generator register values, and forgectrl's crash watch runs the same mechanism on its own local knobs (the header defaults are the seeded values), so the per-job copies add nothing. |
 | `IR??` | **Declared ignored**: the lid IR flame thresholds. The lid IR channels read the lid lamp, so these absolute numbers are the prior for the lamp-aware fire watch (see [the cooling engine](../forgefirm/cooling-engine.md)), not a gate. |
-| `HIix`, `HIrx` | **Declared ignored**: the HV current caps. The sampled `LASER_ON` witness covers the idle case, and HV current is ranged in every job's log line. |
+| `HIix`, `HIrx` | **Declared ignored**: the HV current caps. The sampled `LASER_ON` witness covers the idle case, and the sensors logger's job record carries the HV current over each job's lit seconds ([Logging](../forgefirm/logging.md#the-sensors-logger)). |
 | `TRuc` | **Declared ignored**: thermal report upload conditions, a knob for the factory's telemetry, which is out of scope. |
 | `WPon` | **Declared ignored**: the pump is held on as part of the engine's idle posture; per-job pump control would belong in its per-job profile. |
 | everything else | **Undecided**: counted and named at debug level by every job. Of the 346 header-legal tags, the factory binds 283 to a source; 20 configure the client's own network backoff, 39 belong to the three fans of an air filter, the camera families are exposure and gain values the mainline driver's units do not take, and most of the rest are per-phase idle variants of the limits above. A hunt header from the live service leaves 49 undecided. |
@@ -176,8 +176,9 @@ ForgeFIRM's answer to each of those is on
 [the cooling engine](../forgefirm/cooling-engine.md): every gate is a plain
 setting with an off end, a header value can only ever tighten a local one,
 every fan is held to a measured floor with a fault rather than a pause for the
-session, there is a coolant critical line above the ceiling's pause, and the board
-temperatures are watched per job. Coolant flow is not verified here
+session, and there is a coolant critical line above the ceiling's pause. The board
+temperatures are recorded over every job, with no gate behind them
+([Logging](../forgefirm/logging.md#the-sensors-logger)). Coolant flow is not verified here
 either. The rest of the envelope is declared tag by tag in the table
 above.
 

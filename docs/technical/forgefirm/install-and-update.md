@@ -160,9 +160,10 @@ operator procedure is on
 `scripts/release.sh` runs on the build host: gates, kas build, pack `.fw`,
 sign, `sha256sums.txt`, staged assets, and the `gh release create` command
 (`--publish` runs it where gh is authenticated). The gates are: a clean
-tree, the version single-source, rootfs-vs-slot size for both images (warn
+tree (and with `--publish`, a pushed git checkout whose tag `v<version>` names HEAD), the version single-source, rootfs-vs-slot size for both images (warn
 at 170 MiB or more, fail at 195 MiB or more, under bitbake's own hard cap),
-a dev key that is not the release key, the
+a dev rootfs that is the build of the release rootfs, a signing key that is
+the release key the image trusts, a dev key that is not the release key, the
 **installer-embedded public key must match the signing key**, factory-era
 fwup (0.14.2) verification of the packed archive, and the **release
 acceptance gate**: `releases/v<version>/acceptance.json` (exported by
@@ -188,7 +189,8 @@ and the bench tools included), signed with the dev key so it is never an
 unsigned file in transit. The machine holds the release key and the Glowforge
 keyring only, so a dev archive classifies as unsigned there and takes the
 operator-present path: the unsigned confirmation with the machine button
-held. Of the gates, only the slot size gate runs on it.
+held. Of the gates, only the slot size gate and the dev key gate (a dev key
+that is not the release key) run on it.
 
 **The dev image on the bench.** The dev rootfs is sized and capped like the
 release rootfs ([Image and BSP](image-and-bsp.md)), so it fits a slot as
@@ -255,8 +257,13 @@ signature before writing, and re-verify the written filesystem.
 
 Every state-changing call is behind forgectrl's auth layer (a login
 session, the panel token, and origin checks); unsigned installs
-additionally require the physical button held
-([forgectrl](forgectrl.md#http-api)).
+additionally require the physical button held, and are refused while a job
+could take that press
+([forgectrl](forgectrl.md#http-api)). `POST /update/apply` answers in this
+order: the `slot` and `file` parameters (400), the staged archive (404),
+then, for an unsigned install (`confirm_unsigned=1`), the job (409) and the
+button (403), then the slot guards (409: the booted root slot, the slot
+selected for the next boot, a slot that is not the factory geometry).
 
 **The record in the log.** Every forgectrl start logs the version that
 runs, its slot, and its root device as the kernel command line names it
@@ -279,11 +286,15 @@ Reinstalling ForgeFIRM afterward is the installer again from the console.
 
 **What `/data/forgefirm/` holds.** Beside the archive and the update lock:
 
+- the settings file (`forgefirm.conf`);
 - the setup record (`setup.json`);
 - the sheet salt (`sheet.salt`);
 - the TLS key and certificate;
 - the account record (`users`) and the home directories (`home/`);
-- the panel token (`panel.token`);
+- the panel token (`panel.token`), the camera key (`camera.key`), and the
+  API tokens (`tokens`);
+- the extension packages, their keys and the required holds (`ext/`)
+  ([Extensions](extensions.md));
 - the settings store of the GRBL controller (`EEPROM-glowforge.DAT`, the
   `$` settings);
 - the sshd host keys (`ssh/`), the boot timestamp (`timestamp`), and the
@@ -373,9 +384,9 @@ slot scheme.
 - Size gates live in two layers: bitbake fails past the 200 MiB slot;
   `release.sh` warns at 170 MiB and fails at 195 MiB.
 - Dev archives (`release.sh --dev`) carry the dev key's signature, which no
-  machine holds: they take the button-held unsigned path. The dev rootfs is
-  too large for a slot, so it runs from an SD card and no size gate applies
-  to it.
+  machine holds: they take the button-held unsigned path. The dev rootfs
+  fits a slot and passes the same slot size gate as the release rootfs; the
+  bench runs it from an SD card ([above](#the-release-pipeline)).
 - Production signing key: held offline by the operator (never in the repo,
   CI, or cloud-synced plaintext), public key embedded in the installer.
   Production-signed archives verify with fwup 1.16 and the factory's 0.14.2

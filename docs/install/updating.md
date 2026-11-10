@@ -14,15 +14,14 @@ the control panel applies one.
 A ForgeFIRM release is a GitHub release in the
 [`forgefirm` repository](https://github.com/openglow-org/forgefirm/releases).
 Its assets have fixed names, and the installer and the update manager
-download them by those names:
-
-| Asset | Contents |
-|---|---|
-| `forgefirm.fw` | The signed release archive, in the `fwup` format the factory uses. The version is in the archive's metadata and equals the release tag `v<semver>`. It carries the tasks `upgrade.a` and `upgrade.b`, one per slot. |
-| `sha256sums.txt` | Checksums of the assets. |
-| `forgefirm-image-glowforge.rootfs.wic.gz` | The same image as a disk image for an SD card. |
-| `acceptance.json`, `acceptance.md` | The release acceptance record that authorized the rootfs ([Acceptance](../developers/acceptance.md)). |
-| `forgefirm-source-v<semver>.tar.gz` | The source of the software in the image: the upstream source of each recipe, the patches, the recipes, and the license manifests. The machine does not download it ([Release flow](../developers/release-flow.md), "The source bundle"). |
+download them by those names; the list, with the assets for a person (the
+source and the dev image, which no machine downloads), is on
+[Release flow](../developers/release-flow.md#the-pipeline-scriptsreleasesh).
+The one the update manager applies is `forgefirm.fw`: the signed release
+archive, in the `fwup` format the factory uses. The version is in the
+archive's metadata and equals the release tag `v<semver>`. It carries the
+tasks `upgrade.a` and `upgrade.b`, one per slot. The dev image's assets
+carry the label "development only" on the release page.
 
 The archive fits the 200 MiB slot. The build fails past the size gate rather
 than producing an unflashable release.
@@ -42,7 +41,11 @@ Development archives (`forgefirm-dev.fw`) are signed with a separate dev
 key, never left unsigned. A machine trusts the release key only, so it takes
 a dev-signed archive as unsigned: the automatic paths refuse it, and a manual
 upload asks "The archive is not signed with the release key. Install it
-anyway?" and installs it only with the physical button held.
+anyway?" and installs it only with the physical button held: the dialog
+stays open until the button is held when you press OK, or you cancel.
+Finish or cancel a job first: the machine refuses the install while a job
+could take the hold as its own press
+([Control panel](../usage/control-panel.md#access)).
 
 The release pipeline, its gates, and the version contract are in
 [Release flow](../developers/release-flow.md).

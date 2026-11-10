@@ -21,8 +21,9 @@ the interlock plug on a Pro, and the big button are wired so that the laser
 cannot fire with the lid open, and cannot fire at all until a person presses
 the button. ForgeFIRM keeps every one of those. On top of them it adds its
 own checks: it waits for your press before the first cut of a job, it holds
-the job when the coolant is not proven to be moving or is too warm, it ends
-the job when the lid opens, and it watches for a fire and for a head crash.
+the job when the coolant is too warm or too cold (it does not check that the
+coolant is flowing), it ends the job when the lid opens, and it watches for a
+fire and for a head crash.
 
 The software checks are software. Treat them as help, not as a guarantee.
 The fire watch catches a developed fire, not a small flame, and it is not a
@@ -42,7 +43,7 @@ safeguard that has to work.
 - Vent the exhaust outdoors, always. The fumes are toxic and flammable.
 - Know your material. Never cut PVC, vinyl, or any chlorinated plastic.
 - Every job with a laser layer fires, however low the power is set. If the
-  button lights and you did not expect it, press Stop.
+  button breathes white and you did not expect it, press Stop.
 - Read the messages. When the machine holds or refuses, the sender console
   and the control panel say why. Find the cause before you retry
   ([Troubleshooting](../usage/troubleshooting.md)).
@@ -63,11 +64,19 @@ safeguard that has to work.
 
 ## What to expect from the safeguards
 
-- **The button, before the first cut.** The big button lights white and the
-  machine waits for you to press it. One press covers one job. A long pause
-  or an idle wait relocks the laser, and the next cut asks for the press
-  again ([GRBL mode](../usage/grbl-mode.md#arming-the-button-press-is-part-of-every-job),
+- **The button, before the first cut.** The big button breathes white and
+  the machine waits for you to press it. One press covers one job. A long
+  pause or an idle wait relocks the laser, and the next cut asks for the
+  press again ([GRBL mode](../usage/grbl-mode.md#arming-the-button-press-is-part-of-every-job),
   [Cloud mode](../usage/cloud-mode.md#pause-cancel-and-park)).
+- **The button, flashing red.** Firing is blocked by something you need to
+  look at, and the control panel says what
+  ([The button](../usage/index.md#the-button)). After a fire, a crash, a fan
+  failure, coolant at the critical line, or anything still wrong when a job
+  ended, the panel asks you to press **Acknowledge** before the next job
+  fires. Turning the machine off and on clears that too, so it does not
+  protect you across a power cycle: find the cause before you run again
+  ([The button flashes red](../usage/troubleshooting.md#the-button-flashes-red)).
 - **The button, during a job.** A press pauses the job. Another press
   resumes it.
 - **The lid and the interlock.** Opening the lid, or the interlock loop on a
@@ -75,9 +84,13 @@ safeguard that has to work.
   and the next job asks for the button again. Opening the lid does not stop
   a jog: a jog runs with the lid open, and the beam is blocked in hardware.
 - **Cooling.** The machine holds a job, or refuses to start firing, when the
-  coolant is not proven to be moving, is too warm or too cold, when a fan is
-  not moving air, or when it sees a flame or a head bump. It tells you which
+  coolant is too warm or too cold, when a fan is not moving air, or when it
+  sees a flame or a head bump. It tells you which
   ([Cooling and fans](../usage/cooling-and-fans.md#quick-reference-what-the-machine-does-when)).
+  When a hold has cleared and the button breathes white, the job waits
+  for your press before it fires again.
+  Nothing checks that the coolant is flowing: make sure the pump runs before
+  you cut.
 - **A crash of the software.** If the program that controls the machine
   crashes, the machine stops motion and locks the laser on its own, then
   restarts that program.

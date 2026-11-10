@@ -59,6 +59,12 @@ LED, the coolant pump, and the exhaust and intake fans belong to the cooling
 engine and the camera respectively. Airflow and coolant circulation after an
 aborted cut are wanted, and a pump stop/start cycle can airlock the loop.
 
+The loop heater also goes off by itself when whatever turned it on stops
+writing it: a write above zero holds only for a lease
+([`heater_pwm`](#heater_pwm)). At a halt, a power-off, or a reboot the
+thermal driver turns the loop heater and the TEC off; the pump and the fans
+stay as they are.
+
 ## Safety functions
 
 Every function below sits in front of the hardware chain. It can only
@@ -219,7 +225,8 @@ services daemon, cloud mode) are on
 
 /sys/glowforge/thermal   <- Cooling hardware
     |---exhaust_pwm:         (RW) Exhaust fan PWM output setting
-    |---heater_pwm:          (RW) Coolant heater PWM output setting
+    |---heater_lapses:       (RO) Heater leases that ran out since load
+    |---heater_pwm:          (RW) Coolant heater PWM output setting (held for a lease)
     |---intake_pwm:          (RW) Intake fan PWM output setting
     |---tach_exhaust:        (RO) Exhaust fan tachometer reading
     |---tach_intake_1:       (RO) Intake fan 1 tachometer reading
@@ -265,7 +272,8 @@ Read, ASCII, 0-1
 
 State of the safety chain's button latch: 1 = set (emission blocked until the
 operator presses the button with the lid closed and `laser_latch` unlocked),
-0 = cleared (armed).
+0 = cleared (armed). A `laser_latch` lock sets it, and a press taken under
+the lock does not clear it ([The safing chain](../machine/safing-chain.md#logic)).
 
 ### charge_pump_alive
 
@@ -561,8 +569,10 @@ reference. The sensors logger records it every beat
 Read, ASCII, five 4-digit hex values
 
 The beam detector's five coefficients as the head holds them (registers
-0x22, 0x24, 0x26, 0x28, 0x2a), in that order: the head firmware's own
-defaults, which the module leaves alone
+0x22, 0x24, 0x26, 0x28, 0x2a), in that order. The module never writes them.
+The head keeps the values it last held until it loses power, so they read
+the head firmware's own defaults once the machine has been powered off,
+and whatever an earlier writer left until then
 ([Sensors](../machine/sensors.md#beam-detect-inside-the-head-mcu)).
 
 ### beam_detect_analog
@@ -707,7 +717,8 @@ wanders about 0.09 counts, without it about 0.19.
 A kernel thread reads every PIC register in one transaction (the `grp_all`
 read, `pic_settle_us` included) `pic_sampler_hz` times a second: a module
 parameter, 50 by default, fixed at load, 0 for no sampler, more than 200
-taken as 200. It keeps the newest read and, for each analog input
+taken as 200 (`/sys/module/glowforge/parameters/pic_sampler_hz` reads back
+the rate in use). It keeps the newest read and, for each analog input
 (`water_temp_1`, `water_temp_2`, `tec_temp`, `pwr_temp`, `lid_ir_1` to
 `lid_ir_4`, `hv_current`, `hv_voltage`), rolling one-second and ten-second
 windows. Every input of one read is converted within the same transaction,
@@ -722,10 +733,22 @@ the full transaction than read alone, a constant. The thread runs at normal prio
 at the default rate), and after an overrun the grid restarts from the
 moment it notices.
 
+A read counts only when register 0 holds the PIC's ID (0x4d53, what `id`
+reads): a PIC that is reset or absent reads as all zeros or all ones with no
+bus error, so a read without the ID is counted as an error. After an error,
+or a gap of more than two periods since the last good read (a stall, an
+overrun), both windows start over, so the one-second and ten-second means
+hold one unbroken run of reads and never an old run with a new read on its
+end; the read counts in `means` say how many each window holds. A read's
+time is taken as the read starts, before its transfer, and the gap is
+measured from one read's start to the next. The age `means` reports and the
+time in `snapshot` therefore include the transfer: a read is reported at
+least as old as it is, never newer.
+
 `means` and `snapshot` report what it holds. Both refuse with `ENODATA`
-while the sampler is off or its newest read is more than a second old, so a
-reader cannot take stale values for current ones. The other attributes are
-unchanged and still read the PIC live.
+while the sampler is off or its newest read is older than one second (two
+periods, at a rate under 2 Hz), so a reader cannot take stale values for
+current ones. Every other attribute reads the PIC itself.
 
 ### button_led_1, button_led_2, button_led_3
 
@@ -762,16 +785,22 @@ then read the file back.
 echo 18,19,1a,1b > /sys/glowforge/pic/hex && cat /sys/glowforge/pic/hex
 ```
 
-What comes back is whatever the PIC clocked out during that preceding write,
-as one comma-separated list of values, each exactly four hex characters wide.
+What comes back is what the PIC clocked out during the last write to `raw`
+or `hex`, as one comma-separated list of values, each exactly four hex
+characters wide. The module keeps that reply apart from every other
+transfer, the sampler's included, so the read returns the reply to that
+write however many transfers ran in between. The reply is one for the
+whole machine, not one per caller: a `raw` or `hex` write by anything else
+in between replaces it.
 
 ### hv_current
 
 Read, ASCII, 0-1023
 
 HV current. The exact meaning of this value is not characterized. It is the
-only live HV telemetry; the cooling engine ranges it per job
-([Cooling engine](cooling-engine.md)).
+only live HV telemetry; the sensors logger records it every beat and sums
+it over the lit seconds of each job
+([Logging](logging.md#the-sensors-logger)).
 
 ### hv_voltage
 
@@ -805,7 +834,7 @@ Lid LEDs. Not intended to be set directly. Set it through the
 Read, ASCII, varies
 
 The [sampler](#the-sampler)'s statistics. The first line is
-`hz <rate> age_ms <age of the newest read> reads <total> errors <total>`;
+`hz <rate> age_ms <age of the newest read, from its start> reads <total> errors <total>`;
 then one line per analog input:
 
 ```
@@ -813,8 +842,9 @@ then one line per analog input:
 ```
 
 The means are raw counts to three decimals; the minimum and maximum are raw
-counts; a window not yet full reports the reads it holds. `ENODATA` while
-the sampler is off or its newest read is more than a second old.
+counts; a window not yet full, or started over after an error or a gap,
+reports the reads it holds. `ENODATA` on the sampler's freshness rule
+([The sampler](#the-sampler)).
 
 ### pwr_temp
 
@@ -830,14 +860,15 @@ Read/Write, Binary, varies
 
 Sends a block of raw binary straight to the PIC. A write has to be a multiple
 of three bytes long. Reading returns the bytes the PIC sent back over the
-previous write.
+last write to `raw` or `hex`, kept apart from every other transfer as for
+[`hex`](#hex).
 
 ### snapshot
 
 Read, Binary, 42 bytes
 
 The [sampler](#the-sampler)'s newest read: a little-endian signed 64-bit
-`CLOCK_MONOTONIC` time of the read in nanoseconds, then every register as
+`CLOCK_MONOTONIC` time of the read's start in nanoseconds, then every register as
 `grp_all` lays them out, little-endian 16-bit values. `ENODATA` on the same
 rule as `means`.
 
@@ -877,8 +908,13 @@ design. The factory runs 22, 5 at hold.
 
 ## /sys/glowforge/thermal
 
-The cooling engine in forgectrl is the only writer of this group
-([Cooling engine](cooling-engine.md)).
+In service forgectrl is the only writer of this group: the cooling engine,
+and the coolant flow watch, which borrows the heater when an owner turns it
+on ([Cooling engine](cooling-engine.md#coolant-flow)). Bench tools write
+the heater for their drills: `critical_tier_drill.py` and `offset_probe.py`
+(each turns the flow watch off for its run), and the dead-man drill of
+`platform_drills.py`, with forgectrl stopped
+([The bench](../../developers/bench.md)).
 
 ### exhaust_pwm
 
@@ -892,8 +928,30 @@ Read/Write, ASCII, 0-65535
 
 Water heater PWM period. 0: Off, 65535: Full power. The heater sits in the
 coolant loop between the two water temperature sensors, so heat it puts in
-shows up as a difference between them. The cooling engine uses it for flow
-verification.
+shows up as a difference between them. The cooling engine's warm-up hold and,
+when an owner turns it on, its coolant flow watch use it.
+
+**A write above zero holds only for a lease.** The lease is
+`heater_lease_ms` milliseconds from the write: a module parameter, 5000 by
+default, held to 2000 to 60000 (the least is two of a writer's one-second
+periods), fixed at load (mode 0444, under
+`/sys/module/glowforge/parameters/`, where it reads back the lease in use,
+not a value given out of range). A writer keeps the heater on by
+writing it again within the lease, and keeps doing so. When the writes stop
+(the writer died, hung, or forgot), the module turns the heater off within
+one heater PWM period (10 ms) of the lease's end, and logs
+`heater: no write within its N ms lease; heater off (lapse K)`. A write of 0
+needs no lease. A read returns the duty in force, 0 once a lease has run
+out. The cooling engine, the flow watch, and the bench tools that drive the
+heater each write their duty again every second
+([Cooling engine](cooling-engine.md#low-temperature-the-floor-and-the-warm-up-hold)).
+
+### heater_lapses
+
+Read, ASCII, 32-bit
+
+How many heater leases have run out with the heater on since the module
+loaded ([`heater_pwm`](#heater_pwm)).
 
 ### intake_pwm
 
@@ -944,6 +1002,11 @@ Interface to control the button LEDs and the lid LEDs, driven by the
 
 - `target` (0 to 255): the brightness to settle on. The LED eases there from
   wherever it currently sits, and the target may be moved again mid-fade.
+  A fade ends once it is within a sixteenth of a count of its target, and
+  the trigger then takes the value it reached as the target and reports
+  its integer part: a fade up to 255 reads back as 254 once it has
+  settled, and a fade down to 0 reads back as 0. A reader that judges
+  solid white takes 254 or more.
 - `speed` (1 to 160): how fast the LED closes on its target. Defaults to 64.
 - `pulse_on`, `pulse_off` (milliseconds): raise both above zero and the LED
   swings between full and zero brightness on its own. `pulse_on` is how long

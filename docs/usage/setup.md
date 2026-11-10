@@ -190,7 +190,7 @@ cooling gate stands, and a lid opened during a burn cancels it. Eye
 protection, the exhaust, and an extinguisher in reach are on you. Each
 step's page shows a preview of what it burns, and the program behind it.
 While a step runs, the page names what the machine is doing and counts the
-seconds, prompts the press when the button lights white, and ends with the
+seconds, prompts the press when the button breathes white, and ends with the
 result in a sentence; the settings the step wrote, each with its value
 before, and the numbers behind the sentence sit under a fold. A question
 about the burn waits half an hour for your answer and the page counts that
@@ -225,7 +225,7 @@ Each step asks, in order:
    number such as `3.2`: not `1/8`, and with no unit after it. It must be
    more than 0 and at most 30 mm (1.18 in). For Laser floor it must also
    be inside the lens's reach: the step names the range and asks again.
-5. **The arm.** Continue, then press the button when it lights white.
+5. **The arm.** Continue, then press the button when it breathes white.
 
 Each step burns its box 10 mm from the head's home in X and Y. The program
 declares X0 Y0 at the head with `G92`, and its last moves bring the head
@@ -295,16 +295,17 @@ person stands at the machine.
 
 ## What the button says
 
-The button's light is the machine's voice during the setup:
+The button's light is the machine's voice during the setup, in the same
+language as always ([The button](index.md#the-button)): a burn waits for
+your press with breathing white, as any job does, and solid white also
+shows while a check works with no controller running (a calibration, the
+lens reference, the fans). The setup adds three colors of its own:
 
 | The light | What it means |
 |---|---|
 | Breathing teal | Press me: the acceptance of the documents |
-| Breathing white | The machine is working on a check with no controller running (a calibration, the lens reference, the fans) |
-| Solid white | Press me: a burn's program waits for its arm press (the controller lights it, as for any job) |
 | Blinking amber | Attention: a check waits for the lid to close; or the password reset hold at power-on |
 | Solid green | The guided run ended with nothing left to recommend; it goes out when the control panel opens. A run set aside with steps left does not light it |
-| Dark | Nothing waits for you |
 
 ## A second browser
 
@@ -366,7 +367,12 @@ accepted advisories with their hashes and times, the account name, and the
 machine facts. It also holds each wizard's completed version, its results,
 its applied settings (each with the value before), and the flags. The
 record is on `/data`, outside the firmware slots, so it survives updates.
-It never holds the serial number, a network name, or a credential.
+It never holds the serial number, a network name, or a credential. It
+names the machine it was made on by the sheet id
+([The sheet id](#the-sheet-id)): a record that reaches another machine (a
+development SD card moved to another board) asks the Your machine step
+again and recommends the steps a new head does
+([forgectrl](../technical/forgefirm/forgectrl.md#setup-and-the-gate)).
 
 The record leaves the machine three ways, all from the System tab's
 **Setup** card and from the setup's last screen:
@@ -477,9 +483,17 @@ Reinstalling ForgeFIRM is the install process again from the console
 
 ## A forgotten password
 
-Hold the machine's button while you turn the machine on. Keep it held for
-ten seconds, until the button blinks amber. The setup then asks for a new
-account.
+Hold the machine's button while you turn the machine on, and keep holding
+it the whole time, through three colors:
+
+1. **Purple**, at power-on. Let go now and the machine starts the factory
+   recovery instead ([Recovery](../install/recovery.md)).
+2. **Dark**, after a few seconds: the machine is starting.
+3. **Amber, blinking**, once ForgeFIRM has started. Keep holding until the
+   blinking stops, ten seconds more.
+
+The setup then asks for a new account. Let go while the button is dark or
+blinking and nothing changes.
 
 **The extension packages, when there are any.** The account step offers to
 remove every [extension package](extensions/index.md) on the machine, its data,
@@ -498,7 +512,7 @@ stands.
 | `GET /setup` | The setup page (also `/` until the guided run ends) |
 | `GET /wiz` | The setup state: `gate` and its `why`, `fans_counted`, `missing` (the required steps the gate waits for, a release's version bump among them), `recommended` (each step's `id` and `reason`), every step with the version it completed at, and the what-changed menu; `extensions` lists the checks packages add (`pkg:<id>`, the title, done) |
 | `GET /wiz/record`, `GET /wiz/record?download=1`, `GET /wiz/record.html` | The setup record, the same as a download named after the sheet id, and the printable summary |
-| `POST /wiz/changed` | A replaced part or a service (`what`: `tube`, `pump`, `coolant`, `fan`, `head`, `tray`, `service`); the steps it maps to are recommended |
+| `POST /wiz/changed` | A replaced part or a service (`what`: `tube`, `fan`, `head`, `tray`, `service`); the steps it maps to are recommended |
 | `GET /advisories/<id>` | The text of one advisory; the `ETag` is its hash |
 | `POST /wiz/advisories/accept` | Confirm one document (`doc`, `hash`, `phrase`) |
 | `POST /wiz/advisories/press`, `GET /wiz/advisories/press`, `POST /wiz/advisories/press/cancel` | Ask for the button press, poll it, withdraw it |

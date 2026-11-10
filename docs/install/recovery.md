@@ -60,11 +60,12 @@ The factory recovery is a small system in the eMMC hardware boot
 partitions, separate from both rootfs slots. It is never updated in the
 field, so every machine runs its as-manufactured recovery. The ForgeFIRM
 installer never writes those partitions; it archives them
-([Installation](index.md#the-factory-firmware-is-archived-first)). Two paths
+([Installation](index.md#the-factory-firmware-is-archived-first)). Three paths
 lead into recovery mode:
 
-- **The button at power-on.** U-Boot polls the button at power-on for a
-  recovery request.
+- **The button at power-on.** Held at power-on, the button turns purple:
+  let go within 5 s and U-Boot enters recovery. Held longer, the button
+  goes dark and the machine starts normally.
 - **A blank or corrupt boot environment.** The compiled-in default
   environment boots recovery, so a machine with no usable saved environment
   lands in recovery mode, not in a brick.

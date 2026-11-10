@@ -63,26 +63,48 @@ name does not change when you set a cloud identity override.
 ## The control panel in brief
 
 The panel is one self-contained page with a light and a dark theme. It has
-seven tabs:
+up to eight tabs:
 
 - **Status**: the controller-mode selector, live operational status (motion
   state and position, coolant temperatures and fan tachometers, safety-switch
   states, system summary), and the lid-camera view.
 - **Machine**: shared settings: display units, the homing method and the
   post-homing position calibration, and the cooling tunables.
-- **GF Cloud**: the Glowforge web-service overrides: machine identity and the
-  homing-session timeout.
+- **GF Cloud** (only while cloud mode is on): the Glowforge web-service
+  overrides: machine identity and the homing-session timeout.
 - **GRBL**: the controller connection information and the GRBL-mode tunables:
   the laser arm window, the laser dose, and the motor-rail settle time.
-- **Diagnostics**: tools that take the hardware over: cooling system
-  verification and calibration.
+- **Extensions** (only while extensions are on): the pages of the packages
+  that have one.
+- **Setup**: every step of the setup and what the machine recommends, the
+  **What changed?** menu, and the coolant offset calibration, a tool that
+  takes the hardware over.
 - **Logs**: log levels, the remote syslog target, a live log viewer, and the
   log export.
 - **System**: firmware slots, ForgeFIRM updates, image install and restore,
-  the WiFi regulatory region, remote access (SSH), the setup card,
-  and reboot.
+  the WiFi regulatory region, remote access (SSH), extensions and API
+  tokens, the setup card, **Reset all settings**, and reboot.
 
 [The control panel](control-panel.md) describes each tab.
+
+## The button
+
+The big button on the machine is your consent: a job fires only after you
+press it. Its light tells you what the machine wants:
+
+| The light | What it means |
+|---|---|
+| Breathing white | A job waits for your press. It goes dark once your press is taken. In cloud mode it breathes again whenever a press would carry a paused print on: after you paused it, and after a cooling pause has cleared. In GRBL mode it breathes again only when a resume needs a fresh press to arm the laser. |
+| Solid white | The machine is moving. |
+| Red, flashing slowly | Firing is blocked: look at the control panel, which says why. A fault that has cleared may still need your **Acknowledge** there ([The control panel](control-panel.md#the-page)). The red stands over every other light. |
+| Dark | Nothing asks for your press. A job you paused in GRBL mode is dark too, and a press resumes it. A print the cooling holds in cloud mode is dark until the hold clears. |
+
+The setup has a few colors of its own: teal, amber, and green
+([Setup](setup.md#what-the-button-says)). A warm-up, coolant that is too
+warm or too cold, an extension's hold, and an open lid never flash red: the
+machine waits those out by itself. How each mode uses the press is on
+[GRBL mode](grbl-mode.md#arming-the-button-press-is-part-of-every-job) and
+[Cloud mode](cloud-mode.md#pause-cancel-and-park).
 
 ## Where to go next
 
@@ -99,5 +121,5 @@ seven tabs:
 | [Cooling and fans](cooling-and-fans.md) | The gates as settings, and what the machine does when. |
 | [Settings](settings.md) | The machine-settings reference. |
 | [Logging](logging.md) | The Logs tab, the export, remote syslog. |
-| [Diagnostics](diagnostics.md) | The hardware tests and when to run them. |
+| [Diagnostics](diagnostics.md) | What a diagnostic does to the machine, and the coolant offset calibration. |
 | [Troubleshooting](troubleshooting.md) | What to do when something looks wrong. |

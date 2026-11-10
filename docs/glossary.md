@@ -85,9 +85,11 @@ spell out every time. Acronyms expand on hover wherever they appear.
   playback engine.
 
 **Fire gate**
-: A condition that blocks emission without stopping the machine: a coolant
-  fault, an over-temperature, a fan below its floor, a flame or crash
-  reading.
+: A condition under which the cooling engine blocks emission and holds the
+  job: coolant too warm or too cold, an unreadable coolant sensor, a fan
+  below its floor, a flame alert, or a head bump. A fire signal and a head
+  crash do more: they also stop motion and lock the laser
+  ([What the verdicts do](technical/forgefirm/cooling-engine.md#what-the-verdicts-do)).
 
 **Density**
 : The dose model. Every pulse fires at full power and the commanded level

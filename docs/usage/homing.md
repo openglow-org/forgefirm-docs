@@ -165,7 +165,11 @@ broken hardware, not a state to work around.
 Anything that invalidates position, an underrun, a stream fault, a soft reset
 whose position cannot be read back, a soft reset during a camera-referenced
 homing, or a motor release, drops the anchor deliberately, so a stale origin
-cannot be reused. Re-home before you trust coordinates again.
+cannot be reused. So does a controller restart: the machine restarts the
+controller after it crashes or hangs, after a fire signal, and after a head
+crash signal. Re-home before you trust coordinates again.
+
+A cooling fault (an airflow or coolant fault) ends the job but keeps the home.
 
 ## Homing in cloud mode
 

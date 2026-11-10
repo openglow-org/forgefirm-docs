@@ -121,9 +121,11 @@ at 996 MHz and no cooling device leaving state 0. The die-to-chassis delta at
 full load is about 41 C, so by arithmetic the passive trip is a hot-*chassis*
 case (above roughly 44 C ambient inside the machine), not a load case.
 
-ForgeFIRM watches this rather than gating on it: the range over each job and
-any throttle go into one log line at the job's end
-([the cooling engine](../forgefirm/cooling-engine.md)).
+ForgeFIRM watches this rather than gating on it: the sensors logger's job
+record carries the range over each job and the seconds throttled
+([Logging](../forgefirm/logging.md#the-sensors-logger)), and the cooling
+engine names a throttle in the log when it starts and when it ends
+([the cooling engine](../forgefirm/cooling-engine.md#the-fire-watch)).
 
 ## Board temperatures at idle
 
@@ -155,7 +157,9 @@ as trusted degrees.
 ## High-voltage supply (`pic/hv_current`, `pic/hv_voltage`)
 
 `hv_current` (0 to 1023): HV current. The exact meaning of the value is not
-established; ForgeFIRM ranges it in every job's log line.
+established; the sensors logger's job record carries its sum and mean over
+each job's lit seconds
+([Logging](../forgefirm/logging.md#the-sensors-logger)).
 
 `hv_voltage` (0 to 1023): HV voltage. Every power supply examined ties the
 input of this A/D to ground.
@@ -342,8 +346,10 @@ the 034c and 044c builds differ only in two pins' setup, not in the beam path.
   set flag **0x05 bit 7**; register 0x2e (`head/beam_baseline`) is the
   detector's baseline. The defaults differ between the versions: 0x07ae,
   0x1999, 0x20, 0x28, 0x60 under 0be0123e, and 0x4000, 0xf333, 0x78, 0xc0,
-  0x190 under 0bb13047. ForgeFIRM leaves them as the head's firmware sets
-  them; they shape only the verdict and the baseline, never register 0x16.
+  0x190 under 0bb13047. ForgeFIRM never writes them. The head keeps the
+  values it last held until it loses power, so after a power-off they are
+  its firmware's defaults. They shape only the verdict and the baseline,
+  never register 0x16.
 - **The comparator.** Flag **0x05 bit 2** (`head/beam_detect_digital`) is a
   plain input pin (PTE18) fed by a comparator outside the MCU; the MCU's own
   comparator is unused.
@@ -353,8 +359,10 @@ the 034c and 044c builds differ only in two pins' setup, not in the beam path.
   reads 0x3ff on the bench reference with `z_current` at 1. It is most
   likely the Z driver's current reference.
 
-The driver exposes the raw comparator and the analog level, **not** the
-processed verdict at bit 7. The factory's 2.6.0 application carries a
+The driver exposes the raw comparator, the analog level, and, in
+`head/flags`, the processed verdict at bit 7. ForgeFIRM gates nothing on the
+verdict: the sensors logger records the flag byte, and nothing else reads
+it. The factory's 2.6.0 application carries a
 complete but config-gated subsystem, with separate printing and idle
 enables, three severities, a level-or-edge trigger option and a fault-report
 upload, and an invalid severity defaults to disabled. Every job header

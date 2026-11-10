@@ -266,7 +266,17 @@ The cloud tests split by what they prove:
   `/run/gfcloud-offline.sock` and reads the events of the machine back (see
   `forgetest/puls.py` and [Cloud mode](../technical/forgefirm/cloud-mode.md)). Those jobs
   carry no laser command, so nothing is on the bed and nothing burns. The
-  arm still unlocks the latch, so they stay `live`. The offline client is
+  arm still unlocks the latch, so they stay `live`. One of them,
+  `cloud.button-latch`, reads the hardware button latch
+  (`cnc/button_latch`) and the kernel's lock through a dark print: both
+  set before the print; the lock released and the latch still set when
+  the button is asked for; the latch cleared and the lock released in
+  every sample taken while the kernel plays the job, on one press and no
+  other; both set again after the job. Only the machine can show that
+  latch ([The safing chain](../technical/machine/safing-chain.md#logic)).
+  The dark print that `exthost.armed-freeze` runs checks the lock the
+  same way: held before the print, released at the button and through
+  the run, held again after it. The offline client is
   left in place. The next test that needs the service restarts it
   (`enter_cloud` does), as does a mode switch or a controller restart.
   A takeover is the exception: when it finds the offline service running,
@@ -362,8 +372,12 @@ item:
   values (32, 112640 and 500000 at the default; the x8 base is 28160 and
   125000, doubled at 16 and quadrupled at 32), `x/y_decay=1`, `streaming=0`,
   `state=idle`, the latch locked, the hold currents. Also the head lamp and
-  button LEDs off, the heater and TEC off, and the lid lamp at the
-  `lid_lamp_idle` setting of forgectrl. On the head: purge air on, which is
+  button LEDs off (a pulsing LED counts as on, since a pulse swings its
+  target down to 0; while a fault stands, the engine's red flash is the
+  machine's own state and is left alone), the TEC off, the heater off unless the coolant flow
+  watch holds it (then within 2 percent, 1311 counts, of the duty
+  `GET /cool/flow` reports), and the lid lamp at the `lid_lamp_idle`
+  setting of forgectrl. On the head: purge air on, which is
   how the machine idles, and the lens motor at its hold current in half
   step. A check that borrows any of them hands them back, and the checks
   that take the lens and the one that measures the purge fan by switching
@@ -406,6 +420,14 @@ that run**. A leftover the baseline put back fails it too: the restore is
 the bench cleaning up after a defect, not the defect's absence. A test
 passes only when the machine is handed back as it was found.
 
+A restore that counts as a pass hides the defect from everyone but the
+bench. The airflow check measures the purge fan by switching it off: a
+version of it that walks away without switching the fan back on leaves the
+machine with the purge fan off until the daemon next restarts. The first
+job after that is held mid-cut by the airflow gate, judged against the
+floor that same check wrote, and the operator meets the defect at the first
+fire instead of the bench meeting it here.
+
 A leftover is what a run left behind, not the machine part-way through its
 own work. The cooling engine publishes its state one time each second. Thus
 a read in the second after a run ends can show the last state of the run: the
@@ -416,13 +438,21 @@ cleared is not a leftover. One that a run left behind stays, because it holds
 for a job that does not come back. A cooldown phase that ends by itself is
 not a leftover.
 
-That rule is new, and it exists because its absence shipped. The airflow
-check measures the purge fan by switching it off, and it walked away
-without switching it back on. The leftover was recorded, the test passed,
-and the machine sat with the purge fan off until the daemon next
-restarted. The first job after that was held mid-cut by the airflow gate,
-judged against the floor that same check had written, and the operator met
-the defect at their first fire instead of the bench meeting it here. A takeover run
+The cooling engine's attention is judged first
+([The operator's attention](../technical/forgefirm/cooling-engine.md#the-operators-attention)).
+A failure that waits for its acknowledgment, its cause gone, blocks the
+next job: the baseline acknowledges it (`POST /cool/attention/ack`),
+records it as a leftover, `attention`, restored, and waits 1.5 s for the
+engine to release its red flash at its next tick before the LEDs are read.
+The notices of faults that cleared on their own block nothing and are not
+leftovers. The baseline reads them before a run and leaves them standing,
+since the panel's notices may be the owner's own. After the run it names
+in the run's log each notice the run raised (one that is new, or one from
+before that was counted again) and dismisses those. The engine dismisses
+by sequence number, every notice up to one, so when a notice from before
+the run still stands none is dismissed, and the log says so.
+
+A takeover run
 also captures the kernel attributes that the controller owns, on entry. It
 writes them back before forgectrl restarts. Thus the liveness probe of the
 supervisor runs on the machine that it expects. The runner waits for

@@ -51,21 +51,28 @@ Do not build as root. The Yocto sanity checks refuse it.
 The convention for work on the project is one base working directory,
 `openglow-forgefirm`. Every source repository of the project is checked out
 into it, as a sibling of the others. The directory itself is not a
-repository. The kas configuration and the bench build scripts depend on this
-layout: they refer to the siblings by relative path.
+repository. The bench build scripts, and the development form of the kas
+configuration, depend on this layout: they refer to the siblings by
+relative path.
 
-Make the directory, then clone the two repositories that a build needs:
+Make the directory, then clone the one repository that a build needs:
 
 ```console
 mkdir openglow-forgefirm && cd openglow-forgefirm
 git clone https://github.com/openglow-org/forgefirm.git
-git clone -b scarthgap https://github.com/openglow-org/meta-openglow.git
 ```
 
-The kas configuration refers to `meta-openglow` (branch `scarthgap`) at
-`../meta-openglow`. kas gets the upstream Yocto layers itself. Each recipe
-gets its ForgeFIRM source repository from GitHub at a pinned revision. Thus
-a build needs no other checkout.
+kas gets the layers itself: the upstream Yocto layers, and `meta-openglow`
+from GitHub (branch `scarthgap`) into `forgefirm/layers/meta-openglow`, each
+at the commit the lockfile names
+([Lock the layer versions](#lock-the-layer-versions)). Each recipe gets its
+ForgeFIRM source repository from GitHub at a pinned revision. Thus a build
+needs no other checkout. For work on the BSP, clone `meta-openglow` beside
+`forgefirm` and switch the configuration to it (below):
+
+```console
+git clone -b scarthgap https://github.com/openglow-org/meta-openglow.git
+```
 
 For work on a component, clone its repository into the same directory. The
 build scripts in `forgefirm/scripts/bench/` find it there, and a local
@@ -78,10 +85,10 @@ openglow-forgefirm/            the base working directory (not a repository)
 │   ├── kas/
 │   │   └── forgefirm-glowforge.yml   the build entry point
 │   ├── meta-forgefirm/        the ForgeFIRM layer
-│   ├── layers/                the upstream layers that kas clones (gitignored)
+│   ├── layers/                the layers that kas clones, meta-openglow included (gitignored)
 │   ├── build/                 the bitbake output, images included (gitignored)
 │   └── downloads/ sstate-cache/      the caches (gitignored)
-├── meta-openglow/             the Glowforge BSP layers (necessary for a build)
+├── meta-openglow/             the Glowforge BSP layers, for work on the BSP (optional)
 ├── forgectrl/                 a component checkout, for work on it (optional)
 ├── grblHAL-glowforge/         the same
 ├── kernel-module-glowforge/   the same
@@ -90,10 +97,14 @@ openglow-forgefirm/            the base working directory (not a repository)
 └── forgefirm-docs/            this site (optional)
 ```
 
-The configuration refers to `meta-openglow` as a local sibling. Thus the
-build uses your in-place edits to the BSP. The configuration also has a
-pinned-remote block, commented out. With that block, the `forgefirm`
-repository is fully self-contained ([Release flow](release-flow.md)).
+The configuration takes `meta-openglow` from its pinned-remote block: the
+GitHub repository, branch `scarthgap`, cloned to `layers/meta-openglow` at
+the commit in the lockfile. Thus the `forgefirm` repository is fully
+self-contained. The file carries the local-sibling form beside it,
+commented out, as the development alternative: `path: ../meta-openglow`
+with no `url`, so kas performs no git operations and the build uses your
+in-place edits to the BSP. Switch to it for a build of BSP work, and back
+before you commit ([Release flow](release-flow.md)).
 
 ## Build the images
 
@@ -132,7 +143,8 @@ image's carries the root filesystem alone.
 
 ## The source variant
 
-A release publishes the source of the software that it installs. The
+A release publishes the source of the software in the images that it
+publishes, the release image and the dev image. The
 overlay `kas/source-bundle.yml` turns on the Yocto archiver, and the build
 writes the source of each recipe to `forgefirm/build/tmp/deploy/sources/`:
 
@@ -193,8 +205,8 @@ kas-container build kas/forgefirm-glowforge.yml
 
 ### Lock the layer versions
 
-The configuration follows the `scarthgap` branch of each upstream layer. To
-lock each layer to an exact commit:
+The configuration follows the `scarthgap` branch of each layer it clones,
+`meta-openglow` included. To lock each layer to an exact commit:
 
 ```console
 kas lock kas/forgefirm-glowforge.yml      # writes kas/forgefirm-glowforge.lock.yml
@@ -322,6 +334,7 @@ sets them.
 | `GF_SWITCH_DEV` | The switch device's path, in place of the one the device tree names `switches`, so a host test can hand the controller another input device ([the grblHAL driver](../technical/forgefirm/grblhal-driver.md#lid-interlock-and-button)). |
 | `GF_SWITCH_FILE` | A file-backed `EV_SW` word, so a harness can drive the lid, interlock and button edges. Read only when no switch device opens. |
 | `GF_VERDICT_FILE` | A cooling verdict file the harness writes, in place of the engine's. |
+| `GF_LED_ROOT` | The LED class, default `/sys/class/leds`, so a host test can read what the controller writes to the button lamp. |
 | `GF_STATE_DIR` | The state directory, default `/run/forgefirm`: where the controller publishes `grbl.state` and `grbl.settings`, opens its control socket `grbl.ctl`, reads the lens marker `lens.home` and keeps the release marker `motors.released`. |
 | `gfcloud_home_cmd` | The homing runner to spawn for `$H`. |
 | `laser_power_model`, `laser_floor_analog` | Select the retired analog rendering and its duty floor, which exist only as the harness's conservatism reference ([the grblHAL driver](../technical/forgefirm/grblhal-driver.md#laser-control)). |
@@ -385,10 +398,13 @@ port, `/proc/stat`). The bench overrides are the `GFCOOL_*` tunables of the
 [cooling engine](../technical/forgefirm/cooling-engine.md), and
 `FORGECTRL_FLAG_EVERY`, a drill of the
 [video pipeline's frame health](../technical/forgefirm/video-pipeline.md#frame-health).
-Nothing on a machine sets one. Three of the seams are test hooks, honored
-only in a host-test run (`FORGECTRL_HOST_TEST=1`): `GF_SYSFS_ROOT` (the
-module's sysfs tree), `GF_SWITCH_DEV` (the switch device) and `GF_RUN_DIR`
-(the run directory). The sources read them only through one gate
+Nothing on a machine sets one. The seams that `TEST_HOOKS` in `src/main.c`
+names are test hooks, honored only in a host-test run
+(`FORGECTRL_HOST_TEST=1`). Each moves a machine path (the module's sysfs
+tree, the switch device, the run directory, the dev-image marker, the
+boot's data record, the LED class) or stands in for a program a host test
+must not run (the slot inventory, the reboot). The sources read them only
+through one gate
 (`src/testhook.h`); in any other run each reader takes its machine path,
 and the daemon logs a warning, `test hooks set and ignored, not a
 host-test run:`, naming them. As it starts, the daemon logs one notice,

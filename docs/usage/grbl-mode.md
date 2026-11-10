@@ -83,15 +83,20 @@ even with the laser on and the button pressed: the Move panel never fires.
 The first laser-on of a job does not fire. Instead the machine checks that it
 is fit to cut, and then waits for you:
 
-1. **Is the cooling healthy?** If the coolant is not proven to be moving, or
-   is too warm or too cold, the machine refuses to arm and says so
-   ([Cooling and fans](cooling-and-fans.md)).
+1. **Is the cooling healthy?** If the coolant is too warm or too cold, the
+   machine refuses to arm and says so
+   ([Cooling and fans](cooling-and-fans.md)). So it does while a fault waits
+   for your **Acknowledge** on the control panel:
+   `laser fire blocked: a fault waits for its Acknowledge on the control panel`
+   ([The control panel](control-panel.md#the-page)).
 2. **Is the print head there?** No head, no arming: the lens, the air assist
    and the beam sensor all live on it.
 3. **The fans go to the cut profile**, so every moment the beam can fire is
-   covered by running fans and an active coolant check.
-4. **The button lights white and the job waits** for your press. Your sender
-   keeps getting status reports, so it will not time out.
+   covered by running fans.
+4. **The button breathes white and the job waits** for your press. Your
+   sender keeps getting status reports, so it will not time out. While the
+   job moves, the button is solid white; while it is paused or held, dark
+   ([The button](index.md#the-button)).
 
 The mechanism behind each step is on
 [The grblHAL driver](../technical/forgefirm/grblhal-driver.md#the-armed-window).
@@ -107,34 +112,49 @@ open against a fault that appeared while the machine was waiting.
 and `M5`/`M3` toggles, so nothing asks you again in the middle of a job. It
 closes, and the laser locks again, when:
 
-- the job ends (`M2`, `M30`, `%`), the normal case;
+- the job ends (`M2`, `M30`), the normal case. A `%` does not end a job
+  that a sender streams: a file that ends on `%` alone closes its window
+  by the idle time below;
 - your sender disconnects or a different one connects, because the consent
   you gave belonged to that session;
-- the laser has been off and idle for `laser_disarm_s` (60 s by default),
-  which keeps counting while a job sits paused and while you jog: a jog is
-  not the job you consented to, and never keeps the window open;
+- the machine has been idle for `laser_disarm_s` (60 s by default),
+  whether or not the job sent an `M5`. The time also counts while a job
+  sits paused and while you jog: a jog is not the job you consented to, and
+  never keeps the window open;
 - the cooling engine's fail tier (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`):
   the job ends with alarm 3 and the laser locked;
-- anything goes wrong: an alarm, a homing cycle, a reset, or a stream fault.
+- the machine homes, by either method ([Homing](homing.md));
+- anything goes wrong: an alarm, a reset, or a stream fault.
 
-The next job asks for a fresh press. That is the same press the machine's own
+The next job asks for a fresh press, also when it starts right behind the
+last one's `M2`. That is the same press the machine's own
 hardware latch needs, which is why the software and the hardware can never
 disagree about whether the machine is armed.
+
+When the window closes with `M3` or `M4` still in force and no job paused,
+the controller turns the laser off for you, so the next `M3` or `M4` asks
+for the button.
+The console says
+`laser off (M5): the armed window closed - the next M3 or M4 asks for the button`.
+A job that was only waiting (a sender that stopped sending, a long dwell)
+does not carry on without the laser. Its next cutting move, a feed move
+under an `S` above zero that it sent since, ends it with alarm 3 and
+`the laser window closed while the job waited - job stopped; start it again`.
 
 ## Pausing, stopping, and faults
 
 | You do | What happens |
 |---|---|
 | Feed hold (`!`) | Controlled ramp to a stop, position kept. The ramp runs lit (velocity-scaled under `M4`), the stop is dark, and the disarm grace keeps counting. |
-| Cycle start (`~`) | Resumes from the hold, lit from the first step: a pause is a sharp corner in time, and the corner rolloff governs its mark. If the grace closed the window during the pause, the button lights first and your press resumes the job. Under a standing pause-tier verdict the resume moves dark and is held again within a second, and the console says why. |
-| Your sender disconnects mid-job | A laser job is held where the cut stopped and the window closes. The next sender finds it in Hold: `~` lights the button and a press resumes it, or `^X` ends it. A motion-only job continues to its end. |
+| Cycle start (`~`) | Resumes from the hold, lit from the first step: a pause is a sharp corner in time, and the corner rolloff governs its mark. If the window closed during the pause, the button breathes white first, and after your press the job resumes once the fans are back up to speed. Under a standing pause-tier verdict, a resume with the window still open moves dark and is held again within a second, and the console says why; with the window closed the resume is refused and the job stays held (below). |
+| Your sender disconnects mid-job | A laser job is held where the cut stopped and the window closes. The next sender finds it in Hold: `~` sets the button breathing and a press resumes it, or `^X` ends it. A motion-only job continues to its end. |
 | Jog cancel (`0x85`) | Controlled stop, jog abandoned, position kept. |
 | Soft reset (`^X`) | The laser locks and the machine slows to a stop. The position stays true. The machine is in Alarm: `$X` clears it. If the console says that the position cannot be read back, home before you trust the coordinates ([Homing](homing.md)). |
 | Press the button mid-job | Pause; press again to resume (below). |
 | Open the lid or the interlock loop | The job is **canceled**, not paused (below). |
 | Ring runs dry (underrun) | Motion stops instantly. Under a playing stream it is a fault, armed or not: alarm, latch relocked, position invalidated; re-home before trusting coordinates. Outside the armed window, an underrun as motion starts raises no alarm and the job goes on, but the position is invalidated all the same: re-home before trusting coordinates ([Homing](homing.md)). |
-| Cooling verdict, pause tier (`OVERTEMP`, `COLD`, `WARMUP`, `SENSOR`, `FLAME`, `BUMP`, or a verdict gone stale) | Feed hold with the cut airflow on; the deceleration runs lit and the stop is dark. When the verdict clears, the job resumes on its own. If the grace closed the window during the pause, the button lights first and your press resumes the job. |
-| Cooling verdict, fail tier (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`) | The job ends with alarm 3 and the laser locked; nothing resumes it. Resolve the verdict, `$X`, start again ([Cooling and fans](cooling-and-fans.md)). |
+| Cooling verdict, pause tier (`OVERTEMP`, `COLD`, `WARMUP`, `SENSOR`, `FLAME`, `BUMP`, or a verdict gone stale) | Feed hold with the cut airflow on (a `WARMUP` holds with the fans idle); the deceleration runs lit and the stop is dark. When the verdict clears, the job resumes on its own. If the grace closed the window during the pause, the button breathes white first and your press resumes the job. A press or `~` while the verdict still stands over a closed window is refused, and the job stays held: `laser fire blocked: a cooling gate is closed - the job stays held`. A `SENSOR`, `FLAME`, or `BUMP` that still stood when the window closed needs your **Acknowledge** on the control panel once it clears: the job stays held until then, and after it the button breathes white and your press resumes the job. A press or `~` before the Acknowledge is refused the same way: `laser fire blocked: a fault waits for its Acknowledge on the control panel - the job stays held`. If the cooling service is not answering, a resume over a closed window ends the job with alarm 3. |
+| Cooling verdict, fail tier (`FIRE`, `CRASH`, `AIRFLOW`, `CRITICAL`) | The job ends with alarm 3 and the laser locked; nothing resumes it, and the button flashes red. A held job whose window has closed ends the same way when you resume it under one of these. Resolve the verdict, press **Acknowledge** on the control panel, `$X`, start again ([Cooling and fans](cooling-and-fans.md)). |
 | A move past the bed, after `$H` | Alarm 2 before any motion for a program move, error 15 for a jog: after a home the bed is the limit ([Homing](homing.md)). |
 | Controller crash or hang | The daemon stops motion and relocks the latch, then restarts the controller. |
 
@@ -177,8 +197,8 @@ ForgeFIRM reproduces the factory machine's behavior:
 - **The button pauses and resumes.** In GRBL mode a press is a feed hold and
   the next press is a cycle start. A pause is not a cancel: the armed window
   stays open across it. A pause longer than the disarm grace closes the
-  window; the next press then lights the button and re-arms before the job
-  resumes.
+  window; the next press then sets the button breathing white, and your
+  press re-arms before the job resumes.
 - **Idle lid cycles are ignored.** Opening the lid to load material, or
   powering up with it open, does not leave the controller parked. Senders
   connect normally.

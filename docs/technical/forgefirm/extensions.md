@@ -445,8 +445,7 @@ A package with the operator's `job_time.run` grant is not frozen: it runs
 on at 3 percent of the core. The freeze follows the `armed` field of
 `GET /cool/status`, read once a second. On the bench reference, across a
 37.5 s window, the service's group read frozen 0.4 s after the field turned
-on, 5 s before the latch unlocked for the run, and thawed 0.6 s after it
-turned off.
+on and thawed 0.6 s after it turned off.
 
 A service that does not freeze is not left running. The host waits 300 ms
 for the kernel's `frozen` flag and asks again at its next turn; after three
@@ -525,9 +524,11 @@ their types, the monotonic stamp, the write period inside the reader's
 window, and a silent host's files going stale.
 `exthost.armed-freeze` opens a real armed window over it with a dark cloud
 print and samples the engine's flag, the group's state, the service's
-heartbeat, and the latch five times a second: frozen from 2 s in to the
-close with the heartbeat still, the freeze in place before the latch unlocks
-for the run, thawed within 3 s of the close, one process throughout.
+heartbeat, the latch, and the kernel's state five times a second: frozen
+from 2 s in to the close with the heartbeat still, the freeze in place
+before the run starts (the kernel's first running sample; how far the
+freeze led the latch's unlock for the press is recorded as evidence),
+thawed within 3 s of the close, one process throughout.
 forgectrl's `extpkg_test` holds the operator's door's relay to the host's
 command line, the consent each tier takes, a key's form, and the button an
 install and a key are passed. Its `tests/host_ext.sh`, against a stand-in
@@ -642,7 +643,9 @@ A package is judged by who signed it: the OpenGlow extension key makes it
 official, a key under `<root>/keys/*.pub` makes it community, and anything
 else is unverified. Those keys are the owner's, and the trust anchor is
 theirs to replace, so `POST /ext/key` takes one only with the machine's
-button held, the way unsigned firmware is installed. The key itself is
+button held, the way unsigned firmware is installed, and refuses it, as
+`POST /ext/install` does, while a job could take that press
+([forgectrl](forgectrl.md#http-api)). The key itself is
 written to a file and handed to the host as a path, never as an argument,
 and the host parses it as an Ed25519 public key (fwup's base64, or 32 raw
 bytes) before it lands: what cannot be read as a key never becomes a trust

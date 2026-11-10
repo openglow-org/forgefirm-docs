@@ -18,6 +18,7 @@ file.
 | Pin file | Layer |
 |---|---|
 | `recipes-forgefirm/forgectrl/forgectrl-pin.inc` | `meta-forgefirm` |
+| `recipes-forgefirm/forgeext/forgeext-pin.inc` | `meta-forgefirm` |
 | `recipes-forgefirm/grblhal-glowforge/grblhal-glowforge-pin.inc` | `meta-forgefirm` |
 | `recipes-forgefirm/forgefirm-app/forgefirm-app-pin.inc` | `meta-forgefirm` |
 | `recipes-kernel/kernel-modules/kernel-module-glowforge-pin.inc` | `meta-glowforge-bsp` |
@@ -91,10 +92,16 @@ the revisions it declares, and the release pipeline tags the site with the
 release.
 
 `meta-openglow` is on its `scarthgap` branch (the Yocto layer convention).
-Development occurs on the local sibling checkout, and `scarthgap` is pushed
-as work lands. `kas lock` locks the upstream layers (poky, meta-openembedded,
-meta-freescale, meta-freescale-distro). The lockfile is committed. Refresh
-it only when you decide to.
+The kas configuration builds it from GitHub at the commit the lockfile
+names, so that commit is the pin of the BSP layers: a `meta-openglow` change
+is pushed to `scarthgap`, and its commit then goes into the lockfile, as a
+pin bump goes into its `-pin.inc` (step 2 of the push order). BSP work
+builds from the
+local sibling checkout through the configuration's commented development
+form ([Build](building.md#get-the-sources)), switched back before the
+commit. The lockfile locks the upstream layers (poky, meta-openembedded,
+meta-freescale, meta-freescale-distro) and `meta-openglow`. It is
+committed. Refresh it only when you decide to.
 
 ## At release time
 
@@ -105,9 +112,10 @@ it only when you decide to.
    platform change and does not invalidate the campaign
    ([Acceptance](acceptance.md#domain-fingerprints-and-inheritance)). Set it whenever
    you like, before or after the campaign.
-2. In `kas/forgefirm-glowforge.yml`, change `meta-openglow` from the
-   local-sibling block to the pinned-remote block (the commented block in
-   the file).
+2. Check that `kas/forgefirm-glowforge.yml` takes `meta-openglow` from its
+   pinned-remote block, as committed, and not from the commented
+   local-sibling form, and that the lockfile names the `meta-openglow`
+   commit the release builds.
 3. Refresh `kas lock`.
 4. Tag `forgefirm` with `v<version>`. The release version belongs to ForgeFIRM
    alone: the components (`forgectrl`, `grblHAL-glowforge`,
@@ -153,7 +161,7 @@ release.sh --dev                   build and pack a dev-signed .fw for the
 | `FWUP` | The host `fwup` for the pack step. Default: `fwup` on `PATH`. |
 | `FWUP_COMPAT` | A factory-era fwup 0.14.2 binary. When set, the script verifies the packed archive with it (raw-format key). This replicates the factory-compatibility guarantee. |
 | `FORGEFIRM_SIGNING_KEY` | The private key for release mode. Required, with no default, so that the key choice is always deliberate. |
-| `FORGEFIRM_DEV_KEY` | The private key that signs the dev archive: the `forgefirm-dev.fw` of a release, and the archive of `--dev` mode. Required for both. It must not be the release key. |
+| `FORGEFIRM_DEV_KEY` | The private key that signs the dev archive: the `forgefirm-dev.fw` of a release, and the archive of `--dev` mode. Required for both. Both modes refuse it when it is the release key (the dev key gate, below). |
 | `RELEASE_STAGING_DIR` | The directory for the staged release assets. Default: `<repo>/release-staging`. |
 | `FORGEFIRM_ACCEPTANCE_SKIP` | `1` bypasses the acceptance gate. The script prints a loud warning, attaches `NO-ACCEPTANCE.txt` in place of the acceptance artifact, and publishes the release as a prerelease. This is never the default. |
 | `FORGEFIRM_SOURCE_SKIP` | `1` builds the release without the source bundle. The licenses of the software in the image make source necessary, so this is never the default. |
@@ -161,19 +169,51 @@ release.sh --dev                   build and pack a dev-signed .fw for the
 | `FORGEFIRM_DOCS_SKIP` | `1` releases without tagging the documentation. Never the default. |
 
 The script runs its gates, builds both images, packs and signs
-`forgefirm.fw`, stages the assets with `sha256sums.txt`, and prints the
-`gh release create` command. The release notes are
+`forgefirm.fw` and `forgefirm-dev.fw`, stages the assets with
+`sha256sums.txt`, and prints the `gh release create` command. The assets
+are made in `<staging>/v<version>.tmp` and renamed to `<staging>/v<version>`
+only when every gate has passed. What an earlier run staged for the version
+is removed before the build, once the key, repository, and version gates
+have passed, so from there on the directory the publish command reads holds
+the assets of this run or nothing. The release notes are
 `releases/v<version>/notes.md` when the release carries that file (staged
 beside the assets, not uploaded as one); otherwise GitHub generates them.
 The gates:
 
+- **The repository state.** The build tree must be a clean git checkout: a
+  dirty tree stops the script. With `--publish`, a HEAD that differs from
+  its upstream (a commit not pushed) and a build tree that is not a git
+  checkout (an rsynced copy) each stop it too, so a published release is
+  built from the pushed commit its tag names. Staging without `--publish`
+  only warns about either. With `--publish` the tag `v<version>` must also
+  exist in the build tree and name HEAD: the release is attached to that
+  tag, and `gh release create` runs with `--verify-tag`, so it makes no tag
+  of its own.
 - **The version contract.** `<version>` must equal `FORGEFIRM_RELEASE` in
-  `forgefirm-image.bb`, `/etc/forgefirm-version` in the built rootfs
+  `forgefirm-release.inc`, `/etc/forgefirm-version` in the built rootfs
   (`v<version>`), the `.fw` meta-version, and the release tag `v<version>`.
 - **The rootfs size**, against the 200 MiB slot, for the release rootfs and
   the dev rootfs: a warning at 170 MiB, a failure at 195 MiB.
+- **One build.** The dev rootfs is found through the dev image's own deploy
+  link, never by a name derived from the release rootfs, and it must be the
+  build of the release rootfs: the two manifests
+  (`/etc/forgefirm-manifest.json`) must have the same identity, which is
+  every component at its revision with its files, the dev image's own
+  components left out, plus the platform. A dev rootfs that an earlier
+  build of other sources left, or a rootfs with no manifest, stops the
+  script.
+- **The signing key.** Its public half must be the release key the image
+  trusts
+  (`meta-forgefirm/recipes-forgefirm/forgefirm-keys/files/forgefirm-release.pub`):
+  a machine verifies an update against the key its own image carries. Keys
+  are compared as their decoded 32 bytes, not as text, and a file that does
+  not hold such a key stops the script.
 - **The dev key.** The key that signs `forgefirm-dev.fw` must not be the
-  release key.
+  release key. The script refuses a dev key whose public half is the
+  in-tree release key every machine trusts
+  (`meta-forgefirm/recipes-forgefirm/forgefirm-keys/files/forgefirm-release.pub`),
+  in release mode and in `--dev` mode alike, and in release mode also one
+  whose public half is the signing key's.
 - **The installer key.** The public key in the installer must agree with the
   signing key.
 - **The factory-era verification.** The packed archive must verify with
@@ -184,9 +224,15 @@ The gates:
 - **The source bundle.** Each recipe of the image whose license makes
   source necessary must have its source in the bundle (see below).
 - **The documentation.** A `forgefirm-docs` checkout must exist and be
-  clean. The pipeline tags it with the release version.
+  clean. The pipeline tags it with the release version. A tag `v<version>`
+  that the checkout already carries must name its HEAD; one that names
+  another commit stops the script.
 
-A problem in a gate stops the script before the signature.
+A problem in a gate stops the script. Three gates run after the two
+archives are signed: the factory-era verification, whose input is the
+signed archive, the source bundle, and the documentation. A gate that
+stops the script there leaves the signed archives in
+`<staging>/v<version>.tmp` and nothing in `<staging>/v<version>`.
 
 The installer and the update manager of the panel download the assets by
 these exact names:
@@ -212,18 +258,22 @@ The last two are the dev image of the release, the archive for a slot and
 the image for an SD card. The SD card image carries a data partition of the
 card's own: booted from the card, the machine keeps its settings, extensions,
 and logs there, starting from a finished setup, while the archive for a slot
-keeps the eMMC's `/data` ([The bench](bench.md#the-sd-card)); the release
-notes say so. `forgefirm-dev.fw` is signed with the dev key,
+keeps the eMMC's `/data` ([The bench](bench.md#the-sd-card)).
+`forgefirm-dev.fw` is signed with the dev key,
 which no machine trusts, so the control panel installs it only with the
 machine button held. The dev image lets root log in over SSH with no
 password and takes changes with the panel token alone, and its pages carry
 a red DEVELOPMENT IMAGE bar
-([The control panel](../usage/control-panel.md#the-page)); the release notes
-say so.
+([The control panel](../usage/control-panel.md#the-page)).
 
-`sha256sums.txt` covers every other asset, the source bundle included. With
-the acceptance gate skipped, `NO-ACCEPTANCE.txt` takes the place of the two
-acceptance files and the release is a prerelease.
+The pipeline adds nothing about the dev image to the release body, because
+every machine's update notice shows that body. Instead the two dev assets
+carry a label on the release page, after the file name:
+`development only: root SSH open, not release-signed (docs.forgefirm.org/developers/bench)`.
+
+`sha256sums.txt` covers every other asset, the source bundle and the two dev
+assets included. With the acceptance gate skipped, `NO-ACCEPTANCE.txt` takes
+the place of the two acceptance files and the release is a prerelease.
 
 ## The source bundle
 
@@ -242,8 +292,9 @@ with the `series` file that gives their order, and the recipe with its
 includes. A recipe that gets its source from git is archived as a tar of
 the checkout at the pinned revision. `COPYLEFT_LICENSE_INCLUDE` in the
 overlay holds the license families that make source necessary, and
-`COPYLEFT_PN_INCLUDE` names the ForgeFIRM components, which are MIT and
-travel with the release too.
+`COPYLEFT_PN_INCLUDE` names the ForgeFIRM components, `forgeext` and the
+dev image's `forgetest` among them, which are MIT and travel with the
+release too.
 
 `scripts/source-bundle.py` packs the bundle:
 
@@ -258,6 +309,13 @@ forgefirm-source-v<version>.tar.gz
                                   the ForgeFIRM layers, the image manifests
   sha256sums.txt                  the checksum of every file above
 ```
+
+The ForgeFIRM layers in `metadata/` are `meta-forgefirm` and the two BSP
+layers, taken from the `meta-openglow` checkout that the kas configuration
+names: the pinned clone `layers/meta-openglow` for a release, the sibling
+checkout in the development form. The layer revisions record that
+checkout's revision, so the bundle describes the BSP that built the
+binaries.
 
 What the bundle must hold comes from the images, not from a list in the
 script: the two license manifests that the build writes for each image,

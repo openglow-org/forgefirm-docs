@@ -128,7 +128,8 @@ a job applies.
 1. Home the machine, put scrap material under the head, and close the lid.
 2. Open **Calibration** and press **Burn the mark**. The head first traces
    the mark without the laser; a mark closer than 1.5 mm to an edge of the
-   work area is refused. Press the button on the machine when it lights. The
+   work area is refused. Press the button on the machine when it breathes
+   white. The
    mark is a plus sign 3 mm wide, burned where the laser is.
 3. The head moves by the offset, about 25 mm, so the camera sees the mark.
 4. Drag the blue crosshair onto the center of the burned plus, then nudge

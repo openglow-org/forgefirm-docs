@@ -183,11 +183,11 @@ for the arm button and then fires.** The motion-only modes are:
 - A job whose layers emit no laser-on command: turn the layer's **Output** off
   in the cut settings, or send G-code that stays in `M5`.
 - A job run with the laser latch left locked (never press the arm button): the
-  job pauses at the white-button prompt and aborts after
+  job pauses at the prompt, the button breathing white, and aborts after
   `laser_button_timeout_s`. Useful only to confirm the prompt itself.
 
-If the white arm prompt appears and you did not intend to fire, press **Stop**
-in LightBurn.
+If the button starts breathing white and you did not intend to fire, press
+**Stop** in LightBurn.
 
 ## A good first job
 
@@ -207,5 +207,5 @@ and the head finishing per the job's return setting.
 4. For the live pass: put scrap material on the bed (never an empty honeycomb
    over the fan grill), re-enable the layer's **Output**, set power to **20 %**
    (any nonzero power marks; 20 % is a light pass on scrap), turn the layer's
-   **Air Assist** on, close the lid, **Frame**, **Start**, and press the white
-   button when it lights. Watch the whole job.
+   **Air Assist** on, close the lid, **Frame**, **Start**, and press the
+   button when it breathes white. Watch the whole job.
