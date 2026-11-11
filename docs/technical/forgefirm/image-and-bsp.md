@@ -152,9 +152,33 @@ too, and no campaign runs that image. The rules:
   `bin` directory, and no `/usr/share/udhcpc/default6.script`.
 - **factory**: on the release image, no `/etc/fstab` line mounts anything
   under `/factory/`.
+- **data-order**: `forgefirm-data` is on the image, and rcS starts it after
+  `mountall.sh` (which mounts `/data`) and `slotmigrate` (which needs `/data`
+  unmounted), and before every other rcS script that reads
+  `/data/forgefirm`, directly or through an `/etc/default` file (`bootmisc.sh`
+  for its timestamp, `urandom` for its seed).
 
-forgetest's `test_image.py` runs the lint on fixture trees: a tree that
-holds every rule passes, and a drift of each rule fails it. The acceptance
+## The image check
+
+`image-check.py`, next to the image recipe, reads the built image back once
+every image type is made (`do_image_complete`, on both images), and a drift
+fails the build. It reads ext4 and the partition table itself. The rules:
+
+- **size**: the raw ext4 that the `.fw` carries fits the slot (200 MiB),
+  file and filesystem.
+- **ext4**, **reserved**, **inodes**: ext4 with extents and its journal, no
+  blocks reserved for root, one inode per 8 KiB within a tenth.
+- On the dev image, its SD card image: two partitions, p1 the rootfs at the
+  slot's size and labeled `root`, p2 the card's data at 1024 MiB and labeled
+  `forgefirm-data`, both held to the ext4 rules; p1's `/etc/fstab` mounts
+  nothing of the card's data (the boot step does); and p2 is seeded as a
+  finished setup (`forgefirm/` 0711 and `log/` 0755, the import marker,
+  `forgefirm/users` holding the seed account, `forgefirm.conf` and
+  `setup.seed`, the three files 0600, every entry root's).
+
+forgetest's `test_image.py` runs the lint on fixture trees and the image
+check on small images it makes: one that holds every rule passes, and a
+drift of each rule fails it. The acceptance
 test `image.health` keeps the live half on the machine: what is running,
 what is mounted, and what the boot rendered. `release.sh` keeps three
 checks of the release rootfs: the empty root shadow field, `/` mounted

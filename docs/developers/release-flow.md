@@ -181,8 +181,9 @@ beside the assets, not uploaded as one); otherwise GitHub generates them.
 The gates:
 
 - **The repository state.** The build tree must be a clean git checkout: a
-  dirty tree stops the script. With `--publish`, a HEAD that differs from
-  its upstream (a commit not pushed) and a build tree that is not a git
+  dirty tree stops the script. With `--publish`, a HEAD commit that is not
+  its upstream's (a commit not pushed, an empty one included) and a build
+  tree that is not a git
   checkout (an rsynced copy) each stop it too, so a published release is
   built from the pushed commit its tag names. Staging without `--publish`
   only warns about either. With `--publish` the tag `v<version>` must also
