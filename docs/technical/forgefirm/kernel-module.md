@@ -1003,16 +1003,14 @@ Interface to control the button LEDs and the lid LEDs, driven by the
 - `target` (0 to 255): the brightness to settle on. The LED eases there from
   wherever it currently sits, and the target may be moved again mid-fade.
   A fade ends once it is within a sixteenth of a count of its target, and
-  the trigger then takes the value it reached as the target and reports
-  its integer part: a fade up to 255 reads back as 254 once it has
-  settled, and a fade down to 0 reads back as 0. A reader that judges
-  solid white takes 254 or more.
+  the LED then stands on the target: `target` reads back the level that was
+  written, whatever path the fade took to it.
 - `speed` (1 to 160): how fast the LED closes on its target. Defaults to 64.
 - `pulse_on`, `pulse_off` (milliseconds): raise both above zero and the LED
   swings between full and zero brightness on its own. `pulse_on` is how long
   it holds before dropping from 255 to 0, `pulse_off` how long before it
-  climbs back. Each is rounded down internally to a whole multiple of
-  `MSECS_PER_UPDATE`.
+  climbs back. Each is rounded down internally to a whole multiple of the
+  trigger's 20 ms step.
 
 ### /sys/class/leds/camera_mux_oe
 

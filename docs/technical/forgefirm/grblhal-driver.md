@@ -512,8 +512,7 @@ follows the machine's state is not written over the flash either
 within a second of the flash ending. The flash leaves
 the button dark when it ends, so an arm or re-arm wait under it breathes
 again within a second. Solid white is judged as no pulse and every target
-at 254 or more, which is how a settled 255 reads back
-([LEDs](kernel-module.md#leds)).
+at 255 ([LEDs](kernel-module.md#leds)).
 
 **Telemetry that gates nothing.** The `hv_enable` bit is the readback of the
 board's HV_ENABLE output (high only while a run feeds the charge-pump

@@ -683,7 +683,7 @@ set (breathing white, solid white, or dark) and writes that pattern again if
 something wrote over it, never over the red flash itself: the flash, when it
 ends, leaves the button dark, so a press wait under it breathes again then
 (`lamp_keep` in the GRBL controller, `_lamp_keep` in the cloud client).
-Solid white is read back as no pulse and every target at 254 or more
+Solid white is read back as no pulse and every target at 255
 ([LEDs](kernel-module.md#leds)). The GRBL controller's lamp that follows
 the machine's state is not written over the flash either: a change under
 it is recorded and written once the flash has ended. The cloud client's
