@@ -323,7 +323,7 @@ Each camera has its own lamp, and ForgeFIRM drives them around captures:
 - **While capturing**, the relevant lamp is raised to a fixed working level
   and restored when the camera goes idle.
 - **At rest**, the lid lamp sits at the `lid_lamp_idle` setting (0 to 255,
-  default 236), the bed light you normally see. It is asserted when the
+  default 240), the bed light you normally see. It is asserted when the
   daemon starts, when you change the setting, and whenever a controller
   starts.
 - **Per shot**, `/cam/snapshot` accepts `lamp=0..1023` to override the level
