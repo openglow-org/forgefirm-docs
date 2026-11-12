@@ -534,6 +534,20 @@ via the pulse stream).
 
 ## /sys/glowforge/head
 
+The head board takes its register writes over an I2C bus it shares with
+the head camera's sensor. While that camera starts or stops, the board now
+and then takes a write and does not apply it: the bus reports no error and
+the register keeps its old value (on the bench reference, about one write
+in a hundred made at those moments). So every write to a writable head
+attribute (`air_assist_pwm`, `measure_laser`, `uv_led`, `white_led`, and the
+`z_*` and `purge_air` bits) is read back and written again, up to five
+times 20 ms apart, until the register reads it; the module's safe state
+writes the same way. A bit is compared on its own, so the group register's
+other bits never fail it. A write that needed more than one try is logged
+(`register 0x18 held 0x0 after 2 writes`); one that never held is logged
+and the write fails with the bus's error, or `EIO` when the writes went
+through.
+
 ### accel_irq
 
 Read, ASCII, 0-1

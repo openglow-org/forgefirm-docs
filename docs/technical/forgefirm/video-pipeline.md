@@ -337,6 +337,11 @@ In cloud mode the cloud client drives the lid lamp for as long as it runs
 (its `LLvl`), and ForgeFIRM re-asserts your idle level the next time a
 controller starts.
 
+The head lamp is a head board register, which the kernel reads back after
+every write and writes again until it holds ([/sys/glowforge/head](kernel-module.md#sysglowforgehead)).
+A lamp write that fails all the same is logged
+(`cam: head lamp write 0 failed: Input/output error`).
+
 ## Sharing one camera path
 
 Because only one camera can capture at a time, requests have to be
