@@ -12,7 +12,8 @@ copyright: >-
   ForgeFIRM is an <a href="https://community.openglow.org">OpenGlow</a> project • 
   Text licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> • 
   Glowforge is a trademark of Glowforge, Inc. • 
-  Not affiliated with or endorsed by Glowforge, Inc.
+  Not affiliated with or endorsed by Glowforge, Inc. •
+  <a href="#__consent">Cookie settings</a>
 
 strict: true
 
@@ -102,6 +103,21 @@ extra:
     - icon: fontawesome/solid/comments
       link: https://community.openglow.org
       name: Community forum
+  # Google Analytics loads only after a visitor accepts it in the consent
+  # banner; the footer's Cookie settings link reopens the banner.
+  analytics:
+    provider: google
+    property: G-YE997D7M7J
+  consent:
+    title: Cookie consent
+    description: >-
+      This site uses Google Analytics cookies to see which pages people read,
+      so we can improve the docs. You can change your choice at any time with
+      Cookie settings at the bottom of the page.
+    actions:
+      - accept
+      - reject
+      - manage
 
 nav:
   - Home: index.md
