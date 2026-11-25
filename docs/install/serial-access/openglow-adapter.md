@@ -2,7 +2,7 @@
 title: OpenGlow Console Adapter
 ---
 
-The OpenGlow Console Adapter ([Amazon](https://www.amazon.com/dp/B0HJNS73KF), [Etsy](https://www.etsy.com/listing/4624592892/openglow-console-adapter-daughter-board)) 
+The OpenGlow Console Adapter ([Amazon (US)](https://www.amazon.com/dp/B0HJNS73KF), [Etsy (US/AU/CA/NZ/UK)](https://www.etsy.com/listing/4624592892/openglow-console-adapter-daughter-board)) 
 is a USB-C serial-console adapter for the Glowforge Basic, Plus, and Pro
 control board. It is available for purchase on Amazon, the sale of which helps to 
 support the OpenGlow project and the development of ForgeFIRM. It mounts onto the 
