@@ -13,6 +13,7 @@ copyright: >-
   Text licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> • 
   Glowforge is a trademark of Glowforge, Inc. • 
   Not affiliated with or endorsed by Glowforge, Inc. •
+  <a href="/privacy/">Privacy</a> •
   <a href="#__consent">Cookie settings</a>
 
 strict: true
@@ -113,7 +114,8 @@ extra:
     description: >-
       This site uses Google Analytics cookies to see which pages people read,
       so we can improve the docs. You can change your choice at any time with
-      Cookie settings at the bottom of the page.
+      Cookie settings at the bottom of the page. The
+      <a href="/privacy/">privacy page</a> has the details.
     actions:
       - accept
       - reject
